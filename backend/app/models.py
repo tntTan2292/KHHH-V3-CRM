@@ -132,10 +132,6 @@ class Customer(Base):
 class Transaction(Base):
     __tablename__ = "transactions"
     
-    __table_args__ = (
-        Index('idx_sender_canonical_date', 'ten_nguoi_gui_canonical', 'dia_chi_nguoi_gui_canonical', 'ngay_chap_nhan'),
-    )
-
     id = Column(Integer, primary_key=True, index=True)
     shbg = Column(String(100), index=True, nullable=True) # Số hiệu bưu gửi (Cho phép trùng lặp theo yêu cầu đối soát)
     ma_dv = Column(String(50), nullable=True, index=True)
@@ -170,6 +166,7 @@ class Transaction(Base):
 
     # Index tổ hợp để tăng tốc truy vấn doanh thu theo khách hàng + thời gian
     __table_args__ = (
+        Index('idx_sender_canonical_date', 'ten_nguoi_gui_canonical', 'dia_chi_nguoi_gui_canonical', 'ngay_chap_nhan'),
         Index('idx_trans_ma_kh_date', 'ma_kh', 'ngay_chap_nhan'),
         Index('idx_trans_sender_date', 'ten_nguoi_gui', 'ngay_chap_nhan'),
         Index('idx_trans_staff_date', 'staff_id', 'ngay_chap_nhan'),
