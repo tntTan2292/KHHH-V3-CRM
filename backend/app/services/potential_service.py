@@ -220,77 +220,82 @@ class PotentialService:
         ma_bc: str = None,
         start_date: str = None,
         end_date: str = None,
-        node_code: str = None
+        node_code: str = None,
+        page: int = 1,
+        page_size: int = 10
     ):
-        # 1. Định danh chính xác bằng Tên + Địa chỉ (chuẩn hóa)
+        # 1. Định danh chính xác bằng cột Canonical (Đã Index)
         c_name = normalize_name(ten_kh)
         c_addr = normalize_name(dia_chi_full or "")
         
+        # 2. Xây dựng Query chuẩn SQL (Giải quyết triệt để vấn đề Scale)
         scope_ids = ScopingService.get_effective_scope_ids(db, current_user, node_code)
         
-        tx_query = db.query(Transaction).filter(
-            (Transaction.ma_kh == '') | (Transaction.ma_kh == None)
+        base_query = db.query(Transaction).filter(
+            (Transaction.ma_kh == '') | (Transaction.ma_kh == None),
+            Transaction.ten_nguoi_gui_canonical == c_name
         )
         
+        if dia_chi_full:
+            base_query = base_query.filter(Transaction.dia_chi_nguoi_gui_canonical == c_addr)
+        if ma_bc:
+            base_query = base_query.filter(Transaction.ma_dv_chap_nhan == ma_bc)
         if scope_ids is not None:
-            tx_query = tx_query.filter(Transaction.point_id.in_(scope_ids))
+            base_query = base_query.filter(Transaction.point_id.in_(scope_ids))
         if start_date:
-            tx_query = tx_query.filter(Transaction.ngay_chap_nhan >= f"{start_date} 00:00:00")
+            base_query = base_query.filter(Transaction.ngay_chap_nhan >= f"{start_date} 00:00:00")
         if end_date:
-            tx_query = tx_query.filter(Transaction.ngay_chap_nhan <= f"{end_date} 23:59:59")
-            
-        all_txs = tx_query.all()
+            base_query = base_query.filter(Transaction.ngay_chap_nhan <= f"{end_date} 23:59:59")
+
+        # 3. Lấy tổng số lượng (SQL Count)
+        total_count = base_query.count()
         
-        # 2. Filter chính xác bằng logic Python (do SQLite không hỗ trợ regex/normalization phức tạp)
-        filtered_txs = []
-        for tx in all_txs:
-            if normalize_name(tx.ten_nguoi_gui or "") == c_name:
-                if dia_chi_full is not None and normalize_name(tx.dia_chi_nguoi_gui or "") != c_addr:
-                    continue
-                if ma_bc is not None and tx.ma_dv_chap_nhan != ma_bc:
-                    continue
-                filtered_txs.append(tx)
+        # 4. Lấy dữ liệu phân trang (SQL Limit/Offset - PRODUCTION STANDARD)
+        txs = base_query.order_by(Transaction.ngay_chap_nhan.desc())\
+                        .limit(page_size)\
+                        .offset((page - 1) * page_size)\
+                        .all()
         
-        # Sắp xếp theo ngày mới nhất
-        filtered_txs.sort(key=lambda x: x.ngay_chap_nhan if x.ngay_chap_nhan else datetime.min, reverse=True)
+        # 5. Lấy dữ liệu Tần suất tháng (SQL Group By - Tối ưu RAM)
+        # Sử dụng func.strftime cho SQLite
+        monthly_query = db.query(
+            func.strftime('%m/%Y', Transaction.ngay_chap_nhan).label('month_disp'),
+            func.strftime('%Y-%m', Transaction.ngay_chap_nhan).label('month_sort'),
+            func.count(Transaction.id).label('total_orders'),
+            func.sum(Transaction.doanh_thu).label('revenue')
+        ).filter(
+            (Transaction.ma_kh == '') | (Transaction.ma_kh == None),
+            Transaction.ten_nguoi_gui_canonical == c_name
+        )
         
-        # 3. Tổng hợp dữ liệu cho Frontend
-        monthly_map = {}
-        processed_txs = []
+        if dia_chi_full: monthly_query = monthly_query.filter(Transaction.dia_chi_nguoi_gui_canonical == c_addr)
+        if ma_bc: monthly_query = monthly_query.filter(Transaction.ma_dv_chap_nhan == ma_bc)
+        if scope_ids is not None: monthly_query = monthly_query.filter(Transaction.point_id.in_(scope_ids))
+        if start_date: monthly_query = monthly_query.filter(Transaction.ngay_chap_nhan >= f"{start_date} 00:00:00")
+        if end_date: monthly_query = monthly_query.filter(Transaction.ngay_chap_nhan <= f"{end_date} 23:59:59")
         
+        monthly_results = monthly_query.group_by('month_sort').order_by('month_sort').all()
+        
+        # Mapping tên bưu cục
         points = db.query(HierarchyNode).filter(HierarchyNode.type == 'POINT').all()
         point_map = {p.code: p.name for p in points}
-
-        for tx in filtered_txs:
-            if not tx.ngay_chap_nhan: continue
-            
-            month_sort = tx.ngay_chap_nhan.strftime('%Y-%m')
-            month_disp = tx.ngay_chap_nhan.strftime('%m/%Y')
-            
-            if month_sort not in monthly_map:
-                monthly_map[month_sort] = {"month": month_disp, "_sort": month_sort, "total_orders": 0, "revenue": 0.0}
-                
-            monthly_map[month_sort]["total_orders"] += 1
-            monthly_map[month_sort]["revenue"] += (tx.doanh_thu or 0.0)
-            
-            bc_name = point_map.get(tx.ma_dv_chap_nhan, tx.ma_dv_chap_nhan)
-            
+        
+        processed_txs = []
+        for tx in txs:
             processed_txs.append({
                 "shbg": tx.shbg,
-                "ngay_chap_nhan": tx.ngay_chap_nhan.strftime('%Y-%m-%d %H:%M:%S'),
+                "ngay_chap_nhan": tx.ngay_chap_nhan.strftime('%Y-%m-%d %H:%M:%S') if tx.ngay_chap_nhan else "N/A",
                 "dich_vu_chinh": tx.dich_vu_chinh or "Khác",
                 "doanh_thu": tx.doanh_thu or 0.0,
                 "ma_dv_chap_nhan": tx.ma_dv_chap_nhan,
-                "point_name": bc_name
+                "point_name": point_map.get(tx.ma_dv_chap_nhan, tx.ma_dv_chap_nhan)
             })
             
-        monthly_arr = list(monthly_map.values())
-        monthly_arr.sort(key=lambda x: x["_sort"])
-        for m in monthly_arr:
-            del m["_sort"]
-            
         return {
-            "monthly": monthly_arr,
-            "transactions": processed_txs
+            "monthly": [{"month": r.month_disp, "total_orders": r.total_orders, "revenue": r.revenue} for r in monthly_results],
+            "transactions": processed_txs,
+            "total_count": total_count,
+            "page": page,
+            "page_size": page_size
         }
 

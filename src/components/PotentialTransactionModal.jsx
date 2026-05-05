@@ -14,11 +14,11 @@ const PotentialTransactionModal = ({ isOpen, onClose, customerName, startDate, e
     if (isOpen && customerName) {
       fetchData();
     } else {
-      setData({ monthly: [], transactions: [] });
+      setData({ monthly: [], transactions: [], total_count: 0 });
       setActiveTab('monthly');
       setPage(1);
     }
-  }, [isOpen, customerName, startDate, endDate, nodeCode]);
+  }, [isOpen, customerName, startDate, endDate, nodeCode, page]); // ✅ Thêm page vào dependency
 
   const fetchData = async () => {
     const { ten_kh, dia_chi_full, ma_bc } = typeof customerName === 'object' ? customerName : { ten_kh: customerName, dia_chi_full: null, ma_bc: null };
@@ -31,7 +31,9 @@ const PotentialTransactionModal = ({ isOpen, onClose, customerName, startDate, e
           ma_bc: ma_bc || undefined,
           start_date: startDate || undefined,
           end_date: endDate || undefined,
-          node_code: nodeCode || undefined
+          node_code: nodeCode || undefined,
+          page: page, // ✅ Gửi page lên Backend
+          page_size: pageSize
         }
       });
       setData(res.data);
@@ -74,9 +76,9 @@ const PotentialTransactionModal = ({ isOpen, onClose, customerName, startDate, e
 
   const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
 
-  // Phân trang danh sách
-  const totalPages = Math.ceil(data.transactions.length / pageSize) || 1;
-  const paginatedTxs = data.transactions.slice((page - 1) * pageSize, page * pageSize);
+  // ✅ ĐIỂM 2 & 3: Phân trang tại Backend
+  const totalPages = Math.ceil((data.total_count || 0) / pageSize) || 1;
+  const paginatedTxs = data.transactions || []; // Backend đã slice sẵn
 
   // Tính đỉnh cao và chạm đáy để highlight
   const maxOrders = Math.max(...data.monthly.map(m => m.total_orders), 0);

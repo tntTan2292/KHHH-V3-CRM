@@ -70,6 +70,8 @@ async def get_potential_txs(
     start_date: str = None,
     end_date: str = None,
     node_code: str = None,
+    page: int = 1,
+    page_size: int = 10,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -81,6 +83,8 @@ async def get_potential_txs(
         ma_bc=ma_bc,
         start_date=start_date,
         end_date=end_date,
-        node_code=node_code
+        node_code=node_code,
+        page=page,
+        page_size=page_size
     )
     return data
