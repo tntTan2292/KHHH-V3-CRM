@@ -90,6 +90,7 @@ Mọi dữ liệu được lọc tự động dựa trên vị trí của nhân 
 5.  **Quy trình Phê duyệt:** Sau khi nhận yêu cầu (Prompt), AI phải trao đổi thống nhất phương án trước khi xử lý. Chỉ thực hiện khi Người dùng bấm **"OK"** hoặc **"Đồng ý"**. Điều này nhằm tránh sai sót do nội dung yêu cầu chưa rõ ràng hoặc chưa chính xác.
 6.  **QUY TẮC BẢO TỒN NGỮ CẢNH:** Luôn cập nhật đầy đủ diễn biến, các lỗi phát sinh và cách xử lý vào [NK_PHAT_TRIEN_V3.0.md](file:///d:/Antigravity%20-%20Project/KHHH%20-%20Antigravity%20-%20V3.0/Rules/NK_PHAT_TRIEN_V3.0.md) ở cuối mỗi phiên làm việc. Điều này đảm bảo ngữ cảnh luôn được giữ lại trọn vẹn cho các lần hợp tác tiếp theo, tránh mất thời gian giải thích lại từ đầu.
 7.  **QUY TẮC LIÊN TỤC LỘ TRÌNH:** Ngay khi bắt đầu phiên làm việc, AI **PHẢI ĐỌC NGAY** file [KE_HOACH_NANG_CAP.md](file:///d:/Antigravity%20-%20Project/KHHH%20-%20Antigravity%20-%20V3.0/Rules/KE_HOACH_NANG_CAP.md) để nắm bắt tiến độ và các giai đoạn dang dở, đảm bảo lộ trình phát triển không bị gián đoạn.
+8.  **QUY TẮC ĐỒNG BỘ GITHUB:** Sau khi hoàn thành việc thay đổi code hoặc tài liệu, AI **BẮT BUỘC** phải tự động sử dụng lệnh Git để Commit và Push các thay đổi mới nhất lên GitHub. Việc này đảm bảo phiên bản hệ thống trên GitHub luôn là bản cập nhật nhất, tránh tình trạng "lệch pha" khi các AI khác đọc code qua Raw Link.
 
 ---
 
