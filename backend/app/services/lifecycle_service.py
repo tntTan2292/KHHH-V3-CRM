@@ -88,8 +88,8 @@ class LifecycleService:
         status_case = case(
             (metrics_sub.c.first_seen_all_time >= new_threshold_date, 'new'),
             (and_(metrics_sub.c.curr_rev > 0, metrics_sub.c.prev_3m_rev == 0), 'recovered'),
-            (metrics_sub.c.last_shipped_absolute <= (curr_month_start - timedelta(days=15)), 'at_risk'),
             (metrics_sub.c.last_shipped_absolute <= churn_threshold_date, 'churned'),
+            (metrics_sub.c.last_shipped_absolute <= (curr_month_start - timedelta(days=15)), 'at_risk'),
             (metrics_sub.c.curr_rev > 0, 'active'),
             else_='active'
         ).label("lifecycle")

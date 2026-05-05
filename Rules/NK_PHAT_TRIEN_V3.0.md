@@ -902,4 +902,12 @@ Hệ thống Phân quyền đã chạy ổn định và sạch dữ liệu. Sế
 - **Kết quả**: Hệ thống đạt trạng thái **Logic-Perfect**. Mọi sơ hở về thuật toán đã được vá kín, dự án sẵn sàng cho bước đột phá tiếp theo với sự cố vấn của AI. ✅ **XỬ LÝ TRIỆT ĐỂ.**
 
 ---
-*Cập nhật lần cuối: 05/05/2026 14:00 - Biệt đội Antigravity 🚀🛡️💎
+
+### 🚨 [05/05/2026 - 16:00]: HOTFIX LỖI NUỐT ĐIỀU KIỆN (CONDITION SWALLOWING) - LIFECYCLE
+- **Sự kiện**: ChatGPT Audit phát hiện lỗi nghiêm trọng trong thứ tự phân loại Vòng đời khách hàng.
+- **Vấn đề**: Điều kiện `At-risk` (Quá 15 ngày) được đặt trước `Churned` (Quá 90 ngày). Khách hàng 90 ngày thỏa mãn cả 2, nhưng bị lọt vào `At-risk` do code đọc từ trên xuống.
+- **Xử lý**: Đảo vị trí, ưu tiên kiểm tra `Churned` trước `At-risk` trong file `lifecycle_service.py`.
+- **Đánh giá**: Fix nhỏ nhưng mang tính sống còn đối với độ chính xác của các chỉ số cảnh báo. ✅ **ĐÃ KHẮC PHỤC.**
+
+---
+*Cập nhật lần cuối: 05/05/2026 16:00 - Biệt đội Antigravity 🚀🛡️💎
