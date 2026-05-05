@@ -14,17 +14,17 @@ def classify_potential_rank(revenue: float, shipment_count: int) -> str:
 
     # Value tiers must satisfy both revenue and shipment thresholds.
     if revenue > 0 and (
-        revenue >= THRESHOLD_DIAMOND_REV and shipment_count >= THRESHOLD_DIAMOND_SHIP
+        revenue > THRESHOLD_DIAMOND_REV and shipment_count > THRESHOLD_DIAMOND_SHIP
     ):
         return "Kim Cương"
 
     if revenue > 0 and (
-        revenue >= THRESHOLD_GOLD_REV and shipment_count >= THRESHOLD_GOLD_SHIP
+        revenue > THRESHOLD_GOLD_REV and shipment_count > THRESHOLD_GOLD_SHIP
     ):
         return "Vàng"
 
     if revenue > 0 and (
-        revenue >= THRESHOLD_BRONZE_REV and shipment_count >= THRESHOLD_BRONZE_SHIP
+        revenue > THRESHOLD_BRONZE_REV and shipment_count > THRESHOLD_BRONZE_SHIP
     ):
         return "Bạc"
 

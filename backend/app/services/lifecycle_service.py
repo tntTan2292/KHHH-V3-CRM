@@ -84,23 +84,21 @@ class LifecycleService:
 
         metrics_sub = metrics_query.group_by(Transaction.ma_kh).subquery()
 
-        # 2b. Classification Logic
-        fifteen_days_threshold = curr_month_end - timedelta(days=15)
-        
+        # 2b. Classification Logic (Ưu tiên At-risk và New theo Hiến pháp)
         status_case = case(
             (metrics_sub.c.first_seen_all_time >= new_threshold_date, 'new'),
             (and_(metrics_sub.c.curr_rev > 0, metrics_sub.c.prev_3m_rev == 0), 'recovered'),
-            (metrics_sub.c.curr_rev > 0, 'active'),
+            (metrics_sub.c.last_shipped_absolute <= (curr_month_start - timedelta(days=15)), 'at_risk'),
             (metrics_sub.c.last_shipped_absolute <= churn_threshold_date, 'churned'),
-            (metrics_sub.c.last_shipped_absolute <= fifteen_days_threshold, 'at_risk'),
+            (metrics_sub.c.curr_rev > 0, 'active'),
             else_='active'
         ).label("lifecycle")
         
-        # 2c. Ranking Logic for Identified Customers (Dynamic)
+        # 2c. Ranking Logic for Identified Customers (Sử dụng '>' thay vì '>=')
         rank_case = case(
-            (and_(metrics_sub.c.curr_rev >= THRESHOLD_DIAMOND_REV, metrics_sub.c.curr_cnt >= THRESHOLD_DIAMOND_SHIP), 'Kim Cương'),
-            (and_(metrics_sub.c.curr_rev >= THRESHOLD_GOLD_REV, metrics_sub.c.curr_cnt >= THRESHOLD_GOLD_SHIP), 'Vàng'),
-            (and_(metrics_sub.c.curr_rev >= THRESHOLD_BRONZE_REV, metrics_sub.c.curr_cnt >= THRESHOLD_BRONZE_SHIP), 'Bạc'),
+            (and_(metrics_sub.c.curr_rev > THRESHOLD_DIAMOND_REV, metrics_sub.c.curr_cnt > THRESHOLD_DIAMOND_SHIP), 'Kim Cương'),
+            (and_(metrics_sub.c.curr_rev > THRESHOLD_GOLD_REV, metrics_sub.c.curr_cnt > THRESHOLD_GOLD_SHIP), 'Vàng'),
+            (and_(metrics_sub.c.curr_rev > THRESHOLD_BRONZE_REV, metrics_sub.c.curr_cnt > THRESHOLD_BRONZE_SHIP), 'Bạc'),
             else_='Thường'
         ).label("rank")
 

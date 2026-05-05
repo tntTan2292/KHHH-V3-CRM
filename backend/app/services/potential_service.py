@@ -150,6 +150,10 @@ class PotentialService:
                 
                 if rfm_segment and rfm_segment != rank and rfm_segment != "Tất cả":
                     continue
+                
+                # Ẩn hạng THƯỜNG khỏi module (Trừ khi Dashboard gọi lấy tổng số)
+                if not include_all and rank == "Thường":
+                    continue
                     
                 main_bc_code = max(data["offices"], key=data["offices"].get) if data["offices"] else "N/A"
                 main_bc_name = point_map.get(main_bc_code, main_bc_code)

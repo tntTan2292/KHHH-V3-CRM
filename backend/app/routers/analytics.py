@@ -33,7 +33,7 @@ router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 from ..services.hierarchy_service import HierarchyService
 
 @router.get("/dashboard")
-@cache_response(ttl_hours=24)
+@cache_response(ttl_hours=1)
 async def get_dashboard_stats(
     start_date: str = None,
     end_date: str = None,
