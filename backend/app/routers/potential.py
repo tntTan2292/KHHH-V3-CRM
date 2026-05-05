@@ -61,3 +61,26 @@ async def get_potential_customers(
         "total_pages": (total + page_size - 1) // page_size if page_size > 0 else 1,
         "applied_dates": applied_dates
     }
+
+@router.get("/transactions")
+async def get_potential_txs(
+    ten_kh: str,
+    dia_chi_full: str = None,
+    ma_bc: str = None,
+    start_date: str = None,
+    end_date: str = None,
+    node_code: str = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    data = PotentialService.get_potential_transactions(
+        db=db,
+        current_user=current_user,
+        ten_kh=ten_kh,
+        dia_chi_full=dia_chi_full,
+        ma_bc=ma_bc,
+        start_date=start_date,
+        end_date=end_date,
+        node_code=node_code
+    )
+    return data

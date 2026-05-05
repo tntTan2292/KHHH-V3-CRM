@@ -139,6 +139,7 @@ class Transaction(Base):
     username = Column(String(200), nullable=True)
     ma_kh = Column(String(100), nullable=True, index=True)
     ten_nguoi_gui = Column(String(500), nullable=True)
+    dia_chi_nguoi_gui = Column(String(500), nullable=True) # Địa chỉ thực tế người gửi vãng lai
     dia_chi_nguoi_nhan = Column(Text, nullable=True)
     tinh_thanh_moi = Column(String(200), nullable=True, index=True)
     lien_tinh_noi_tinh = Column(String(100), nullable=True)

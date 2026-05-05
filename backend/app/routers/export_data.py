@@ -168,3 +168,63 @@ async def export_potential_excel(
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Lỗi hệ thống khi xuất Excel: {str(e)}")
+
+@router.get("/potential/transactions")
+async def export_potential_transactions_excel(
+    ten_kh: str,
+    dia_chi_full: str = None,
+    ma_bc: str = None,
+    start_date: str = None,
+    end_date: str = None,
+    node_code: str = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        data_res = PotentialService.get_potential_transactions(
+            db=db,
+            current_user=current_user,
+            ten_kh=ten_kh,
+            dia_chi_full=dia_chi_full,
+            ma_bc=ma_bc,
+            start_date=start_date,
+            end_date=end_date,
+            node_code=node_code
+        )
+        
+        txs = data_res["transactions"]
+        
+        data = []
+        for idx, item in enumerate(txs):
+            data.append({
+                "STT": idx + 1,
+                "Mã bưu gửi": item["shbg"],
+                "Ngày gửi": item["ngay_chap_nhan"],
+                "Dịch vụ": item["dich_vu_chinh"],
+                "Doanh thu (VNĐ)": item["doanh_thu"],
+                "Bưu cục nhận": item["point_name"],
+                "Mã BC": item["ma_dv_chap_nhan"]
+            })
+            
+        if not data:
+            df = pd.DataFrame([{"Thông báo": "Không có giao dịch nào"}])
+        else:
+            df = pd.DataFrame(data)
+
+        buffer = io.BytesIO()
+        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name="LichSuGiaoDich")
+            worksheet = writer.sheets["LichSuGiaoDich"]
+            safe_name = remove_accents(ten_kh) if ten_kh else "KH"
+            style_excel_sheet(worksheet, df, title=f"LỊCH SỬ GIAO DỊCH - {ten_kh.upper()}")
+        
+        buffer.seek(0)
+        
+        filename = f"LichSu_TiemNang_{safe_name}.xlsx".replace(" ", "_")
+        headers = {
+            'Content-Disposition': f'attachment; filename="{filename}"',
+            'Access-Control-Expose-Headers': 'Content-Disposition'
+        }
+        return StreamingResponse(buffer, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers=headers)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi khi xuất Excel: {str(e)}")

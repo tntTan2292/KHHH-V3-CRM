@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import TreeExplorer from '../components/TreeExplorer';
 import CustomerHistoryModal from '../components/CustomerHistoryModal';
+import PotentialTransactionModal from '../components/PotentialTransactionModal';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 
@@ -70,6 +71,10 @@ const PotentialCustomers_V3 = () => {
   const [escalateReason, setEscalateReason] = useState("");
   const [activeTab, setActiveTab] = useState("pool"); // pool | pipeline
   const { user } = useAuth();
+  
+  // Drill-down Modal State
+  const [showTxModal, setShowTxModal] = useState(false);
+  const [txTarget, setTxTarget] = useState(null);
 
   const getTaskFlow = (target) => {
     if (!target) return { type: 'Giao Lead', color: 'from-emerald-500 to-teal-700', text: 'GIAO LEAD MỚI', subtitle: 'Tiếp cận khách vãng lai' };
@@ -551,13 +556,30 @@ const PotentialCustomers_V3 = () => {
                       <td className="p-6 text-gray-300 font-black text-center text-xs">{(page - 1) * pageSize + index + 1}</td>
                       <td className="p-6 font-bold text-gray-800">
                         <div className="flex items-center gap-2">
-                           <span>{item.ten_kh}</span>
+                           <button 
+                             onClick={() => {
+                               setTxTarget({ 
+                                 ten_kh: item.ten_kh, 
+                                 dia_chi_full: item.dia_chi_full, 
+                                 ma_bc: item.ma_bc 
+                               });
+                               setShowTxModal(true);
+                             }}
+                             className="text-left hover:text-vnpost-blue hover:underline hover:underline-offset-4 transition-all block"
+                           >
+                             <span className="block">{item.ten_kh}</span>
+                             {item.dia_chi_rut_gon && (
+                               <span className="text-[10px] text-gray-400 font-medium block truncate max-w-[150px]">
+                                 {item.dia_chi_rut_gon}
+                               </span>
+                             )}
+                           </button>
                            <button 
                              onClick={() => {
                                setHistoryTarget(item);
                                setShowHistoryModal(true);
                              }}
-                             className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 hover:text-vnpost-blue transition-colors"
+                             className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 hover:text-vnpost-blue transition-colors ml-auto"
                              title="Xem lịch sử tương tác"
                            >
                              <History size={14} />
@@ -632,6 +654,15 @@ const PotentialCustomers_V3 = () => {
         targetId={historyTarget?.ten_kh}
         loaiDoiTuong="TiemNang"
         customerName={historyTarget?.ten_kh}
+      />
+      
+      <PotentialTransactionModal
+        isOpen={showTxModal}
+        onClose={() => setShowTxModal(false)}
+        customerName={txTarget}
+        startDate={startDate}
+        endDate={endDate}
+        nodeCode={getEffectiveNodeCode()}
       />
     </div>
   );

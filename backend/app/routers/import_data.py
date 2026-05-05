@@ -105,6 +105,7 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None):
                     "username": str(row.get("username", "")),
                     "ma_kh": str(row.get("ma_kh", "")).strip().upper() if row.get("ma_kh") and str(row.get("ma_kh")).lower() != 'nan' else None,
                     "ten_nguoi_gui": str(row.get("ten_nguoi_gui", "")),
+                    "dia_chi_nguoi_gui": str(row.get("dia_chi_nguoi_gui", "")),
                     "dia_chi_nguoi_nhan": str(row.get("dia_chi_goc", "")),
                     "tinh_thanh_moi": str(row.get("tinh_thanh_moi", "")) if row.get("tinh_thanh_moi") else None,
                     "lien_tinh_noi_tinh": str(row.get("lien_tinh_noi_tinh", "")) if row.get("lien_tinh_noi_tinh") else None,

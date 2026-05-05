@@ -108,36 +108,55 @@ def read_file1() -> pd.DataFrame:
 
 
 def find_all_bf_files() -> list:
-    """ Tìm tất cả các file BF trong thư mục gốc theo đúng mẫu tên được chỉ định. """
+    """ Tìm tất cả các file BF trong nhiều thư mục khác nhau. """
     EXCEL_EXTS = {".xlsx", ".xlsb", ".xls"}
-    try:
-        all_entries = os.listdir(BASE_DIR)
-    except Exception as e:
-        logger.error(f"Lỗi truy cập thư mục gốc: {e}")
-        return []
-
-    # Mẫu chuẩn: ...BF_SL chấp nhận toàn BĐHUE
-    # Ví dụ: 2026.03_BF_SL chấp nhận toàn BĐHUE.xlsb
+    
+    # Danh sách các thư mục cần quét
+    search_dirs = [
+        BASE_DIR,
+        os.path.join(BASE_DIR, "batch_files"),
+        os.path.join(BASE_DIR, "batch_files", "2025_BACKFILL"),
+        os.path.join(r"D:\Antigravity - Project\KHHH - Antigravity - V3.0\data\raw_files")
+    ]
+    
+    # Các mẫu tên file hợp lệ
     STRICT_PATTERN = "BF_SL CHẤP NHẬN TOÀN BĐHUE"
+    NEW_PATTERN = "53_THUA THIEN HUE" # Dành cho các file tải từ SFTP/WinSCP
     
     files = []
-    for f in all_entries:
-        if os.path.splitext(f)[1].lower() in EXCEL_EXTS:
-            if STRICT_PATTERN in f.upper():
-                files.append(os.path.join(BASE_DIR, f))
+    for d in search_dirs:
+        if not os.path.exists(d): continue
+        try:
+            for f in os.listdir(d):
+                if os.path.splitext(f)[1].lower() in EXCEL_EXTS:
+                    f_upper = f.upper()
+                    if STRICT_PATTERN in f_upper or NEW_PATTERN in f_upper:
+                        files.append(os.path.join(d, f))
+        except Exception as e:
+            logger.error(f"Lỗi khi quét thư mục {d}: {e}")
     
-    # Sắp xếp theo số (năm.tháng) ở đầu tên file để đảm bảo thứ tự thời gian
+    # Sắp xếp theo số (năm.tháng hoặc ngày tháng) ở đầu tên file
     import re
     def get_sort_key(filepath):
         filename = os.path.basename(filepath)
+        # Tìm YYYY.MM hoặc YYYYMMDD
         match = re.search(r"(\d{4})[._](\d{2})", filename)
         if match:
             return (int(match.group(1)), int(match.group(2)))
+        match_date = re.search(r"(\d{8})", filename)
+        if match_date:
+            return (int(match_date.group(1)[:4]), int(match_date.group(1)[4:6]), int(match_date.group(1)[6:]))
         return (0, 0)
     
     files.sort(key=get_sort_key)
-    logger.info(f"Tìm thấy {len(files)} file BF khớp mẫu: {[os.path.basename(f) for f in files]}")
-    return files
+    # Loại bỏ file trùng lặp nếu cùng tên (ví dụ ở cả master và raw)
+    unique_files = {}
+    for f in files:
+        unique_files[os.path.basename(f)] = f
+        
+    final_files = list(unique_files.values())
+    logger.info(f"Tìm thấy {len(final_files)} file BF: {[os.path.basename(f) for f in final_files]}")
+    return final_files
 
 def read_file2(filepath: str = None) -> pd.DataFrame:
     """ Đọc File giao dịch (BF). Tự động tìm kiếm Header nếu cần. """
@@ -191,13 +210,15 @@ def read_file2(filepath: str = None) -> pd.DataFrame:
         "cuocgtgtthucthu": "cuoc_gtgt",
         "madvchapnhan": "ma_dv_chap_nhan",
         "mã dv chấp nhận": "ma_dv_chap_nhan",
+        "diachinguoigui": "dia_chi_nguoi_gui",
+        "địa chỉ người gửi": "dia_chi_nguoi_gui",
         "dichvuchinh": "dich_vu_chinh",
         "dịch vụ chính": "dich_vu_chinh"
     }
 
     # Danh sách các cột "Sạch" chúng ta thực sự cần lưu vào SQLite
     CLEAN_COLUMNS = [
-        "ma_dv", "shbg", "username", "ma_kh", "ten_nguoi_gui", "dia_chi_goc",
+        "ma_dv", "shbg", "username", "ma_kh", "ten_nguoi_gui", "dia_chi_nguoi_gui", "dia_chi_goc",
         "lien_tinh_noi_tinh", "trong_nuoc_quoc_te", "ngay_chap_nhan", "kl_tinh_cuoc",
         "cuoc_chinh_co_vat", "phu_phi_xang_dau_co_vat", "phu_phi_vung_xa_co_vat",
         "phu_phi_khac_co_vat", "cuoc_thu_ho", "cuoc_gtgt", "ma_dv_chap_nhan", "dich_vu_chinh"

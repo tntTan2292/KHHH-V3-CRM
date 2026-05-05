@@ -438,18 +438,6 @@ Hệ thống Phân quyền đã chạy ổn định và sạch dữ liệu. Sế
 - **Giải pháp (`AuthContext.jsx`)**:
     - Thêm hàm `decodeToken()` + `isTokenExpired()` — decode JWT payload phía client, kiểm tra trường `exp` ngay khi khởi tạo.
     - Token hết hạn → xoá khỏi `localStorage` và redirect về `/login`.
-    - Thêm **Axios Interceptor 401**: khi Backend trả 401 → tự động logout, tránh treo session.
-
----
-
-#### 🔹 PHẦN 4: Hệ thống Điều phối Tải Giao việc Đa cấp (MULTI-LEVEL LOAD BALANCING)
-- **Bối cảnh**: Khi nhân sự quá tải, cần cơ chế linh hoạt để điều chuyển ngang (trong Phường/Xã) hoặc escalation lên Cụm.
-- **Kỹ thuật Backend**:
-    - Nâng cấp API `/api/customers/staff-options` → trả thêm `wards[]` (danh sách BĐ Phường/Xã trong Cụm), `points[].ward_id`, `default_ward_id`, `user_role`, `user_ward_id`.
-    - Tạo API mới `POST /api/actions/escalate` — GĐ BĐ P/X gửi yêu cầu hỗ trợ lên Trưởng Cụm, kèm lý do. Task cũ giữ nguyên, tạo thêm task escalation mới.
-    - Phân quyền: chỉ role `UNIT_HEAD` mới gọi được `/escalate`.
-- **Nâng cấp UI/UX Frontend (`Customers.jsx` & `PotentialCustomers_V3.jsx`)**:
-    - Modal giao việc có **3 Dropdown liên tầng**: `BĐ Phường/Xã → Bưu cục → Nhân viên`.
     - **Logic phân quyền theo vai trò**:
         - 🏢 **Trưởng Cụm**: thấy toàn bộ WARD trong Cụm, chủ động chọn.
         - 📮 **GĐ BĐ P/X**: Dropdown WARD bị khoá (chỉ thấy WARD mình quản lý), có thêm nút "🚨 Trả về Cụm (Quá tải)".
@@ -924,3 +912,30 @@ Hệ thống Phân quyền đã chạy ổn định và sạch dữ liệu. Sế
 
 ---
 *Cập nhật lần cuối: 05/05/2026 16:15 - Biệt đội Antigravity 🚀🛡️💎
+
+---
+### 🚀 [05/05/2026 - 16:35]: CHIẾN DỊCH "CUSTOMER DRILL-DOWN" - BIẾN TIỀM NĂNG THÀNH HÀNH ĐỘNG 💎
+- **Tình trạng trước đây:** Khách hàng vãng lai chỉ hiện thị tổng sản lượng/doanh thu trên Dashboard. Cấp quản lý/Nhân viên bưu cục bị "mù thông tin", không biết chi tiết lịch sử gửi hàng để đi tiếp cận.
+- **Giải pháp Kỹ thuật (Antigravity x ChatGPT UI):**
+    - Xây dựng hệ thống **Drill-down Modal (Truy vết Khách hàng)** khi click vào tên Khách hàng tiềm năng.
+    - **Backend (Python/FastAPI):**
+        - Tránh sai lầm dùng `ma_kh` (vì vãng lai không có mã).
+        - Tạo `get_potential_transactions` sử dụng logic quét **Canonical Name** (`normalize_name`) để gom nhóm toàn bộ các bưu gửi của khách hàng đó trong phạm vi `start_date` và `end_date` đang lọc.
+        - Cung cấp API Export Excel độc lập.
+    - **Frontend (React/Tailwind):**
+        - Tạo Component `PotentialTransactionModal.jsx` với 2 Tab:
+            - **Tab 1: Tần suất theo tháng**: Vẽ bảng thống kê sản lượng/doanh thu theo tháng, highlight tự động tháng cao điểm.
+            - **Tab 2: Danh sách bưu gửi**: Hiển thị bảng chi tiết mã bưu gửi, dịch vụ, bưu cục gốc.
+        - Tích hợp nút **Xuất Excel** trực tiếp trong Modal.
+    - **Bảo toàn ngữ cảnh:** Truyền chính xác bộ lọc (Date & Node) từ trang chính vào Modal để không bị "lệch tầng" số liệu.
+- **Kết quả:** Hệ thống chuyển mình từ "Chỉ báo cáo" sang "Điều hành & Hành động". Nhân viên giờ đây có bằng chứng chi tiết 100% về hành vi gửi hàng của Khách vãng lai để lên kịch bản tiếp cận. ✅ **HOÀN THÀNH.**
+
+---
+### 🚀 [05/05/2026 - 19:40]: CHIẾN DỊCH "ĐỊNH DANH ĐA ĐIỂM" - XÓA BỎ ĐIỂM MÙ TRÙNG TÊN 🛡️
+- **Vấn đề:** Khách hàng vãng lai trùng tên (VD: Nguyễn Thị Hoa) bị gộp chung doanh thu, gây sai lệch số liệu và khó khăn cho bưu cục quản lý.
+- **Giải pháp Nâng cao:**
+    - **Database:** Bổ sung trường `dia_chi_nguoi_gui` vào bảng `transactions`.
+    - **Excel Reader:** Nâng cấp bộ đọc để tự động nhặt thông tin địa chỉ từ các cột `diaChiNguoiGui`, `địa chỉ người gửi` trong Batchfile.
+    - **Logic Định danh (Triple-Key):** Thay đổi thuật toán gom nhóm từ [Tên] sang bộ 3: **[Tên chuẩn hóa] + [Địa chỉ chuẩn hóa] + [Bưu cục gốc]**.
+    - **UI/UX:** Hiển thị địa chỉ rút gọn tại bảng danh sách để nhận diện nhanh, và địa chỉ đầy đủ trong Modal Drill-down để đối soát chi tiết.
+- **Kết quả:** Triệt tiêu hoàn toàn hiện tượng gộp nhầm khách hàng vãng lai. Dữ liệu Tiềm năng trở nên sạch và chính xác tuyệt đối theo từng địa bàn dân cư. ✅ **HOÀN THÀNH.**
