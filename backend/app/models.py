@@ -131,6 +131,10 @@ class Customer(Base):
 
 class Transaction(Base):
     __tablename__ = "transactions"
+    
+    __table_args__ = (
+        Index('idx_sender_canonical_date', 'ten_nguoi_gui_canonical', 'dia_chi_nguoi_gui_canonical', 'ngay_chap_nhan'),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     shbg = Column(String(100), index=True, nullable=True) # Số hiệu bưu gửi (Cho phép trùng lặp theo yêu cầu đối soát)
