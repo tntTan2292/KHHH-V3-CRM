@@ -1,0 +1,53 @@
+# Dependency directories
+node_modules/
+jspm_packages/
+backend/venv/
+backend/env/
+env/
+venv/
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+dist-ssr/
+*.local
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.python-version
+
+# DATABASE & SENSITIVE DATA (CRITICAL)
+data/database/*.db
+data/database/*.sqlite3
+data/cache/*.json
+debug_access_log.txt
+*.log
+*.err
+*.txt
+!README.md
+!Rules/*.md
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Scratch files
+scratch/
+archive/
+backups/
+DATA_MASTER/
+*.xlsx
+*.docx
+.vite_new/

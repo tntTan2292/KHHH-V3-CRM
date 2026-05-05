@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-vnpost-bg text-gray-800 antialiased font-sans;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-100 p-6 transition-all duration-300;
+  }
+  .card:hover {
+    @apply shadow-md border-vnpost-orange/30;
+  }
+  
+  .btn-primary {
+    @apply bg-vnpost-orange hover:bg-[#E09010] text-[#003E7E] font-bold py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm cursor-pointer;
+  }
+  
+  .btn-outline {
+    @apply border-2 border-vnpost-blue text-vnpost-blue hover:bg-vnpost-blue hover:text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer;
+  }
+
+  .glass-header {
+    @apply bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Custom Table Scrollbar - Thicker & more visible for data tables */
+.custom-scrollbar::-webkit-scrollbar {
+  height: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, #0054A6, #F9A51A);
+  border-radius: 8px;
+  border: 2px solid #f1f5f9;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(90deg, #003E7E, #E09010);
+}
+
+/* PDF Export & Print Optimization */
+.is-exporting .no-pdf {
+  display: none !important;
+}
+
+.pdf-page-break {
+  page-break-inside: avoid !important;
+  break-inside: avoid !important;
+}
+
+.page-break-before {
+  page-break-before: always !important;
+  break-before: page !important;
+  margin-top: 2rem !important;
+}
+
+/* Biểu đồ tròn cần padding để không mất nhãn khi xuất PDF */
+.recharts-responsive-container {
+  padding: 10px;
+}
+
+.card {
+  transition: all 0.3s ease;
+}
+
+@keyframes skeleton-pulse {
+  0% { background-color: rgba(0, 0, 0, 0.05); }
+  50% { background-color: rgba(0, 0, 0, 0.1); }
+  100% { background-color: rgba(0, 0, 0, 0.05); }
+}
+
+.skeleton {
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+  border-radius: 0.5rem;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
