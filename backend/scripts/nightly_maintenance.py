@@ -8,6 +8,8 @@ from datetime import datetime
 sys.path.append(r"d:\Antigravity - Project\KHHH - Antigravity - V3.0")
 
 from backend.app.services.summary_service import SummaryService
+from backend.app.services.task_verifier import TaskVerifierService
+from backend.app.database import SessionLocal
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -31,7 +33,15 @@ def run_nightly_maintenance():
         conn.close()
         logger.info("Database optimization completed.")
     except Exception as e:
-        logger.error(f"Error optimizing database: {e}")
+    # 3. Verify pending tasks
+    try:
+        logger.info("Verifying pending B3 tasks...")
+        db = SessionLocal()
+        verified = TaskVerifierService.verify_all_pending_tasks(db)
+        logger.info(f"Task verification completed. {verified} tasks verified.")
+        db.close()
+    except Exception as e:
+        logger.error(f"Error verifying tasks: {e}")
         
     logger.info("Nightly maintenance finished.")
 

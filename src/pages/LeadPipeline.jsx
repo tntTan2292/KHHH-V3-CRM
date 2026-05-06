@@ -73,15 +73,10 @@ export default function LeadPipeline() {
 
       // Map task items (leads đang chăm sóc)
       const mappedTasks = taskItems.map(task => {
-        // Ánh xạ trạng thái task sang stage 5B
-        let stage = 'B1';
-        if (task.trang_thai === 'Đang xử lý') stage = 'B2';
-        else if (task.trang_thai === 'Hoàn thành') stage = 'B3';
-        
         return {
           id: task.target_id,
           name: task.target_id,
-          stage: stage,
+          stage: task.pipeline_stage || 'B1',
           score: 60,
           competitor: 'Đang khai thác',
           est_vol: 'Theo Task',
@@ -89,7 +84,10 @@ export default function LeadPipeline() {
           last_contact: task.created_at || 'Vừa giao',
           priority: task.phan_loai_giao_viec === 'Giao VIP' ? 'high' : 'medium',
           has_task: true,
-          task_status: task.trang_thai
+          task_status: task.trang_thai,
+          cross_point: task.cross_point_flag,
+          original_point: task.original_point_name,
+          original_staff: task.original_staff_name
         };
       });
 
@@ -100,7 +98,15 @@ export default function LeadPipeline() {
         if (leadMap.has(l.id)) {
            // Cập nhật stage từ task
            const existing = leadMap.get(l.id);
-           leadMap.set(l.id, { ...existing, stage: l.stage, has_task: true, task_status: l.task_status });
+           leadMap.set(l.id, { 
+             ...existing, 
+             stage: l.stage, 
+             has_task: true, 
+             task_status: l.task_status,
+             cross_point: l.cross_point,
+             original_point: l.original_point,
+             original_staff: l.original_staff
+           });
         } else {
            leadMap.set(l.id, l);
         }
@@ -252,10 +258,19 @@ export default function LeadPipeline() {
                     </div>
                     {lead.has_task && (
                       <div className="bg-orange-100 text-orange-600 px-2 py-1 rounded-lg text-[9px] font-black uppercase">
-                        Active Task
+                        {lead.task_status}
                       </div>
                     )}
                   </div>
+
+                  {lead.cross_point && (
+                    <div className="mb-3 p-2 bg-rose-50 border border-rose-100 rounded-xl flex items-center gap-2">
+                       <AlertCircle size={12} className="text-rose-500" />
+                       <p className="text-[8px] font-black text-rose-600 uppercase leading-tight">
+                         Phối hợp: Trước đó tại {lead.original_point} ({lead.original_staff})
+                       </p>
+                    </div>
+                  )}
 
                   <h4 className="text-sm font-black text-vnpost-blue mb-2 leading-tight group-hover:text-blue-600 transition-colors">{lead.name}</h4>
                   

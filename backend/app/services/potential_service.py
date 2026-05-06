@@ -3,7 +3,7 @@ from sqlalchemy import func
 import re
 from datetime import datetime
 from ..database import get_db
-from ..models import Transaction, User, HierarchyNode
+from ..models import Transaction, User, HierarchyNode, PotentialCustomer
 from ..services.province_matcher import remove_accents
 from ..services.scoping_service import ScopingService
 from ..core.config_segments import (
@@ -294,4 +294,43 @@ class PotentialService:
             "page": page,
             "page_size": page_size
         }
+
+    @staticmethod
+    def enrich_potential_data(
+        db: Session,
+        ten_kh: str,
+        dia_chi_full: str,
+        point_id: int,
+        phone: str = None,
+        detail_address: str = None
+    ):
+        """
+        Làm giàu dữ liệu cho khách hàng tiềm năng.
+        Lưu SĐT và Địa chỉ chi tiết vào bảng potential_customers.
+        """
+        c_name = normalize_name(ten_kh)
+        c_addr = normalize_name(dia_chi_full)
+        
+        # Tìm xem đã có bản ghi chưa
+        existing = db.query(PotentialCustomer).filter(
+            PotentialCustomer.ten_canonical == c_name,
+            PotentialCustomer.dia_chi_canonical == c_addr,
+            PotentialCustomer.point_id == point_id
+        ).first()
+        
+        if existing:
+            if phone: existing.so_dien_thoai = phone
+            if detail_address: existing.dia_chi_chi_tiet = detail_address
+            existing.updated_at = datetime.now()
+        else:
+            new_pc = PotentialCustomer(
+                ten_canonical=c_name,
+                dia_chi_canonical=c_addr,
+                point_id=point_id,
+                so_dien_thoai=phone,
+                dia_chi_chi_tiet=detail_address
+            )
+            db.add(new_pc)
+        
+        db.commit()
 

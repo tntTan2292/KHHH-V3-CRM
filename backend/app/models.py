@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, Index, Boolean, Table
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, Index, Boolean, Table, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from .database import Base
@@ -184,6 +184,7 @@ class ActionTaskTemplate(Base):
     nhom_kh = Column(String(100)) # Active, New, At Risk, Churned, Kim Cuong, Vang...
     tieu_de = Column(String(200))
     noi_dung_mau = Column(Text)
+    approval_required = Column(Boolean, default=False) # Cấu hình: Task này có cần Leader duyệt không?
     created_at = Column(DateTime, server_default=func.now())
 
 class ActionTask(Base):
@@ -204,7 +205,24 @@ class ActionTask(Base):
     noi_dung = Column(Text)
     deadline = Column(DateTime, nullable=True)
     
-    trang_thai = Column(String(100), default="Mới") # Mới, Đang xử lý, Hoàn thành, Thất bại, Hủy
+    trang_thai = Column(String(100), default="Mới") # Mới, Đang xử lý, Hoàn thành, Thất bại, Hủy, Escalation, PENDING_VERIFY
+    
+    # 5B Pipeline & Verification
+    pipeline_stage = Column(String(50), nullable=True) # B1, B2, B3, B4, B5
+    converted_ma_kh = Column(String(100), nullable=True) # Mã CRM mở thành công
+    verified = Column(Boolean, default=False) # Hệ thống đã xác thực qua Transaction chưa?
+    
+    # Structured Reporting
+    kenh_tiep_can = Column(String(50), nullable=True) # Gọi điện, Zalo, Gặp trực tiếp
+    ket_qua = Column(String(50), nullable=True) # Thành công, Hẹn lại, Từ chối
+    
+    # Collaboration Mode
+    cross_point_flag = Column(Boolean, default=False) # Đánh dấu khách chuyển điểm phục vụ
+    original_point_id = Column(Integer, ForeignKey("hierarchy_nodes.id"), nullable=True) # Điểm phục vụ gốc
+    original_staff_id = Column(Integer, ForeignKey("nhan_su.id"), nullable=True) # Nhân sự chăm sóc gốc
+    
+    # Approval Workflow
+    approval_status = Column(String(50), default="Không yêu cầu") # Chờ duyệt, Đã duyệt, Từ chối
     
     # Báo cáo kết quả
     bao_cao_ket_qua = Column(Text, nullable=True)
@@ -214,7 +232,9 @@ class ActionTask(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
     
     # Relationships
-    staff = relationship("NhanSu")
+    staff = relationship("NhanSu", foreign_keys=[staff_id])
+    original_staff = relationship("NhanSu", foreign_keys=[original_staff_id])
+    original_point = relationship("HierarchyNode")
     template = relationship("ActionTaskTemplate")
 
 class SyncLog(Base):
@@ -309,3 +329,20 @@ class BackfillStatus(Base):
     status = Column(String(50)) # COMPLETED, FAILED, IN_PROGRESS
     total_records = Column(Integer, default=0)
     last_processed_at = Column(DateTime, server_default=func.now())
+
+class PotentialCustomer(Base):
+    __tablename__ = "potential_customers"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    ten_canonical = Column(String(200), index=True)
+    dia_chi_canonical = Column(String(500), index=True)
+    point_id = Column(Integer, ForeignKey("hierarchy_nodes.id"), index=True)
+    
+    so_dien_thoai = Column(String(20), nullable=True)
+    dia_chi_chi_tiet = Column(Text, nullable=True)
+    ghi_chu_khac = Column(Text, nullable=True)
+    
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    
+    # Unique constraint to prevent duplicates
+    __table_args__ = (UniqueConstraint('ten_canonical', 'dia_chi_canonical', 'point_id', name='_potential_uc'),)

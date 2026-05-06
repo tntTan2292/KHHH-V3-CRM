@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from ..database import get_db
 from ..models import ActionTask, ActionTaskTemplate, User, NhanSu, Customer, Transaction, HierarchyNode
 from ..routers.auth import get_current_user
+from ..services.potential_service import PotentialService
 from ..services.scoping_service import ScopingService
 from ..services.log_service import LogService
 from fastapi import Request
@@ -37,6 +38,7 @@ class AssignTaskPayload(BaseModel):
     deadline: Optional[str] = None
     template_id: Optional[int] = None
     phan_loai_giao_viec: Optional[str] = "Giao Lead"
+    pipeline_stage: Optional[str] = "B1" # B1-B5
 
 @router.post("/assign")
 async def assign_task(
@@ -49,15 +51,40 @@ async def assign_task(
     if payload.deadline:
         deadline_dt = datetime.fromisoformat(payload.deadline.replace('Z', '+00:00'))
 
+    # Check for Collaboration Mode (Soft Control)
+    cross_point_flag = False
+    orig_p_id = None
+    orig_s_id = None
+    
+    # Tìm vết cũ của khách hàng này trong hệ thống Task
+    old_task = db.query(ActionTask).filter(
+        ActionTask.target_id == payload.target_id,
+        ActionTask.loai_doi_tuong == payload.loai_doi_tuong
+    ).order_by(desc(ActionTask.created_at)).first()
+    
+    if old_task:
+        # Lấy point_id của người được giao cũ
+        old_staff = db.query(NhanSu).filter(NhanSu.id == old_task.staff_id).first()
+        new_staff = db.query(NhanSu).filter(NhanSu.id == payload.staff_id).first()
+        
+        if old_staff and new_staff and old_staff.point_id != new_staff.point_id:
+            cross_point_flag = True
+            orig_p_id = old_staff.point_id
+            orig_s_id = old_task.staff_id
+
     new_task = ActionTask(
         target_id=payload.target_id,
         loai_doi_tuong=payload.loai_doi_tuong,
         phan_loai_giao_viec=payload.phan_loai_giao_viec,
+        pipeline_stage=payload.pipeline_stage,
         staff_id=payload.staff_id,
         template_id=payload.template_id,
         noi_dung=payload.noi_dung,
         deadline=deadline_dt,
-        trang_thai="Mới"
+        trang_thai="Mới",
+        cross_point_flag=cross_point_flag,
+        original_point_id=orig_p_id,
+        original_staff_id=orig_s_id
     )
     db.add(new_task)
     
@@ -140,6 +167,7 @@ async def get_tasks(
             "target_id": t.target_id,
             "ten_kh_display": ten_kh,
             "loai_doi_tuong": t.loai_doi_tuong,
+            "pipeline_stage": t.pipeline_stage,
             "phan_loai_giao_viec": t.phan_loai_giao_viec,
             "staff_id": t.staff_id,
             "staff_name": staff_name,
@@ -148,7 +176,14 @@ async def get_tasks(
             "noi_dung": t.noi_dung,
             "deadline": t.deadline.strftime("%Y-%m-%d %H:%M") if t.deadline else None,
             "trang_thai": t.trang_thai,
+            "verified": t.verified,
+            "converted_ma_kh": t.converted_ma_kh,
+            "cross_point_flag": t.cross_point_flag,
+            "original_point_name": t.original_point.name if t.original_point else None,
+            "original_staff_name": t.original_staff.full_name if t.original_staff else None,
             "bao_cao_ket_qua": t.bao_cao_ket_qua,
+            "kenh_tiep_can": t.kenh_tiep_can,
+            "ket_qua": t.ket_qua,
             "ngay_hoan_thanh": t.ngay_hoan_thanh.strftime("%Y-%m-%d %H:%M") if t.ngay_hoan_thanh else None,
             "created_at": t.created_at.strftime("%Y-%m-%d %H:%M") if t.created_at else None
         })
@@ -158,6 +193,12 @@ async def get_tasks(
 class ReportTaskPayload(BaseModel):
     trang_thai: str
     bao_cao_ket_qua: str
+    pipeline_stage: Optional[str] = None
+    kenh_tiep_can: Optional[str] = None
+    ket_qua: Optional[str] = None
+    converted_ma_kh: Optional[str] = None
+    so_dien_thoai: Optional[str] = None
+    dia_chi_chi_tiet: Optional[str] = None
 
 @router.patch("/tasks/{task_id}/report")
 async def report_task(
@@ -177,8 +218,36 @@ async def report_task(
         if task.staff_id != current_user.nhan_su_id:
             raise HTTPException(status_code=403, detail="Bạn không có quyền báo cáo cho nhiệm vụ này")
             
+    # Bắt buộc Mã CRM khi lên B3 (Bán hàng)
+    if payload.pipeline_stage == "B3" and not payload.converted_ma_kh:
+        raise HTTPException(status_code=400, detail="Bắt buộc cung cấp Mã CRM để xác nhận bước Bán hàng (B3)")
+
     task.trang_thai = payload.trang_thai
     task.bao_cao_ket_qua = payload.bao_cao_ket_qua
+    task.pipeline_stage = payload.pipeline_stage or task.pipeline_stage
+    task.kenh_tiep_can = payload.kenh_tiep_can or task.kenh_tiep_can
+    task.ket_qua = payload.ket_qua or task.ket_qua
+    task.converted_ma_kh = payload.converted_ma_kh or task.converted_ma_kh
+    
+    # Nếu là B3 -> Chuyển sang chờ xác thực giao dịch
+    if payload.pipeline_stage == "B3":
+        task.trang_thai = "PENDING_VERIFY"
+        task.verified = False
+
+    # DATA ENRICHMENT: Lưu thông tin SĐT/Địa chỉ nếu có
+    if task.loai_doi_tuong == "TiemNang" and (payload.so_dien_thoai or payload.dia_chi_chi_tiet):
+        # Lấy point_id từ nhân sự được giao
+        staff_node = db.query(NhanSu).filter(NhanSu.id == task.staff_id).first()
+        if staff_node:
+            PotentialService.enrich_potential_data(
+                db=db,
+                ten_kh=task.target_id,
+                dia_chi_full="", # Chúng ta có thể lấy từ Transaction nếu cần, hoặc để trống
+                point_id=staff_node.point_id,
+                phone=payload.so_dien_thoai,
+                detail_address=payload.dia_chi_chi_tiet
+            )
+
     task.updated_at = datetime.now()
     
     if payload.trang_thai in ["Hoàn thành", "Thất bại"]:
