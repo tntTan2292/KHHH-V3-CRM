@@ -27,11 +27,11 @@ class SummaryService:
             INSERT OR IGNORE INTO customer_first_order (name, addr, point_id, first_month)
             SELECT 
                 COALESCE(ma_kh, ten_nguoi_gui_canonical || '|' || dia_chi_nguoi_gui_canonical || '|' || point_id) as key_name,
-                COALESCE(dia_chi_nguoi_gui_canonical, '') as addr,
+                MIN(COALESCE(dia_chi_nguoi_gui_canonical, '')) as addr,
                 point_id,
                 MIN(strftime('%Y-%m', ngay_chap_nhan)) as first_month
             FROM transactions
-            GROUP BY key_name, addr, point_id
+            GROUP BY key_name, point_id
             """)
             
             # 2. Populating customer_last_active
@@ -39,11 +39,11 @@ class SummaryService:
             INSERT OR REPLACE INTO customer_last_active (name, addr, point_id, last_active_month)
             SELECT 
                 COALESCE(ma_kh, ten_nguoi_gui_canonical || '|' || dia_chi_nguoi_gui_canonical || '|' || point_id) as key_name,
-                COALESCE(dia_chi_nguoi_gui_canonical, '') as addr,
+                MAX(COALESCE(dia_chi_nguoi_gui_canonical, '')) as addr,
                 point_id,
                 MAX(strftime('%Y-%m', ngay_chap_nhan)) as last_active_month
             FROM transactions
-            GROUP BY key_name, addr, point_id
+            GROUP BY key_name, point_id
             """)
             
             conn.execute("COMMIT")
@@ -85,22 +85,30 @@ class SummaryService:
             SELECT 
                 COALESCE(ma_kh, ten_nguoi_gui_canonical || '|' || dia_chi_nguoi_gui_canonical || '|' || point_id) as name,
                 point_id,
+                ma_dv,
+                CASE 
+                    WHEN trong_nuoc_quoc_te IN ('quốc tế', 'quoc te') OR ma_dv = 'L' THEN 'Quốc tế'
+                    WHEN lien_tinh_noi_tinh IN ('1', 'nội tỉnh', 'noi tinh') THEN 'Nội tỉnh'
+                    ELSE 'Liên tỉnh'
+                END as region_type,
                 SUM(doanh_thu) as revenue,
                 COUNT(id) as orders
             FROM transactions
             WHERE ngay_chap_nhan BETWEEN ? AND ?
-            GROUP BY name, point_id
+            GROUP BY name, point_id, ma_dv, region_type
         )
         SELECT 
             m.point_id,
+            m.ma_dv,
+            m.region_type,
             m.revenue,
             m.orders,
             f.first_month,
             l.last_active_month,
             ? as current_month
         FROM month_tx m
-        LEFT JOIN customer_first_order f ON m.name = f.name
-        LEFT JOIN customer_last_active l ON m.name = l.name
+        LEFT JOIN customer_first_order f ON m.name = f.name AND m.point_id = f.point_id
+        LEFT JOIN customer_last_active l ON m.name = l.name AND m.point_id = l.point_id
         """
         
         # Tạo dải ngày cho tháng
@@ -110,7 +118,9 @@ class SummaryService:
         last_day = py_calendar.monthrange(y, m)[1]
         end_date = f"{month_str}-{last_day} 23:59:59"
         
+        print(f"  - Querying data for {month_str}...")
         df = pd.read_sql_query(sql, conn, params=(start_date, end_date, month_str))
+        print(f"  - Found {len(df)} raw records.")
         if df.empty:
             cursor.execute("BEGIN")
             cursor.execute("DELETE FROM monthly_analytics_summary WHERE year_month = ?", (month_str,))
@@ -132,19 +142,22 @@ class SummaryService:
             except:
                 return 'ACTIVE'
 
+        print(f"  - Calculating stages...")
         df['stage'] = df.apply(calculate_stage, axis=1)
         
-        final_agg = df.groupby(['point_id', 'stage']).agg({
+        print(f"  - Grouping and aggregating...")
+        
+        final_agg = df.groupby(['point_id', 'stage', 'ma_dv', 'region_type']).agg({
             'revenue': 'sum',
             'orders': 'sum',
-            'current_month': 'count' # Dùng current_month để đếm số khách
+            'current_month': 'count' 
         }).rename(columns={'current_month': 'customers'}).reset_index()
         
         cursor.execute("BEGIN")
         try:
             cursor.execute("DELETE FROM monthly_analytics_summary WHERE year_month = ?", (month_str,))
-            insert_sql = "INSERT INTO monthly_analytics_summary (year_month, point_id, lifecycle_stage, total_revenue, total_orders, total_customers) VALUES (?, ?, ?, ?, ?, ?)"
-            data = [(month_str, int(row['point_id']), row['stage'], row['revenue'], int(row['orders']), int(row['customers'])) for _, row in final_agg.iterrows()]
+            insert_sql = "INSERT INTO monthly_analytics_summary (year_month, point_id, lifecycle_stage, ma_dv, region_type, total_revenue, total_orders, total_customers) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+            data = [(month_str, int(row['point_id']), row['stage'], row['ma_dv'], row['region_type'], row['revenue'], int(row['orders']), int(row['customers'])) for _, row in final_agg.iterrows()]
             cursor.executemany(insert_sql, data)
             conn.execute("COMMIT")
             print(f"- Rebuilt summary for {month_str}: {len(data)} records.")

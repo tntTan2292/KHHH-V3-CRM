@@ -102,6 +102,14 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
     if not verify_password(form_data.password, user.hashed_password):
         # Tăng số lần thử sai
         user.failed_login_attempts += 1
+        LogService.log_action(
+            db=db,
+            user_id=user.id,
+            action="LOGIN_FAILED",
+            resource="AUTH",
+            details=f"Sai mật khẩu (Lần {user.failed_login_attempts}). IP: {request.client.host}",
+            ip_address=request.client.host
+        )
         if user.failed_login_attempts >= 5:
             user.locked_until = datetime.now() + timedelta(minutes=30)
             db.commit()
@@ -242,6 +250,24 @@ async def change_password(
     )
     
     return {"message": "Đã đổi mật khẩu thành công"}
+
+@router.get("/health")
+async def auth_health(db: Session = Depends(get_db)):
+    try:
+        # Kiểm tra kết nối DB
+        user_count = db.query(User).count()
+        return {
+            "status": "healthy",
+            "database": "connected",
+            "user_count": user_count,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
 
 from ..auth.permissions import get_user_permissions
 from ..core.security import get_password_hash

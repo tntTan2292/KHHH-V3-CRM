@@ -28,6 +28,9 @@ def parse_db_date(db_val):
                 return None
     return None
 
+import logging
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
 from ..services.hierarchy_service import HierarchyService
@@ -81,13 +84,19 @@ async def get_dashboard_stats(
             is_monthly = True
             month_str = s_dt.strftime("%Y-%m")
 
-    # 4. Lấy dữ liệu Lifecycle và Doanh thu
-    if is_monthly:
+    # 4. Lấy dữ liệu Lifecycle và Doanh thu (ƯU TIÊN SUMMARY)
+    month_str = (start_date[:7] if start_date else None) or max_data_date.strftime("%Y-%m")
+    
+    # Kiểm tra xem có bản ghi nào trong Summary cho tháng này không
+    summary_exists = db.query(MonthlyAnalyticsSummary).filter(MonthlyAnalyticsSummary.year_month == month_str).first() is not None
+
+    if summary_exists:
         # Lấy từ bảng Summary (Siêu tốc)
         summary_query = db.query(
             MonthlyAnalyticsSummary.lifecycle_stage,
             func.sum(MonthlyAnalyticsSummary.total_revenue).label("revenue"),
-            func.sum(MonthlyAnalyticsSummary.total_customers).label("customers")
+            func.sum(MonthlyAnalyticsSummary.total_customers).label("customers"),
+            func.sum(MonthlyAnalyticsSummary.total_orders).label("orders")
         ).filter(MonthlyAnalyticsSummary.year_month == month_str)
         
         if scope_point_ids is not None:
@@ -97,16 +106,9 @@ async def get_dashboard_stats(
         
         lifecycle_stats = {r[0].lower(): r[2] for r in summary_res}
         tong_dt = sum(r[1] for r in summary_res)
-        
-        if scope_point_ids is not None:
-            summary_query = summary_query.filter(MonthlyAnalyticsSummary.point_id.in_(scope_point_ids))
-            
-        summary_res = summary_query.group_by(MonthlyAnalyticsSummary.lifecycle_stage).all()
-        
-        lifecycle_stats = {r[0].lower(): r[2] for r in summary_res}
-        tong_dt = sum(r[1] for r in summary_res)
     else:
-        # Fallback về logic cũ (Raw Query)
+        # Fallback về logic cũ (Raw Query) nhưng log lại để audit performance
+        logger.warning(f"Performance Alert: Dashboard fallback to Raw Query for range {start_date} to {end_date}")
         lifecycle_stats = LifecycleService.get_customer_lifecycle_stats(db, None, start_date, end_date, scope_point_ids)
         
         query = db.query(func.sum(Transaction.doanh_thu))
@@ -334,22 +336,17 @@ async def get_revenue_monthly(
     if scope_ids is not None and not scope_ids: return []
 
     # Group by Tháng-Năm (YYYY-MM)
-    # Sửa lỗi: Sử dụng func.substr hoặc lọc trực tiếp thay vì strftime để tránh mất dữ liệu do định dạng
+    # Ưu tiên lấy từ bảng MonthlyAnalyticsSummary để đạt tốc độ tối đa
     query = db.query(
-        func.substr(Transaction.ngay_chap_nhan, 1, 7).label("month"),
-        func.sum(Transaction.doanh_thu).label("total")
-    ).filter(Transaction.ngay_chap_nhan != None)
-    
-    if start_date:
-        query = query.filter(Transaction.ngay_chap_nhan >= start_date)
-    if end_date:
-        query = query.filter(Transaction.ngay_chap_nhan <= f"{end_date} 23:59:59")
+        MonthlyAnalyticsSummary.year_month.label("month"),
+        func.sum(MonthlyAnalyticsSummary.total_revenue).label("total")
+    )
     
     if scope_ids is not None:
-        query = query.filter(Transaction.point_id.in_(scope_ids))
+        query = query.filter(MonthlyAnalyticsSummary.point_id.in_(scope_ids))
         
-    stats = query.group_by(func.substr(Transaction.ngay_chap_nhan, 1, 7))\
-                 .order_by(func.substr(Transaction.ngay_chap_nhan, 1, 7)).all()
+    stats = query.group_by(MonthlyAnalyticsSummary.year_month)\
+                 .order_by(MonthlyAnalyticsSummary.year_month).all()
      
     return [{"month": r[0], "total": r[1] or 0} for r in stats]
 
@@ -366,17 +363,19 @@ async def get_revenue_by_service(
     scope_ids = ScopingService.get_effective_scope_ids(db, current_user, node_code)
     if scope_ids is not None and not scope_ids: return []
 
-    query = db.query(Transaction.ma_dv, func.sum(Transaction.doanh_thu).label("total"))
-    
-    if start_date:
-        query = query.filter(Transaction.ngay_chap_nhan >= start_date)
-    if end_date:
-        query = query.filter(Transaction.ngay_chap_nhan <= f"{end_date} 23:59:59")
+    # 2. Xác định tháng
+    month_str = (start_date[:7] if start_date else None) or datetime.now().strftime("%Y-%m")
+
+    # Ưu tiên lấy từ bảng MonthlyAnalyticsSummary
+    query = db.query(
+        MonthlyAnalyticsSummary.ma_dv, 
+        func.sum(MonthlyAnalyticsSummary.total_revenue).label("total")
+    ).filter(MonthlyAnalyticsSummary.year_month == month_str)
     
     if scope_ids is not None:
-        query = query.filter(Transaction.point_id.in_(scope_ids))
+        query = query.filter(MonthlyAnalyticsSummary.point_id.in_(scope_ids))
         
-    stats = query.group_by(Transaction.ma_dv).all()
+    stats = query.group_by(MonthlyAnalyticsSummary.ma_dv).all()
         
     service_map = {
         'C': 'C - Bưu kiện',
@@ -407,41 +406,29 @@ async def get_revenue_by_region(
     scope_ids = ScopingService.get_effective_scope_ids(db, current_user, node_code)
     if scope_ids is not None and not scope_ids: return []
 
-    # Biểu đồ tỉ trọng: Nội tỉnh, Liên tỉnh, Quốc tế
+    # 2. Xác định tháng
+    month_str = (start_date[:7] if start_date else None) or datetime.now().strftime("%Y-%m")
+
+    # Ưu tiên lấy từ bảng MonthlyAnalyticsSummary
     query = db.query(
-        Transaction.lien_tinh_noi_tinh, 
-        Transaction.trong_nuoc_quoc_te,
-        Transaction.ma_dv,
-        func.sum(Transaction.doanh_thu).label("total")
-    )
-    
-    if start_date:
-        query = query.filter(Transaction.ngay_chap_nhan >= start_date)
-    if end_date:
-        query = query.filter(Transaction.ngay_chap_nhan <= f"{end_date} 23:59:59")
+        MonthlyAnalyticsSummary.region_type, 
+        func.sum(MonthlyAnalyticsSummary.total_revenue).label("total")
+    ).filter(MonthlyAnalyticsSummary.year_month == month_str)
     
     if scope_ids is not None:
-        query = query.filter(Transaction.point_id.in_(scope_ids))
+        query = query.filter(MonthlyAnalyticsSummary.point_id.in_(scope_ids))
         
-    stats = query.group_by(Transaction.lien_tinh_noi_tinh, Transaction.trong_nuoc_quoc_te, Transaction.ma_dv).all()
+    stats = query.group_by(MonthlyAnalyticsSummary.region_type).all()
         
     result = { "Nội tỉnh": 0, "Liên tỉnh": 0, "Quốc tế": 0 }
     
     for r in stats:
-        lt_nt, tn_qt, ma_dv, val = r
+        region, val = r
         val = val or 0
-        
-        # Kiểm tra Quốc tế trước
-        is_qt = str(tn_qt).strip().lower() in ['quốc tế', 'quoc te'] or str(ma_dv).strip().upper() == 'L'
-        
-        if is_qt:
-            result["Quốc tế"] += val
+        if region in result:
+            result[region] += val
         else:
-            lt_nt_str = str(lt_nt).strip().lower()
-            if lt_nt_str in ["1", "nội tỉnh", "noi tinh"]:
-                result["Nội tỉnh"] += val
-            else:
-                result["Liên tỉnh"] += val
+            result["Liên tỉnh"] += val
             
     return [{"name": k, "value": v} for k, v in result.items() if v > 0]
 

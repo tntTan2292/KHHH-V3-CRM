@@ -289,7 +289,9 @@ class MonthlyAnalyticsSummary(Base):
     id = Column(Integer, primary_key=True, index=True)
     year_month = Column(String(10), index=True) # 'YYYY-MM'
     point_id = Column(Integer, ForeignKey("hierarchy_nodes.id"), index=True)
-    lifecycle_stage = Column(String(50), index=True) # NEW, ACTIVE, AT_RISK, CHURNED, REACTIVATED
+    lifecycle_stage = Column(String(50), index=True, nullable=True) # NEW, ACTIVE, AT_RISK, CHURNED, REACTIVATED
+    ma_dv = Column(String(50), index=True, nullable=True) # Dịch vụ: C, E, M, R, L
+    region_type = Column(String(50), index=True, nullable=True) # Nội tỉnh, Liên tỉnh, Quốc tế
     
     total_revenue = Column(Float, default=0.0)
     total_orders = Column(Integer, default=0)
@@ -298,7 +300,7 @@ class MonthlyAnalyticsSummary(Base):
     last_updated_at = Column(DateTime, server_default=func.now())
     
     __table_args__ = (
-        Index('idx_summary_main', 'point_id', 'year_month', 'lifecycle_stage'),
+        Index('idx_summary_main', 'point_id', 'year_month', 'lifecycle_stage', 'ma_dv', 'region_type'),
     )
 
 class CustomerFirstOrder(Base):
