@@ -517,9 +517,16 @@ class EscalationRecord(Base):
     escalation_level = Column(Integer)
     is_ownership_transfer = Column(Boolean, default=False)
     
-    # Ownership Tracking
+    # Ownership & Coordination Tracking
     previous_owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     new_owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    
+    # HARDENING: Current Responsibility
+    current_coordinator_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    current_coordinator_team = Column(String(100), nullable=True)
+    
+    # HARDENING: Reason Classification
+    escalation_reason_code = Column(String(50), nullable=True) # NO_ACK, SLA_BREACH, CRITICAL_SITUATION
     
     # Lifecycle State Machine
     status = Column(
@@ -540,4 +547,5 @@ class EscalationRecord(Base):
     __table_args__ = (
         Index('idx_escalation_lifecycle', 'event_id', 'status', 'escalation_level'),
         Index('idx_escalation_owner_lookup', 'new_owner_id', 'status'),
+        Index('idx_escalation_coordinator', 'current_coordinator_id', 'status'),
     )
