@@ -16,8 +16,21 @@ SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
 print(f"--- DATABASE URL (V3.0 LOCAL): {SQLALCHEMY_DATABASE_URL}")
 
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+    SQLALCHEMY_DATABASE_URL, 
+    connect_args={
+        "check_same_thread": False,
+        "timeout": 30  # SQLite busy timeout (seconds)
+    }
 )
+
+from sqlalchemy import event
+
+@event.listens_for(engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute("PRAGMA synchronous=NORMAL")
+    cursor.close()
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()

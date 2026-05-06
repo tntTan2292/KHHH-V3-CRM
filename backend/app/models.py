@@ -131,6 +131,9 @@ class Customer(Base):
 
 class Transaction(Base):
     __tablename__ = "transactions"
+    __table_args__ = (
+        Index('idx_potential_drilldown', 'ten_nguoi_gui_canonical', 'dia_chi_nguoi_gui_canonical', 'point_id', 'ngay_chap_nhan'),
+    )
     
     id = Column(Integer, primary_key=True, index=True)
     shbg = Column(String(100), index=True, nullable=True) # Số hiệu bưu gửi (Cho phép trùng lặp theo yêu cầu đối soát)
@@ -299,3 +302,10 @@ class UsedToken(Base):
     id = Column(Integer, primary_key=True, index=True)
     token_hash = Column(String(64), unique=True, index=True)
     expires_at = Column(DateTime, index=True)
+
+class BackfillStatus(Base):
+    __tablename__ = "backfill_status"
+    filename = Column(String(255), primary_key=True)
+    status = Column(String(50)) # COMPLETED, FAILED, IN_PROGRESS
+    total_records = Column(Integer, default=0)
+    last_processed_at = Column(DateTime, server_default=func.now())

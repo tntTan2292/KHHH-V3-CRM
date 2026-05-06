@@ -3,12 +3,7 @@ import unicodedata
 import pandas as pd
 import os
 
-def remove_accents(input_str: str) -> str:
-    """Loại bỏ dấu tiếng Việt để dễ so sánh."""
-    if not input_str:
-        return ""
-    nfkd_form = unicodedata.normalize('NFKD', str(input_str))
-    return u"".join([c for c in nfkd_form if not unicodedata.combining(c)]).lower().strip()
+from ..utils.normalization import normalize_name as remove_accents
 
 # Global mapping variable
 PROVINCE_MAPPING = {}

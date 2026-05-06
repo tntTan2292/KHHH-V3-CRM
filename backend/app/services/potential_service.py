@@ -12,11 +12,7 @@ from ..core.config_segments import (
 )
 from ..core.segment_rules import classify_potential_rank
 
-def normalize_name(name: str) -> str:
-    if not name:
-        return ""
-    name = re.sub(r'\s+', ' ', name.strip())
-    return remove_accents(name)
+from ..utils.normalization import normalize_name, shorten_address
 
 class PotentialService:
     @staticmethod
