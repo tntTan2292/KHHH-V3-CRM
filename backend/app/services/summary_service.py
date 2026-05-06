@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import dateutil.relativedelta
 import os
 import logging
+from .lifecycle_engine import LifecycleEngine
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +73,7 @@ class SummaryService:
             for month in target_months:
                 SummaryService._rebuild_month_summary_optimized(conn, month)
             print("SUCCESS: Incremental summary refresh completed.")
+            return True
         finally:
             conn.close()
 
@@ -92,77 +94,20 @@ class SummaryService:
 
         print(f"  - Rebuilding {month_str} using Constitutional Logic...")
         
-        # 1. Lấy dữ liệu ĐỊNH DANH (Nhóm 1)
-        # Quét lịch sử để xác định Stage chính xác
-        # Lấy tất cả khách hàng đã từng phát sinh đơn tại điểm này
-        sql_ident = """
-        WITH ident_history AS (
-            SELECT 
-                ma_kh,
-                point_id,
-                MIN(strftime('%Y-%m', ngay_chap_nhan)) as first_month,
-                MAX(CASE WHEN ngay_chap_nhan < ? THEN strftime('%Y-%m', ngay_chap_nhan) ELSE NULL END) as last_month_before,
-                SUM(CASE WHEN ngay_chap_nhan BETWEEN ? AND ? THEN doanh_thu ELSE 0 END) as curr_rev,
-                COUNT(CASE WHEN ngay_chap_nhan BETWEEN ? AND ? THEN id ELSE NULL END) as curr_orders,
-                MAX(CASE WHEN ngay_chap_nhan BETWEEN ? AND ? THEN 1 ELSE 0 END) as has_order_this_month
-            FROM transactions
-            WHERE ma_kh IS NOT NULL AND ma_kh != ''
-            GROUP BY ma_kh, point_id
-        )
-        SELECT * FROM ident_history 
-        WHERE has_order_this_month = 1 
-           OR (last_month_before IS NOT NULL AND last_month_before >= ?) 
-        """
-        # (last_month_before >= t_minus_3_str) để lấy những người có nguy cơ hoặc mới rời bỏ gần đây
-        
-        # Note: We query back to 12 months for at-risk/churned scanning
-        t_minus_12_str = (datetime(y, m, 1) - dateutil.relativedelta.relativedelta(months=12)).strftime('%Y-%m')
-        
-        print(f"    - Scanning identified customers history...")
-        df_ident = pd.read_sql_query(sql_ident, conn, params=(start_date, start_date, end_date, start_date, end_date, start_date, end_date, t_minus_12_str))
-        
+        print(f"    - Processing identified customers using LifecycleEngine...")
+        ident_results = LifecycleEngine.process_month_summary(month_str)
         summary_data = []
 
-        if not df_ident.empty:
-            def classify_ident(row):
-                first = row['first_month']
-                last_before = row['last_month_before']
-                has_now = row['has_order_this_month']
-                
-                # Tính diff (tháng)
-                y_c, m_c = y, m
-                
-                # NEW: Trong vòng 3 tháng đầu
-                y_f, m_f = map(int, first.split('-'))
-                diff_f = (y_c - y_f) * 12 + (m_c - m_f)
-                
-                if diff_f < 3: return 'NEW'
-                
-                if has_now:
-                    # RECOVERED: Quay lại sau > 3 tháng
-                    if last_before:
-                        y_l, m_l = map(int, last_before.split('-'))
-                        diff_l = (y_c - y_l) * 12 + (m_c - m_l)
-                        if diff_l > 3: return 'RECOVERED'
-                    return 'ACTIVE'
-                else:
-                    # KHÔNG có đơn tháng này
-                    if last_before:
-                        y_l, m_l = map(int, last_before.split('-'))
-                        diff_l = (y_c - y_l) * 12 + (m_c - m_l)
-                        if diff_l > 3: return 'CHURNED'
-                        return 'AT_RISK'
-                return 'CHURNED'
-
-            df_ident['stage'] = df_ident.apply(classify_ident, axis=1)
+        if ident_results:
+            df_ident = pd.DataFrame(ident_results)
             
-            # Gộp theo Stage (Dùng ma_dv='ALL' để đếm unique khách hàng)
-            stage_counts = df_ident.groupby(['point_id', 'stage']).size().reset_index(name='count')
+            # Gộp theo Stage và Growth (Dùng ma_dv='ALL' để đếm unique khách hàng)
+            # Lưu ý: Một khách hàng có thể có Growth tag
+            stage_counts = df_ident.groupby(['point_id', 'state', 'growth']).size().reset_index(name='count')
             for _, r in stage_counts.iterrows():
-                summary_data.append((month_str, int(r['point_id']), r['stage'], 'ALL', 'ALL', 0.0, 0, int(r['count'])))
+                summary_data.append((month_str, int(r['point_id']), r['state'], r['growth'], 'ALL', 'ALL', 0.0, 0, int(r['count'])))
             
             # Tính doanh thu thực tế cho nhóm định danh (phân rã theo ma_dv, region_type)
-            # Truy vấn lại doanh thu chi tiết tháng này
             sql_rev_ident = """
             SELECT point_id, ma_dv, 
                    CASE 
@@ -177,8 +122,8 @@ class SummaryService:
             """
             df_rev_ident = pd.read_sql_query(sql_rev_ident, conn, params=(start_date, end_date))
             for _, r in df_rev_ident.iterrows():
-                # Dùng stage='ACTIVE' làm placeholder cho doanh thu định danh (để Dashboard sum lại)
-                summary_data.append((month_str, int(r['point_id']), 'ACTIVE', r['ma_dv'], r['region_type'], r['rev'], int(r['orders']), 0))
+                # Dùng stage='ACTIVE' làm placeholder cho doanh thu định danh
+                summary_data.append((month_str, int(r['point_id']), 'ACTIVE', None, r['ma_dv'], r['region_type'], r['rev'], int(r['orders']), 0))
 
         # 2. Lấy dữ liệu TIỀM NĂNG (Nhóm 2)
         print(f"    - Processing potential customers (Leads)...")
@@ -213,16 +158,19 @@ class SummaryService:
                 'rev': 'sum', 'orders': 'sum', 'name': 'count'
             }).reset_index()
             for _, r in pot_agg.iterrows():
-                summary_data.append((month_str, int(r['point_id']), r['rank'], r['ma_dv'], r['region_type'], r['rev'], int(r['orders']), int(r['name'])))
+                summary_data.append((month_str, int(r['point_id']), r['rank'], None, r['ma_dv'], r['region_type'], r['rev'], int(r['orders']), int(r['name'])))
 
         # 3. Lưu Database
         cursor.execute("BEGIN")
         try:
             cursor.execute("DELETE FROM monthly_analytics_summary WHERE year_month = ?", (month_str,))
-            insert_sql = "INSERT INTO monthly_analytics_summary (year_month, point_id, lifecycle_stage, ma_dv, region_type, total_revenue, total_orders, total_customers) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+            insert_sql = "INSERT INTO monthly_analytics_summary (year_month, point_id, lifecycle_stage, growth_tag, ma_dv, region_type, total_revenue, total_orders, total_customers) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
             cursor.executemany(insert_sql, summary_data)
             conn.execute("COMMIT")
             print(f"- Rebuilt summary for {month_str}: {len(summary_data)} records.")
+            
+            # Sync customers table for list views
+            LifecycleEngine.sync_customers_table(month_str)
         except Exception as e:
             conn.execute("ROLLBACK")
             print(f"ERROR rebuilding month {month_str}: {e}")

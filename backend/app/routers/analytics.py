@@ -45,9 +45,9 @@ async def trigger_summary_refresh(
     if current_user.role.name != "ADMIN":
         raise HTTPException(status_code=403, detail="Chỉ Admin mới có quyền làm mới dữ liệu tổng hợp")
     
-    success = SummaryService.refresh_summary_shadow_swap()
+    success = SummaryService.refresh_summary_incremental()
     if success:
-        return {"status": "success", "message": "Dữ liệu Dashboard đã được làm mới thành công (Shadow-Swap)."}
+        return {"status": "success", "message": "Dữ liệu Dashboard đã được làm mới thành công."}
     else:
         raise HTTPException(status_code=500, detail="Lỗi trong quá trình làm mới dữ liệu tổng hợp.")
 
@@ -102,9 +102,17 @@ async def get_dashboard_stats(
         if scope_point_ids is not None:
             summary_query = summary_query.filter(MonthlyAnalyticsSummary.point_id.in_(scope_point_ids))
             
-        summary_res = summary_query.group_by(MonthlyAnalyticsSummary.lifecycle_stage).all()
+        summary_res = summary_query.group_by(MonthlyAnalyticsSummary.lifecycle_stage, MonthlyAnalyticsSummary.growth_tag).all()
         
-        lifecycle_stats = {r[0].lower(): r[2] for r in summary_res}
+        lifecycle_stats = {}
+        growth_stats = {"GROWTH": 0, "STABLE": 0, "DECLINING": 0}
+        
+        for stage, rev, cust, ords, growth in summary_res:
+            stage_key = stage.lower() if stage else "unknown"
+            lifecycle_stats[stage_key] = lifecycle_stats.get(stage_key, 0) + (cust or 0)
+            if growth in growth_stats:
+                growth_stats[growth] += (cust or 0)
+        
         tong_dt = sum(r[1] for r in summary_res)
     else:
         # Fallback về logic cũ (Raw Query) nhưng log lại để audit performance
@@ -199,6 +207,7 @@ async def get_dashboard_stats(
         "revenue_growth": round(rev_growth, 2),
         "latest_date": latest_date_str,
         "lifecycle": lifecycle_stats,
+        "growth": growth_stats,
         "potential_ranks": potential_ranks
     }
 

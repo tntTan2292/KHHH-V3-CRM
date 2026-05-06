@@ -111,6 +111,8 @@ class Customer(Base):
     tong_doanh_thu = Column(Float, default=0.0)
     rfm_segment = Column(String(100), default="Thường")
     is_churn = Column(Integer, default=0) # 0: Đang hoạt động, 1: Rời bỏ (Không phát sinh DT)
+    lifecycle_state = Column(String(50), index=True, default="NEW")
+    growth_tag = Column(String(100), nullable=True)
 
     ma_bc_phu_trach = Column(String(50), nullable=True, index=True) 
     assigned_staff_id = Column(Integer, ForeignKey("nhan_su.id"), nullable=True) # Nhân viên được giao CSKH
@@ -290,6 +292,7 @@ class MonthlyAnalyticsSummary(Base):
     year_month = Column(String(10), index=True) # 'YYYY-MM'
     point_id = Column(Integer, ForeignKey("hierarchy_nodes.id"), index=True)
     lifecycle_stage = Column(String(50), index=True, nullable=True) # NEW, ACTIVE, AT_RISK, CHURNED, REACTIVATED
+    growth_tag = Column(String(50), index=True, nullable=True) # GROWTH, STABLE, DECLINING
     ma_dv = Column(String(50), index=True, nullable=True) # Dịch vụ: C, E, M, R, L
     region_type = Column(String(50), index=True, nullable=True) # Nội tỉnh, Liên tỉnh, Quốc tế
     
@@ -300,8 +303,17 @@ class MonthlyAnalyticsSummary(Base):
     last_updated_at = Column(DateTime, server_default=func.now())
     
     __table_args__ = (
-        Index('idx_summary_main', 'point_id', 'year_month', 'lifecycle_stage', 'ma_dv', 'region_type'),
+        Index('idx_summary_main', 'point_id', 'year_month', 'lifecycle_stage', 'growth_tag', 'ma_dv', 'region_type'),
     )
+
+class LifecycleLog(Base):
+    __tablename__ = "lifecycle_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    ma_kh = Column(String(100), index=True)
+    previous_state = Column(String(50))
+    new_state = Column(String(50))
+    trigger_reason = Column(Text)
+    timestamp = Column(DateTime, server_default=func.now())
 
 class CustomerFirstOrder(Base):
     __tablename__ = "customer_first_order"

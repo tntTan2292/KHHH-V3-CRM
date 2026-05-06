@@ -102,12 +102,12 @@ class CustomerService:
         ).label("growth_velocity")
 
         base_query = db.query(
-            Customer, # Lấy nguyên đối tượng Customer để có đầy đủ fields cho Export
-            identified_metrics.c.ma_kh.label("ma_crm_cms"),
-            identified_status.label("status_type"),
+            Customer,
+            Customer.ma_crm_cms,
+            Customer.lifecycle_state.label("status_type"),
             func.coalesce(identified_metrics.c.curr_rev, 0).label("dynamic_revenue"),
             func.coalesce(identified_metrics.c.curr_count, 0).label("transaction_count"),
-            growth_velocity.label("growth_velocity"),
+            Customer.growth_tag.label("growth_velocity"), # Or map to a score
             health_score.label("health_score"),
             identified_metrics.c.point_id,
             NhanSu.full_name.label("assigned_staff_name")
@@ -126,7 +126,7 @@ class CustomerService:
             )
         
         if lifecycle_status:
-            base_query = base_query.filter(identified_status == lifecycle_status)
+            base_query = base_query.filter(Customer.lifecycle_state == lifecycle_status.upper())
             
         if rfm_segment:
             base_query = base_query.filter(Customer.rfm_segment == rfm_segment)
