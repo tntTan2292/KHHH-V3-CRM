@@ -477,3 +477,67 @@ class EventStateLog(Base):
     reason = Column(Text)
     snapshot_at_change_json = Column(Text, nullable=True)
     timestamp = Column(DateTime, server_default=func.now())
+
+class EscalationRule(Base):
+    """
+    GOVERNANCE: Centralized Escalation Policies
+    """
+    __tablename__ = "escalation_rules"
+    id = Column(Integer, primary_key=True, index=True)
+    event_code = Column(String(100), index=True)
+    escalation_level = Column(Integer, default=1)
+    
+    # Trigger Governance
+    wait_hours = Column(Integer, default=24)
+    trigger_condition_type = Column(String(50), default="NO_ACK") # NO_ACK, NO_RESOLUTION, SLA_BREACH
+    
+    # Action Governance
+    action_type = Column(String(50), default="NOTIFY") # NOTIFY, TRANSFER_OWNERSHIP
+    
+    target_role = Column(String(50))
+    target_team = Column(String(100))
+    
+    is_enabled = Column(Boolean, default=True)
+    version = Column(Integer, default=1)
+
+    __table_args__ = (
+        Index('idx_escalation_rule_lookup', 'event_code', 'escalation_level', 'is_enabled'),
+    )
+
+class EscalationRecord(Base):
+    """
+    GOVERNANCE: Escalation Lifecycle & Auditability
+    """
+    __tablename__ = "escalation_records"
+    id = Column(Integer, primary_key=True, index=True)
+    event_id = Column(Integer, ForeignKey("system_events.id"), index=True)
+    run_id = Column(String(100), index=True) # Linked to Escalation Engine Run
+    rule_id = Column(Integer, ForeignKey("escalation_rules.id"))
+    
+    escalation_level = Column(Integer)
+    is_ownership_transfer = Column(Boolean, default=False)
+    
+    # Ownership Tracking
+    previous_owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    new_owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    
+    # Lifecycle State Machine
+    status = Column(
+        String(50), 
+        default="PENDING",
+        nullable=False
+    ) # PENDING, ESCALATED, ACKNOWLEDGED, RESOLVED, CLOSED
+    
+    # Immutable Truth
+    escalation_snapshot_json = Column(Text)
+    
+    # Temporal Governance
+    escalated_at = Column(DateTime, server_default=func.now())
+    due_at = Column(DateTime) # SLA Deadline for this level
+    acknowledged_at = Column(DateTime, nullable=True)
+    resolved_at = Column(DateTime, nullable=True)
+
+    __table_args__ = (
+        Index('idx_escalation_lifecycle', 'event_id', 'status', 'escalation_level'),
+        Index('idx_escalation_owner_lookup', 'new_owner_id', 'status'),
+    )
