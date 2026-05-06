@@ -109,19 +109,22 @@ def read_file1() -> pd.DataFrame:
 
 def find_all_bf_files() -> list:
     """ Tìm tất cả các file BF trong nhiều thư mục khác nhau. """
-    EXCEL_EXTS = {".xlsx", ".xlsb", ".xls"}
+    # Các đuôi file Excel hỗ trợ
+    EXCEL_EXTS = [".xlsx", ".xls", ".xlsb"]
     
     # Danh sách các thư mục cần quét
     search_dirs = [
         BASE_DIR,
         os.path.join(BASE_DIR, "batch_files"),
         os.path.join(BASE_DIR, "batch_files", "2025_BACKFILL"),
-        os.path.join(r"D:\Antigravity - Project\KHHH - Antigravity - V3.0\data\raw_files")
+        os.path.join(r"D:\Antigravity - Project\KHHH - Antigravity - V3.0\data\raw_files"),
+        os.path.join(r"D:\Antigravity - Project\KHHH - Antigravity - V3.0\backend\data\batch_files"),
+        os.path.join(r"D:\Antigravity - Project\KHHH - Antigravity - V3.0\archive\data")
     ]
     
-    # Các mẫu tên file hợp lệ
-    STRICT_PATTERN = "BF_SL CHẤP NHẬN TOÀN BĐHUE"
-    NEW_PATTERN = "53_THUA THIEN HUE" # Dành cho các file tải từ SFTP/WinSCP
+    # Các mẫu tên file hợp lệ (Dùng chuỗi ngắn để tránh lỗi Unicode)
+    STRICT_PATTERN = "BF_SL"
+    NEW_PATTERN = "53_THUA THIEN HUE"
     
     files = []
     for d in search_dirs:
@@ -129,6 +132,7 @@ def find_all_bf_files() -> list:
         try:
             for f in os.listdir(d):
                 if os.path.splitext(f)[1].lower() in EXCEL_EXTS:
+                    if f.startswith("~$"): continue # Bỏ qua file tạm của Excel
                     f_upper = f.upper()
                     if STRICT_PATTERN in f_upper or NEW_PATTERN in f_upper:
                         files.append(os.path.join(d, f))

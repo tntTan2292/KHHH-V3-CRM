@@ -23,8 +23,11 @@ __pycache__/
 
 # DATABASE & SENSITIVE DATA (CRITICAL)
 data/database/*.db
+data/database/*.db-shm
+data/database/*.db-wal
 data/database/*.sqlite3
 data/cache/*.json
+*.json
 debug_access_log.txt
 *.log
 *.err
