@@ -979,3 +979,15 @@ Hệ thống Phân quyền đã chạy ổn định và sạch dữ liệu. Sế
     - **Cấu trúc lại văn bản**: Bổ sung Heading `## 📊 NHÓM ĐÁNH GIÁ PHÁT TRIỂN KHÁCH HÀNG` để phân tách rõ ràng với 5 nhóm Lifecycle gốc.
     - **Thiết lập Quy tắc Chống Ghi Đè (Anti-Overwrite)**: Thêm điều khoản "Lifecycle gốc vẫn là nguồn xác định trạng thái chính của khách hàng" vào lưu ý của nhóm Growth.
 - **Kết quả**: Khẳng định vững chắc kiến trúc "Overlay Tag" cho nhóm Growth. Ngăn chặn triệt để nguy cơ các truy vấn Analytics hoặc giao diện Dashboard trong tương lai vô tình lấy nhãn Growth đè lên trạng thái Active/New. Đảm bảo tính toàn vẹn (Integrity) của báo cáo vòng đời. ✅ **GOVERNANCE HOÀN TẤT.**
+
+---
+### 🕒 [06/05/2026 - 18:35]: TÁI CẤU TRÚC HIẾN PHÁP CRM 3.0 THÀNH SINGLE SOURCE OF TRUTH (SSOT)
+- **Sự kiện**: Thực hiện đại tu toàn diện file `HIEN_PHAP_CRM_3.0.md` để chuẩn hóa quản trị và logic vận hành hệ thống.
+- **Hạng mục Xử lý**:
+    - **Tái thiết cấu trúc 11 Section**: Từ Governance Principles đến SSOT Summary.
+    - **Governance**: Xác lập triết lý "Retention > Stability > Growth > Acquisition" và kiến trúc Transaction-first.
+    - **Module 5B**: Chuẩn hóa State Machine cho khách hàng tiềm năng, xác định B3 là điểm chạm dữ liệu thật và cơ chế đồng bộ sang Lifecycle.
+    - **Lifecycle & Growth**: Giữ vững 5 trạng thái vòng đời gốc, làm rõ nhãn Growth là "Dynamic Tag" bổ sung.
+    - **Engine Architecture**: Xây dựng khung pháp lý cho VIP Tier, Priority, Notification, Action, Escalation và Task Orchestrator.
+    - **Executive Dashboard**: Tách biệt lớp Điều hành (Nóng) và lớp Phân tích (Sâu).
+- **Kết quả**: Hiến pháp CRM 3.0 chính thức trở thành "Single Source of Truth" tối cao, làm căn cứ cho mọi hoạt động code Backend/Frontend và điều hành của Lãnh đạo. ✅ **HOÀN THÀNH TÁI CẤU TRÚC.**

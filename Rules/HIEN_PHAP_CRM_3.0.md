@@ -1,127 +1,157 @@
-# 📜 HIẾN PHÁP PHÂN LOẠI KHÁCH HÀNG CRM 3.0 - BƯU ĐIỆN TP HUẾ
-*(Ban hành bởi Sếp - Phê duyệt bởi Biệt đội Antigravity)*
+# 📜 HIẾN PHÁP CRM 3.0 - BƯU ĐIỆN TP HUẾ
+*(Single Source of Truth - Phiên bản điều hành tối cao)*
 
 ---
 
-## 📂 NHÓM 1: MODULE DANH SÁCH KHÁCH HÀNG (LIFECYCLE - ĐỊNH DANH)
-Dành cho khách hàng đã được cấp mã CRM cố định.
+# I. GOVERNANCE PRINCIPLES
+1.  **SSOT (Single Source Of Truth)**: Mọi quyết định điều hành, báo cáo và đánh giá đều dựa trên một nguồn dữ liệu chuẩn duy nhất từ Transaction Database.
+2.  **Transaction-first architecture**: Dữ liệu giao dịch thật (đã được đối soát) là nền tảng của mọi logic. Tuyệt đối không dùng dữ liệu nhập tay để tính toán KPI.
+3.  **Ownership & hierarchy**: Quản lý theo cấu trúc cây 5 cấp (Tỉnh -> Trung tâm -> Cụm -> Phường/Xã -> Điểm). Mọi khách hàng phải có "Chủ sở hữu" (Owner) rõ ràng.
+4.  **No fake KPI / No activity-driven scoring**: Không tính điểm dựa trên số lượng hoạt động (Activity) ảo. Mọi điểm số phải được chứng thực bằng hiệu quả kinh doanh thực tế.
+5.  **Triết lý CRM ưu tiên**: **Giữ khách > Ổn định > Tăng trưởng > Mở mới**.
+
+---
+
+# II. MODULE HÀNH TRÌNH 5B (State Machine cho KH Tiềm năng)
+Quy trình chuyển đổi khách hàng từ vãng lai thành khách hàng định danh:
+
+-   **B1 - Bắt nhịp**: Tiếp cận, thu thập thông tin cơ bản.
+-   **B2 - Bàn bạc**: Thương thảo hợp đồng/chính sách.
+    -   *B2 Aging Warning*: Cảnh báo nếu khách hàng ở trạng thái B2 quá lâu mà không chuyển biến.
+-   **B3 - Bán hàng**: Giai đoạn bắt đầu phát sinh đơn hàng.
+    -   **QUY TẮC DỮ LIỆU**: B1/B2 chưa được đọc transaction thật. B3 là mốc bắt đầu quét dữ liệu giao dịch thực tế.
+    -   **Sync Rule**: Ngay khi phát sinh transaction khớp với mã định danh (hoặc thông tin định danh) -> Hệ thống tự động chuyển sang **Module Danh sách khách hàng** với trạng thái **Khách hàng mới**.
+-   **B4 - Bùng nổ**: Đẩy mạnh doanh thu và sản lượng sau khi đã có đơn hàng ổn định.
+-   **B5 - Bám sát**: Chăm sóc định kỳ, ngăn ngừa nguy cơ rời bỏ ngay từ đầu.
+-   **Monitoring**: Theo dõi chặt chẽ số ngày sau khi báo "Thành công" tại B3 nhưng chưa phát sinh sản lượng thực tế trên hệ thống.
+
+---
+
+# III. MODULE DANH SÁCH KHÁCH HÀNG (Lifecycle State Machine)
+Dành cho khách hàng đã có mã CMS cố định. Tuân thủ 5 trạng thái vòng đời gốc:
 
 ### 1. KHÁCH HÀNG MỚI (New) ✨
 - **Điều kiện**: Đơn hàng lần đầu tiên trong lịch sử (tính lũy kế).
-- **Thời gian**: Trạng thái "Mới" kéo dài từ tháng phát sinh đơn đầu tiên đến **HẾT THÁNG THỨ 03**.
-- **Chuyển đổi**: Từ tháng thứ 04 trở đi mới được chuyển sang nhóm HIỆN HỮU.
+- **Thời gian**: Kéo dài từ tháng phát sinh đơn đầu tiên đến **HẾT THÁNG THỨ 03**.
 
 ### 2. KHÁCH HÀNG HIỆN HỮU (Active) ✅
-- **Điều kiện**: Có đơn trong tháng báo cáo.
+- **Điều kiện**: Có đơn trong tháng báo cáo và đã đi qua giai đoạn "MỚI".
 - **Duy trì**: Có ít nhất một đơn trong vòng 03 tháng trước đó.
-- **Yêu cầu**: Phải là khách hàng đã từng đi qua giai đoạn "MỚI".
 
-### 3. KHÁCH HÀNG RỜI BỎ (Churn) ⚠️
-- **Điều kiện**: Từng phát sinh đơn trong quá khứ.
-- **Dấu hiệu**: **LIÊN TIẾP 03 THÁNG** không có đơn hàng nào.
-- **Xếp loại**: Được liệt kê vào danh sách Rời bỏ từ tháng thứ 04 không có đơn.
-- **Thời gian**: Trạng thái "Rời bỏ" kéo dài từ tháng phát sinh đơn quay lại đầu tiên đến **HẾT THÁNG THỨ 03**.
-- **Chuyển đổi**: Từ tháng thứ 04 trở đi được chuyển về lại nhóm HIỆN HỮU.
-
-### 4. KHÁCH HÀNG TÁI BÁN (Re-activated) 🔄
-- **Điều kiện**: Đã từng thuộc nhóm MỚI hoặc HIỆN HỮU.
-- **Tiền sử**: Đã từng rơi vào nhóm RỜI BỎ (nghỉ trên 3 tháng).
-- **Hiện tại**: Quay lại phát sinh đơn hàng.
-
-### 5. KHÁCH HÀNG NGUY CƠ (At-risk) 🚩
-- **Điều kiện**: Có đơn đều đặn trong quá khứ.
+### 3. KHÁCH HÀNG NGUY CƠ (At-risk) 🚩
 - **Dấu hiệu**: **QUÁ 30 NGÀY** kể từ đơn hàng gần nhất chưa phát sinh đơn hàng mới.
-- **Mục đích**: Cảnh báo sớm để nhân viên liên hệ "cứu chữa" trước khi khách hàng rơi vào trạng thái Rời bỏ.
+- **Mục đích**: Cảnh báo sớm để nhân viên liên hệ "cứu chữa".
+
+### 4. KHÁCH HÀNG RỜI BỎ (Churn) ⚠️
+- **Dấu hiệu**: **LIÊN TIẾP 03 THÁNG** không có đơn hàng nào. Liệt kê vào danh sách Rời bỏ từ tháng thứ 04.
+
+### 5. KHÁCH HÀNG TÁI BÁN (Re-activated) 🔄
+- **Điều kiện**: Khách từng RỜI BỎ nay quay lại phát sinh đơn hàng. Kéo dài trạng thái này trong 03 tháng đầu quay lại.
+
+### 📊 NHÓM ĐÁNH GIÁ TĂNG TRƯỞNG (Growth Tag)
+- **Bản chất**: Là một **Nhãn đánh giá động (Dynamic Tag)**, không phải trạng thái Lifecycle độc lập.
+- **Quy tắc**:
+    - Chỉ áp dụng cho khách hàng đã có mã.
+    - Chỉ áp dụng SAU KHI đã xác định trạng thái Lifecycle gốc.
+    - Đọc tăng trưởng MoM (Month-over-Month) dựa trên transaction thật.
+    - **Tính cộng dồn**: Một khách hàng có thể đồng thời là "Khách hàng hiện hữu + Tăng trưởng" hoặc "Khách hàng mới + Tăng trưởng".
 
 ---
 
-## 📊 NHÓM ĐÁNH GIÁ PHÁT TRIỂN KHÁCH HÀNG
+# IV. VIP TIER ENGINE (Dynamic Ranking)
+Hệ thống tự động phân tầng khách hàng dựa trên Ranking doanh thu thực tế:
+1.  **💎 Diamond (Kim cương)**
+2.  **💍 Platinum (Bạch kim)**
+3.  **🏆 Gold (Vàng)**
+4.  **🥈 Silver (Bạc)**
+5.  **🥉 Bronze (Đồng)**
 
-### 6. KHÁCH HÀNG TĂNG TRƯỞNG (Growth) 🚀
-- **Điều kiện**:
-  - Đang thuộc nhóm: **KHÁCH HÀNG MỚI** HOẶC **KHÁCH HÀNG HIỆN HỮU**.
-  - **Dấu hiệu**: Doanh thu hoặc sản lượng tăng trưởng liên tục theo MOM (Month-over-Month).
-  - Hoặc đạt ngưỡng tăng trưởng do hệ thống quy định.
-- **Mục đích**:
-  - Nhận diện khách hàng có tiềm năng phát triển mạnh.
-  - Ưu tiên chiến lược Bùng nổ & Bám sát.
-- **Lưu ý**:
-  - "Khách hàng tăng trưởng" là nhãn đánh giá bổ sung.
-  - **KHÔNG** thay thế trạng thái Lifecycle gốc.
-  - Một khách hàng có thể đồng thời là: **KHÁCH HÀNG MỚI + TĂNG TRƯỞNG** HOẶC **KHÁCH HÀNG HIỆN HỮU + TĂNG TRƯỞNG**.
-  - Lifecycle gốc vẫn là nguồn xác định trạng thái chính của khách hàng.
----
-
-## 🚀 NHÓM 02: MODULE DANH SÁCH KHÁCH HÀNG TIỀM NĂNG (LEADS - VÃNG LAI)
-Dành cho khách hàng chưa có mã CMS nhưng có lượt gửi nhiều và doanh thu cao.
-
-| Hạng mục | Điều kiện Doanh thu | Điều kiện Sản lượng | Ghi chú |
-| :--- | :--- | :--- | :--- |
-| **💎 KIM CƯƠNG (Diamond)** | > 5.000.000đ và > 20 đơn/tháng | Ưu tiên định danh số 1 |
-| **🏆 VÀNG (Gold)** | > 1.000.000đ và > 10 đơn/tháng | Tiềm năng tăng trưởng cao |
-| **🥈 BẠC (Silver)** | > 500.000đ và > 5 đơn/tháng | Cần chăm sóc thường xuyên |
-| **👤 THƯỜNG (Regular)** | < 1.000.000đ | < 5 đơn/tháng | Khách lẻ (không hiển thị Module) |
+- **Nguyên tắc**: VIP Tier là xếp hạng động, **KHÔNG nhập tay**. CRM tự tính toán định kỳ.
+- **Phạm vi**: Chỉ áp dụng cho khách hàng đã định danh (có mã). Khách hàng tiềm năng (Leads) không có VIP Tier.
 
 ---
 
-## ⚡ NHÓM NGOẠI LỆ: KHÁCH HÀNG VÃNG LAI LẺ
-- Khách không mã CMS, gửi ít (số lượng quá lớn, không thuộc Module quản trị nào).
+# V. PRIORITY ENGINE (Hybrid Scoring Model)
+Hệ thống ưu tiên xử lý dựa trên sự kết hợp giữa các chỉ số tĩnh và động:
+- **Fixed Score**: VIP Tier, Lifecycle Stage.
+- **Dynamic Weight**: Risk aging (mức độ nghiêm trọng của nguy cơ), Growth rate (tốc độ tăng trưởng), B2 aging (độ trễ thương thảo).
 
-## 🕒 NGUYÊN TẮC TÍNH TOÁN ĐỘNG (DYNAMIC CALCULATION)
-- **Tính thời điểm**: Trạng thái Lifecycle không phải là nhãn dán cố định mà được tính toán **tại thời điểm báo cáo**.
-- **Hiệu lực bộ lọc**: Khi thay đổi bộ lọc "Từ ngày - Đến ngày" trên Dashboard, hệ thống sẽ tự động tính toán lại lộ trình của khách hàng tương ứng với dải thời gian đó.
-- **Mục đích**: Giúp nhà quản lý có thể "quay ngược thời gian" để xem lịch sử chuyển dịch nhóm khách hàng (ví dụ: tháng trước họ là 'Nguy cơ', tháng này là 'Hiện hữu').
-
----
-
-## 🏛️ PHẦN II: PHÂN CẤP & PHÂN QUYỀN TRUY CẬP (VERSION 3.0)
-Hệ thống chuyển đổi từ mô hình "Phẳng" sang mô hình "Cây phân cấp" (Hierarchy Architecture).
-
-### 1. CẤU TRÚC 5 CẤP BẬC (The 5-Level Tree)
-Mọi dữ liệu được lọc tự động dựa trên vị trí của nhân sự trong cây:
-1.  **Cấp 1: Tỉnh (Province)** - Toàn quyền quản trị (Lãnh đạo BĐTP).
-2.  **Cấp 2: Trung tâm (Center)** - Lãnh đạo TT Kinh doanh / TT Vận hành.
-3.  **Cấp 3: Cụm (Cluster)** - Trưởng đại diện.
-4.  **Cấp 4: Phường/Xã (Ward)** - Giám đốc Phường/Xã.
-5.  **Cấp 5: Điểm (Point)** - Nhân viên tại điểm phục vụ / Tuyến.
-
-### 2. NGUYÊN TẮC PHÂN QUYỀN (RBAC SCOPE)
-- **Cơ chế "Nhìn xuống"**: Cấp trên mặc định thấy được dữ liệu của tất cả các cấp dưới trực thuộc nhánh của mình.
-- **Cơ chế "Cô lập"**: Cấp dưới không thể thấy dữ liệu của cấp trên hoặc các nhánh đồng cấp.
-- **Mapping Định danh**: Hồ sơ nhân sự (`NhanSu`) được liên kết với `Username` giao dịch thông qua mã HR để xác định phạm vi dữ liệu (Scope).
-
-### 3. QUY TẮC PHÂN CÔNG (CUSTOMER ASSIGNMENT)
-- **Thẩm quyền**: Cấp quản lý được quyền gán khách hàng cho nhân viên cấp dưới trực thuộc quản lý của mình.
-- **Cập nhật hồi tố có điều kiện**: 
-    - Khi gán nhân sự, hệ thống tự động cập nhật tên nhân viên vào toàn bộ giao dịch của khách hàng đó **trong tháng hiện tại**.
-    - Các giao dịch trong quá khứ được giữ nguyên tên người cũ (hoặc mặc định) để đảm bảo tính lịch sử quyết toán.
-- **Chu kỳ Reset**: Tác vụ phân công được reset hoặc làm mới vào ngày mùng 1 hàng tháng để phục vụ chu kỳ báo cáo quản trị mới.
+**TRIẾT LÝ ƯU TIÊN**:
+1.  Giữ khách hiện hữu quan trọng hơn mở khách mới.
+2.  **VIP Risk** (Khách lớn có nguy cơ) là mức ưu tiên cao nhất.
+3.  **Sale ảo** (đơn hàng rác/không thực chất) nguy hiểm hơn sale chậm.
+4.  Khách hàng có **Growth mạnh** được ưu tiên chăm sóc để bùng nổ.
+5.  Priority Score phải tổng hợp đồng thời: VIP + Risk + Lifecycle + Growth.
 
 ---
 
-## 🤖 PHẦN III: QUY TẮC CỘNG TÁC AI & VẬN HÀNH (ELITE PROTOCOL)
-1.  **QUY TẮC KHỞI ĐẦU BẮT BUỘC:** Ngay khi bắt đầu một phiên làm việc/cuộc trò chuyện mới, cộng sự AI **PHẢI THỰC HIỆN GỌI NGAY** [Đội ngũ hỗ trợ Antigravity](file:///d:/Antigravity%20-%20Project/KHHH%20-%20Antigravity%20-%20V3.0/Rules/DOI_NGU_ANTIGRAVITY.md) ra điểm danh và cùng trao đổi phương án. Tuyệt đối không được tự ý thực hiện bất kỳ công việc nào cho đến khi Sếp bấm **"OK"** hoặc **"Đồng ý"**.
-2.  **QUY TẮC NHẬT KÝ CHI TIẾT:** Mọi công việc sau khi xử lý xong **BẮT BUỘC** phải được ghi nhận vào [NK_PHAT_TRIEN_V3.0.md](file:///d:/Antigravity%20-%20Project/KHHH%20-%20Antigravity%20-%20V3.0/Rules/NK_PHAT_TRIEN_V3.0.md). Nội dung ghi chép phải **THẬT CỤ THỂ**, mô tả rõ triệu chứng, nguyên nhân và các bước xử lý kỹ thuật (tương tự như cách fix lỗi Cụm TD01 ngày 22/04/2026). Tuyệt đối không ghi chung chung.
-3.  **Quyền Quyết định Tối cao:** Mọi thao tác chỉnh sửa code hoặc hệ thống chỉ được thực hiện sau khi có sự đồng ý của Người dùng.
-4.  **QUY TẮC TỐI ƯU & QUOTA:** Trong quá trình thực hiện (debug, tra cứu dữ liệu...), nếu nhận thấy việc tìm kiếm nguyên nhân kéo dài hoặc tốn quá nhiều tài nguyên (Quota), cộng sự **PHẢI DỪNG LẠI VÀ TRAO ĐỔI VỚI SẾP**. Mục đích là để cùng tìm hướng giải quyết nhanh hơn, tránh lãng phí tài nguyên và rút ngắn thời gian xử lý sự cố.
-5.  **Quy trình Phê duyệt:** Sau khi nhận yêu cầu (Prompt), AI phải trao đổi thống nhất phương án trước khi xử lý. Chỉ thực hiện khi Người dùng bấm **"OK"** hoặc **"Đồng ý"**. Điều này nhằm tránh sai sót do nội dung yêu cầu chưa rõ ràng hoặc chưa chính xác.
-6.  **QUY TẮC BẢO TỒN NGỮ CẢNH:** Luôn cập nhật đầy đủ diễn biến, các lỗi phát sinh và cách xử lý vào [NK_PHAT_TRIEN_V3.0.md](file:///d:/Antigravity%20-%20Project/KHHH%20-%20Antigravity%20-%20V3.0/Rules/NK_PHAT_TRIEN_V3.0.md) ở cuối mỗi phiên làm việc. Điều này đảm bảo ngữ cảnh luôn được giữ lại trọn vẹn cho các lần hợp tác tiếp theo, tránh mất thời gian giải thích lại từ đầu.
-7.  **QUY TẮC LIÊN TỤC LỘ TRÌNH:** Ngay khi bắt đầu phiên làm việc, AI **PHẢI ĐỌC NGAY** file [KE_HOACH_NANG_CAP.md](file:///d:/Antigravity%20-%20Project/KHHH%20-%20Antigravity%20-%20V3.0/Rules/KE_HOACH_NANG_CAP.md) để nắm bắt tiến độ và các giai đoạn dang dở, đảm bảo lộ trình phát triển không bị gián đoạn.
-8.  **QUY TẮC ĐỒNG BỘ GITHUB (TỐI ƯU QUOTA):** Để tiết kiệm tài nguyên hệ thống, AI **CHỈ THỰC HIỆN ĐỒNG BỘ** (dùng lệnh Git Commit và Push) khi đã hoàn thành trọn vẹn một cụm tính năng, một bản vá lỗi hoàn chỉnh, hoặc vào cuối phiên làm việc. Không gọi lệnh Git liên tục cho các sửa đổi nhỏ lẻ, nhưng phải đảm bảo mã nguồn trên GitHub luôn được cập nhật đầy đủ trước khi chốt phiên.
-9.  **QUY TẮC PHẢN BIỆN ĐỘC LẬP (INDEPENDENT CRITIQUE):** Khi Người dùng gửi các đề xuất, phân tích hoặc đánh giá từ ChatGPT (hoặc AI khác), cộng sự (Antigravity) **KHÔNG ĐƯỢC ÁP DỤNG NGAY LẬP TỨC**. Bắt buộc phải tự phân tích, đối chiếu với Hiến pháp CRM và hiểu biết về ngữ cảnh dự án từ đầu để **PHẢN BIỆN** xem đề xuất đó đúng hay sai, có làm hỏng logic hệ thống không. Chỉ khi xác nhận đề xuất đó thực sự chính xác, phù hợp, và có sự chốt hạ từ Người dùng thì mới được phép điều chỉnh code.
+# VI. NOTIFICATION ENGINE (Hybrid Alert System)
+Hệ thống cảnh báo đa tầng:
+- **🔵 INFO**: Thông tin thống kê định kỳ.
+- **🟡 WARNING**: Hiển thị trên Dashboard để lưu ý.
+- **🟠 ALERT**: Cảnh báo hàng ngày kèm huy hiệu (badge) thông báo.
+- **🔴 CRITICAL**: Cảnh báo thời gian thực (Real-time).
+
+**QUY TẮC CRITICAL**: Chỉ các trường hợp sau mới được đẩy cảnh báo Critical:
+- Khách hàng Diamond có dấu hiệu Risk.
+- Khách hàng hiện hữu lớn sắp rơi vào trạng thái Rời bỏ.
+- Phát hiện dấu hiệu Sale ảo/Giao dịch bất thường.
+- VIP Tier bị giảm sụt mạnh.
 
 ---
 
-> [!IMPORTANT]
-> **QUY TẮC BẮT BUỘC:** Trước khi thực hiện bất kỳ nội dung nâng cấp, sửa lỗi hay thay đổi code nào, cộng sự **BẮT BUỘC** phải đọc kỹ file [HIẾN PHÁP](file:///d:/Antigravity%20-%20Project/KHHH%20-%20Antigravity%20-%20V3.0/Rules/HIEN_PHAP_CRM_3.0.md) và [NHẬT KÝ PHÁT TRIỂN](file:///d:/Antigravity%20-%20Project/KHHH%20-%20Antigravity%20-%20V3.0/Rules/NK_PHAT_TRIEN_V3.0.md) để nắm bắt Source of Truth và tránh làm hỏng các logic đã chuẩn hóa.
-
-> [!IMPORTANT]
-> **"LUẬT CỘNG SỰ":** Mọi logic tính toán trong hệ thống backend và giao diện frontend phải tuân thủ tuyệt đối Hiến pháp này để đảm bảo dữ liệu khớp 100%!
-> **"LUẬT PLAN":** Mọi thay đổi và nâng cấp về hệ thống phải đưa vào [NK_PHAT_TRIEN_V3.0.md](file:///d:/Antigravity%20-%20Project/KHHH%20-%20Antigravity%20-%20V3.0/Rules/NK_PHAT_TRIEN_V3.0.md). Nội dung ghi nhận phải **THẬT CỤ THỂ**, tuyệt đối không ghi chung chung.
+# VII. ACTION ENGINE
+CRM không chỉ đưa ra con số, mà phải đề xuất hướng xử lý chiến lược:
+- **Action != Task**: Action là chiến lược (Ví dụ: "Chiến dịch khôi phục VIP"), Task là công việc cụ thể (Ví dụ: "Gọi điện cho anh A lúc 9h").
+- **Các Action chuẩn**: Gọi khách, Chăm sóc VIP, Kiểm tra chất lượng dịch vụ, Upsell, Recovery (Khôi phục).
 
 ---
----
-> [!CAUTION]
-> **ĐIỀU KHOẢN TỐI CAO:** Cộng sự AI **TUYỆT ĐỐI KHÔNG ĐƯỢC TỰ Ý CODE** hoặc thay đổi hệ thống khi chưa nhận được lệnh **"OK"** hoặc **"ĐỒNG Ý"** từ Sếp. Mọi sự nôn nóng dẫn đến sai lệch ý đồ chiến lược đều là vi phạm Hiến pháp nghiêm trọng.
 
-*Cập nhật lần cuối: 29/04/2026 - Biệt đội Antigravity (Thiết lập Lộ trình Nâng cấp 3 Giai đoạn)*
+# VIII. ESCALATION ENGINE (Cơ chế leo thang)
+Xác định cấp độ quản lý cần can thiệp dựa trên độ nghiêm trọng:
+- **Phân cấp**: Nhân viên -> Giám đốc BCVH -> Trưởng đại diện Cụm -> Lãnh đạo BĐTP.
+- **Trình đọc Escalation**: Tổng hợp đồng thời VIP Tier, Priority, Risk và Lifecycle.
+- **Cơ chế**: Tự động leo thang theo thời gian (SLA) hoặc theo mức độ ảnh hưởng doanh thu.
+
+---
+
+# IX. TASK ORCHESTRATOR
+Điều phối công việc thông minh:
+- **Workflow**: CRM gợi ý nhiệm vụ -> Lãnh đạo duyệt/điều chỉnh -> Giao nhân viên.
+- **Quy tắc**: KHÔNG giao việc lung tung. Task phải tuân thủ Ownership và Scope quản lý của từng cấp.
+- **Closure Condition**: Nhiệm vụ chỉ được coi là hoàn thành khi:
+    - Có transaction thật phát sinh.
+    - Hoặc trạng thái Lifecycle/Risk được cải thiện thực tế trên dữ liệu hệ thống.
+    - *Tuyệt đối không đóng task chỉ dựa trên báo cáo mồm.*
+
+---
+
+# X. EXECUTIVE DASHBOARD
+Giao diện điều hành chia làm 2 lớp tách biệt:
+1.  **Executive Layer (Lớp điều hành)**: Tập trung vào Critical Center, VIP Risk, Escalation và các Task nóng cần xử lý ngay.
+2.  **Analytics Layer (Lớp phân tích)**: Tập trung vào xu hướng MoM, YoY, Revenue Mix, cấu trúc Lifecycle và biểu đồ tăng trưởng.
+
+---
+
+# XI. SSOT (SINGLE SOURCE OF TRUTH) SUMMARY
+**Transaction Database là nguồn dữ liệu chuẩn duy nhất và cuối cùng**. 
+Mọi thông tin về Lifecycle, Growth, VIP Tier, KPI và Priority đều phải được truy xuất và chứng thực từ đây. Tuyệt đối không chấp nhận các báo cáo thủ công hoặc dữ liệu ảo nhằm ghi đè lên "Sự thật giao dịch" (Transaction Truth).
+
+---
+
+## 🏛️ PHỤ LỤC: PHÂN CẤP & PHÂN QUYỀN TRUY CẬP
+1.  **Cấu trúc 5 cấp**: Tỉnh -> Trung tâm -> Cụm -> Phường/Xã -> Điểm.
+2.  **Cơ chế "Nhìn xuống"**: Cấp trên thấy dữ liệu tất cả cấp dưới.
+3.  **Cơ chế "Cô lập"**: Cấp dưới không thấy dữ liệu cấp trên hoặc nhánh ngang.
+
+---
+
+## 🤖 QUY TẮC CỘNG TÁC AI & VẬN HÀNH (ELITE PROTOCOL)
+1.  **ĐIỂM DANH & PHÊ DUYỆT**: Luôn gọi Đội ngũ Antigravity điểm danh đầu phiên. Chỉ thực hiện khi Sếp bấm **"OK"**.
+2.  **NHẬT KÝ CHI TIẾT**: Ghi chép mọi bước xử lý vào `NK_PHAT_TRIEN_V3.0.md`.
+3.  **PHẢN BIỆN ĐỘC LẬP**: Không áp dụng ngay các đề xuất từ bên ngoài (ChatGPT, v.v.) mà phải đối chiếu với Hiến pháp này.
+4.  **BẢO TỒN NGỮ CẢNH**: Cập nhật diễn biến cuối phiên để giữ mạch công việc.
+5.  **SSOT COMPLIANCE**: AI phải bảo vệ SSOT, không được để logic code làm sai lệch các nguyên tắc trong Hiến pháp.
+
+---
+*Cập nhật lần cuối: 06/05/2026 - Tái cấu trúc SSOT chuẩn hóa 11 Section.*
