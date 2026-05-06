@@ -290,6 +290,9 @@ class CustomerLastActive(Base):
     addr = Column(String(255), primary_key=True)
     point_id = Column(Integer, primary_key=True)
     last_active_month = Column(String(10)) # YYYY-MM
+    __table_args__ = (
+        Index('idx_last_active_point', 'point_id'),
+    )
 
 class UsedToken(Base):
     __tablename__ = "used_tokens"

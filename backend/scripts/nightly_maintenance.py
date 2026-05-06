@@ -24,9 +24,10 @@ def run_nightly_maintenance():
         
     # 2. Database VACUUM (Optimization)
     try:
-        logger.info("Optimizing database (VACUUM)...")
+        logger.info("Optimizing database (VACUUM & PRAGMA optimize)...")
         conn = sqlite3.connect(SummaryService.DB_PATH)
         conn.execute("VACUUM")
+        conn.execute("PRAGMA optimize")
         conn.close()
         logger.info("Database optimization completed.")
     except Exception as e:
