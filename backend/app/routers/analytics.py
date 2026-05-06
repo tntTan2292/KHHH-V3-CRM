@@ -117,9 +117,6 @@ async def get_dashboard_stats(
         if end_date:
             query = query.filter(Transaction.ngay_chap_nhan <= f"{end_date} 23:59:59")
         tong_dt = query.scalar() or 0.0
-_date} 23:59:59")
-        
-    tong_dt = query.scalar() or 0.0
     
     # 4. KPIs Lấy trực tiếp từ Lifecycle Engine (Sử dụng Slugs)
     kh_moi = lifecycle_stats.get("new", 0)
