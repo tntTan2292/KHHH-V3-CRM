@@ -335,11 +335,25 @@ async def get_revenue_monthly(
     scope_ids = ScopingService.get_effective_scope_ids(db, current_user, node_code)
     if scope_ids is not None and not scope_ids: return []
 
+    # 2. Xác định dải thời gian (Rolling 12 months + Current)
+    max_month_raw = db.query(func.max(MonthlyAnalyticsSummary.year_month)).scalar()
+    if not max_month_raw: return []
+    
+    # Tính mốc bắt đầu (T-12)
+    end_dt = datetime.strptime(max_month_raw, "%Y-%m")
+    start_dt = end_dt - dateutil.relativedelta.relativedelta(months=12)
+    start_month_str = start_dt.strftime("%Y-%m")
+
     # Group by Tháng-Năm (YYYY-MM)
     # Ưu tiên lấy từ bảng MonthlyAnalyticsSummary để đạt tốc độ tối đa
+    # Chỉ lấy các Stage chính (NEW, ACTIVE, RECOVERED) để tránh double counting với Rank
     query = db.query(
         MonthlyAnalyticsSummary.year_month.label("month"),
         func.sum(MonthlyAnalyticsSummary.total_revenue).label("total")
+    ).filter(
+        MonthlyAnalyticsSummary.year_month >= start_month_str,
+        MonthlyAnalyticsSummary.year_month <= max_month_raw,
+        MonthlyAnalyticsSummary.lifecycle_stage.in_(['NEW', 'ACTIVE', 'RECOVERED'])
     )
     
     if scope_ids is not None:

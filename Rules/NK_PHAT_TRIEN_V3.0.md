@@ -957,3 +957,17 @@ Hệ thống Phân quyền đã chạy ổn định và sạch dữ liệu. Sế
     - Thiết lập cơ chế Nightly Maintenance (VACUUM + Cleanup).
 - Kết quả: Hệ thống đạt trạng thái Bulletproof, sẵn sàng cho quy mô 20M+ bản ghi. [HOÀN THÀNH]
 
+
+---
+### 🕒 [06/05/2026 - 16:30]: CHIẾN DỊCH CALCULATED LIFECYCLE VÀ CẬP NHẬT HIẾN PHÁP
+- **Sự kiện**: Khắc phục lỗi sai lệch trạng thái vòng đời khách hàng và tối ưu hóa hệ thống Lifecycle Engine theo chuẩn "Calculated Lifecycle".
+- **Hạng mục Xử lý**:
+    - **Logic Quét Lịch Sử Toàn Diện**: Thay đổi kiến trúc tính toán Lifecycle từ việc chỉ xem xét dữ liệu tháng hiện tại sang mô hình quét ngược toàn bộ lịch sử giao dịch (Calculated Lifecycle) từ First Order Month. Giải quyết triệt để lỗi khách hàng "Mới" tăng đột biến do không tham chiếu dữ liệu các tháng trước đó.
+    - **Tách Biệt Đối Tượng (Segregation)**: Phân định rạch ròi quá trình tính toán Lifecycle (chỉ dành cho khách có mã - Định danh) và Rank (dành cho khách vãng lai - Tiềm năng) trong `SummaryService`.
+    - **Fix Lỗi Nhân Bản Dữ Liệu**: Đảm bảo Unique Customer Count cho các Dashboard Lifecycle block bằng cách sử dụng nhãn `ma_dv='ALL'` trong quá trình lưu trữ `monthly_analytics_summary`, giải quyết lỗi đếm trùng do một khách dùng nhiều dịch vụ.
+    - **Bổ Sung Hiến Pháp**:
+        - Nâng thời gian cảnh báo nhóm **NGUY CƠ (At-risk)** từ >15 ngày lên **>30 ngày** (T-1 không có đơn).
+        - Bổ sung nhóm đánh giá **"KHÁCH HÀNG TĂNG TRƯỞNG (Growth)"**: Đóng vai trò là nhãn đánh giá bổ sung (Overlay/Tag) trên nền các trạng thái gốc (MỚI/HIỆN HỮU) dựa vào MoM, chuẩn bị dữ liệu cho chiến dịch "Bùng nổ & Bám sát".
+    - **Xử lý Bộ Nhớ Đệm (Cache Wipe)**: Dọn sạch cache và restart Backend sau quá trình Rebuild 17 tháng dữ liệu để đảm bảo Frontend không bị "kẹt" số liệu cũ.
+    - **Nâng cấp Elite Control Center**: Tích hợp các tính năng chẩn đoán mạnh mẽ: Xem Log trực tiếp, Rebuild Summary Data (1-Click), Fix đường dẫn Backup.
+- **Kết quả**: Dashboard hiển thị chính xác các con số vòng đời (Hiện hữu: 722, Nguy cơ: 1106, Mới: 377, Tái bán: 9). Hệ thống đã đạt trạng thái Constitutional Alignment tuyệt đối. ✅ **XỬ LÝ TRIỆT ĐỂ.**

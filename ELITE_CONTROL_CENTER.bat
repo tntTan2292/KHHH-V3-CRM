@@ -12,21 +12,25 @@ echo =======================================================================
 echo.
 echo    [1] KHOI DONG HE THONG (CHAY NGAM)
 echo    [2] DUNG HE THONG (STOP ALL)
-echo    [3] CAI DAT TU KHOI DONG CUNG WINDOWS
-echo    [4] DON DEP HE THONG (CLEANUP)
+echo    [3] XEM NHAT KY HOAT DONG (LOGS)
+echo    [4] TAI CAU TRUC DU LIEU (REBUILD SUMMARY)
 echo    [5] SAO LUU DU LIEU (BACKUP)
-echo    [6] KIEM TRA TRANG THAI DICH VU
+echo    [6] DON DEP HE THONG (CLEANUP)
+echo    [7] KIEM TRA TRANG THAI DICH VU
+echo    [8] CAI DAT TU KHOI DONG
 echo    [0] THOAT
 echo.
 echo =======================================================================
-set /p choice="Nhap lua chon cua ban (0-6): "
+set /p choice="Nhap lua chon cua ban (0-8): "
 
 if "%choice%"=="1" goto START_APP
 if "%choice%"=="2" goto STOP_APP
-if "%choice%"=="3" goto SETUP_AUTO
-if "%choice%"=="4" goto CLEANUP
+if "%choice%"=="3" goto VIEW_LOGS
+if "%choice%"=="4" goto REBUILD_DATA
 if "%choice%"=="5" goto BACKUP
-if "%choice%"=="6" goto CHECK_STATUS
+if "%choice%"=="6" goto CLEANUP
+if "%choice%"=="7" goto CHECK_STATUS
+if "%choice%"=="8" goto SETUP_AUTO
 if "%choice%"=="0" exit
 goto MENU
 
@@ -89,14 +93,42 @@ echo [OK] Da don dep cac file rac va phien ban cu.
 pause
 goto MENU
 
+:VIEW_LOGS
+cls
+echo =======================================================================
+echo           XEM NHAT KY HOAT DONG (ELITE LOGS)
+echo =======================================================================
+echo.
+echo    [1] Backend Log (FastAPI)
+echo    [2] Frontend Log (Vite)
+echo    [3] Bot Scheduler Log
+echo    [4] Startup Sync Log
+echo    [0] Quay lai
+echo.
+set /p log_choice="Chon log can xem: "
+if "%log_choice%"=="1" start notepad "%~dp0data\logs\backend_runtime.log"
+if "%log_choice%"=="2" start notepad "%~dp0data\logs\frontend_runtime.log"
+if "%log_choice%"=="3" start notepad "%~dp0data\logs\bot_scheduler.log"
+if "%log_choice%"=="4" start notepad "%~dp0data\logs\startup_sync.log"
+goto MENU
+
+:REBUILD_DATA
+echo.
+echo [+] Dang thuc hien tai cau truc du lieu summary...
+echo [!] Canh bao: Qua trinh nay co the mat 1-3 phut tuy vao khoi luong data.
+python "%~dp0scratch\full_rebuild_enhanced.py"
+echo [OK] Da cap nhat lai toan bo du lieu Summary.
+pause
+goto MENU
+
 :BACKUP
 echo.
 echo [+] Dang sao luu du lieu master...
 set timestamp=%date:~10,4%%date:~4,2%%date:~7,2%_%time:~0,2%%time:~3,2%
 set timestamp=%timestamp: =0%
-if not exist "BACKUPS" mkdir "BACKUPS"
-copy "DATA_MASTER\khhh.db" "BACKUPS\khhh_backup_%timestamp%.db"
-echo [OK] Da sao luu tai BACKUPS\khhh_backup_%timestamp%.db
+if not exist "backups" mkdir "backups"
+copy "data\database\khhh_v3.db" "backups\khhh_v3_backup_%timestamp%.db"
+echo [OK] Da sao luu tai backups\khhh_v3_backup_%timestamp%.db
 pause
 goto MENU
 

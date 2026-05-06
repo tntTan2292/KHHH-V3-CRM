@@ -30,9 +30,22 @@ Dành cho khách hàng đã được cấp mã CRM cố định.
 
 ### 5. KHÁCH HÀNG NGUY CƠ (At-risk) 🚩
 - **Điều kiện**: Có đơn đều đặn trong quá khứ.
-- **Dấu hiệu**: **QUÁ 15 NGÀY** kể từ đơn hàng gần nhất chưa phát sinh đơn hàng mới.
+- **Dấu hiệu**: **QUÁ 30 NGÀY** kể từ đơn hàng gần nhất chưa phát sinh đơn hàng mới.
 - **Mục đích**: Cảnh báo sớm để nhân viên liên hệ "cứu chữa" trước khi khách hàng rơi vào trạng thái Rời bỏ.
 
+---
+### 6. KHÁCH HÀNG TĂNG TRƯỞNG (Growth) 🚀
+- **Điều kiện**:
+  - Đang thuộc nhóm: **KHÁCH HÀNG MỚI** HOẶC **KHÁCH HÀNG HIỆN HỮU**.
+  - **Dấu hiệu**: Doanh thu hoặc sản lượng tăng trưởng liên tục theo MOM (Month-over-Month).
+  - Hoặc đạt ngưỡng tăng trưởng do hệ thống quy định.
+- **Mục đích**:
+  - Nhận diện khách hàng có tiềm năng phát triển mạnh.
+  - Ưu tiên chiến lược Bùng nổ & Bám sát.
+- **Lưu ý**:
+  - "Khách hàng tăng trưởng" là nhãn đánh giá bổ sung.
+  - **KHÔNG** thay thế trạng thái Lifecycle gốc.
+  - Một khách hàng có thể đồng thời là: **KHÁCH HÀNG MỚI + TĂNG TRƯỞNG** HOẶC **KHÁCH HÀNG HIỆN HỮU + TĂNG TRƯỞNG**.
 ---
 
 ## 🚀 NHÓM 02: MODULE DANH SÁCH KHÁCH HÀNG TIỀM NĂNG (LEADS - VÃNG LAI)

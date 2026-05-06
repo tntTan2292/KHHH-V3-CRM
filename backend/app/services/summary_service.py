@@ -1,6 +1,8 @@
 import sqlite3
 import pandas as pd
+import calendar as py_calendar
 from datetime import datetime, timedelta
+import dateutil.relativedelta
 import os
 import logging
 
@@ -75,92 +77,152 @@ class SummaryService:
 
     @staticmethod
     def _rebuild_month_summary_optimized(conn, month_str):
-        """Xây dựng lại summary tháng bằng JOIN (Tránh lỗi giới hạn 999 placeholders của SQLite)."""
+        """Xây dựng lại summary tháng tuân thủ Hiến pháp CRM 3.0 (Calculated Lifecycle)."""
         cursor = conn.cursor()
-        
-        # 1. Lấy dữ liệu gộp theo tháng và JOIN trực tiếp với bảng phụ để tính Stage
-        # Đây là cách tối ưu nhất: Để SQLite làm mọi thứ bằng JOIN
-        sql = """
-        WITH month_tx AS (
-            SELECT 
-                COALESCE(ma_kh, ten_nguoi_gui_canonical || '|' || dia_chi_nguoi_gui_canonical || '|' || point_id) as name,
-                point_id,
-                ma_dv,
-                CASE 
-                    WHEN trong_nuoc_quoc_te IN ('quốc tế', 'quoc te') OR ma_dv = 'L' THEN 'Quốc tế'
-                    WHEN lien_tinh_noi_tinh IN ('1', 'nội tỉnh', 'noi tinh') THEN 'Nội tỉnh'
-                    ELSE 'Liên tỉnh'
-                END as region_type,
-                SUM(doanh_thu) as revenue,
-                COUNT(id) as orders
-            FROM transactions
-            WHERE ngay_chap_nhan BETWEEN ? AND ?
-            GROUP BY name, point_id, ma_dv, region_type
-        )
-        SELECT 
-            m.point_id,
-            m.ma_dv,
-            m.region_type,
-            m.revenue,
-            m.orders,
-            f.first_month,
-            l.last_active_month,
-            ? as current_month
-        FROM month_tx m
-        LEFT JOIN customer_first_order f ON m.name = f.name AND m.point_id = f.point_id
-        LEFT JOIN customer_last_active l ON m.name = l.name AND m.point_id = l.point_id
-        """
         
         # Tạo dải ngày cho tháng
         start_date = f"{month_str}-01"
-        import calendar as py_calendar
         y, m = map(int, month_str.split('-'))
         last_day = py_calendar.monthrange(y, m)[1]
         end_date = f"{month_str}-{last_day} 23:59:59"
         
-        print(f"  - Querying data for {month_str}...")
-        df = pd.read_sql_query(sql, conn, params=(start_date, end_date, month_str))
-        print(f"  - Found {len(df)} raw records.")
-        if df.empty:
-            cursor.execute("BEGIN")
-            cursor.execute("DELETE FROM monthly_analytics_summary WHERE year_month = ?", (month_str,))
-            conn.execute("COMMIT")
-            return
+        # Mốc thời gian cho Churn/Recovered (3 tháng)
+        t_minus_3_dt = datetime(y, m, 1) - dateutil.relativedelta.relativedelta(months=3)
+        t_minus_3_str = t_minus_3_dt.strftime('%Y-%m')
 
-        def calculate_stage(row):
-            curr_m = row['current_month']
-            first_m = row['first_month']
-            
-            if not isinstance(curr_m, str) or not isinstance(first_m, str):
-                return 'ACTIVE'
+        print(f"  - Rebuilding {month_str} using Constitutional Logic...")
+        
+        # 1. Lấy dữ liệu ĐỊNH DANH (Nhóm 1)
+        # Quét lịch sử để xác định Stage chính xác
+        # Lấy tất cả khách hàng đã từng phát sinh đơn tại điểm này
+        sql_ident = """
+        WITH ident_history AS (
+            SELECT 
+                ma_kh,
+                point_id,
+                MIN(strftime('%Y-%m', ngay_chap_nhan)) as first_month,
+                MAX(CASE WHEN ngay_chap_nhan < ? THEN strftime('%Y-%m', ngay_chap_nhan) ELSE NULL END) as last_month_before,
+                SUM(CASE WHEN ngay_chap_nhan BETWEEN ? AND ? THEN doanh_thu ELSE 0 END) as curr_rev,
+                COUNT(CASE WHEN ngay_chap_nhan BETWEEN ? AND ? THEN id ELSE NULL END) as curr_orders,
+                MAX(CASE WHEN ngay_chap_nhan BETWEEN ? AND ? THEN 1 ELSE 0 END) as has_order_this_month
+            FROM transactions
+            WHERE ma_kh IS NOT NULL AND ma_kh != ''
+            GROUP BY ma_kh, point_id
+        )
+        SELECT * FROM ident_history 
+        WHERE has_order_this_month = 1 
+           OR (last_month_before IS NOT NULL AND last_month_before >= ?) 
+        """
+        # (last_month_before >= t_minus_3_str) để lấy những người có nguy cơ hoặc mới rời bỏ gần đây
+        
+        # Note: We query back to 12 months for at-risk/churned scanning
+        t_minus_12_str = (datetime(y, m, 1) - dateutil.relativedelta.relativedelta(months=12)).strftime('%Y-%m')
+        
+        print(f"    - Scanning identified customers history...")
+        df_ident = pd.read_sql_query(sql_ident, conn, params=(start_date, start_date, end_date, start_date, end_date, start_date, end_date, t_minus_12_str))
+        
+        summary_data = []
+
+        if not df_ident.empty:
+            def classify_ident(row):
+                first = row['first_month']
+                last_before = row['last_month_before']
+                has_now = row['has_order_this_month']
                 
-            try:
-                y1, mo1 = map(int, curr_m.split('-'))
-                y2, mo2 = map(int, first_m.split('-'))
-                diff = (y1-y2)*12 + (mo1-mo2)
-                return 'NEW' if diff < 3 else 'ACTIVE'
-            except:
-                return 'ACTIVE'
+                # Tính diff (tháng)
+                y_c, m_c = y, m
+                
+                # NEW: Trong vòng 3 tháng đầu
+                y_f, m_f = map(int, first.split('-'))
+                diff_f = (y_c - y_f) * 12 + (m_c - m_f)
+                
+                if diff_f < 3: return 'NEW'
+                
+                if has_now:
+                    # RECOVERED: Quay lại sau > 3 tháng
+                    if last_before:
+                        y_l, m_l = map(int, last_before.split('-'))
+                        diff_l = (y_c - y_l) * 12 + (m_c - m_l)
+                        if diff_l > 3: return 'RECOVERED'
+                    return 'ACTIVE'
+                else:
+                    # KHÔNG có đơn tháng này
+                    if last_before:
+                        y_l, m_l = map(int, last_before.split('-'))
+                        diff_l = (y_c - y_l) * 12 + (m_c - m_l)
+                        if diff_l > 3: return 'CHURNED'
+                        return 'AT_RISK'
+                return 'CHURNED'
 
-        print(f"  - Calculating stages...")
-        df['stage'] = df.apply(calculate_stage, axis=1)
-        
-        print(f"  - Grouping and aggregating...")
-        
-        final_agg = df.groupby(['point_id', 'stage', 'ma_dv', 'region_type']).agg({
-            'revenue': 'sum',
-            'orders': 'sum',
-            'current_month': 'count' 
-        }).rename(columns={'current_month': 'customers'}).reset_index()
-        
+            df_ident['stage'] = df_ident.apply(classify_ident, axis=1)
+            
+            # Gộp theo Stage (Dùng ma_dv='ALL' để đếm unique khách hàng)
+            stage_counts = df_ident.groupby(['point_id', 'stage']).size().reset_index(name='count')
+            for _, r in stage_counts.iterrows():
+                summary_data.append((month_str, int(r['point_id']), r['stage'], 'ALL', 'ALL', 0.0, 0, int(r['count'])))
+            
+            # Tính doanh thu thực tế cho nhóm định danh (phân rã theo ma_dv, region_type)
+            # Truy vấn lại doanh thu chi tiết tháng này
+            sql_rev_ident = """
+            SELECT point_id, ma_dv, 
+                   CASE 
+                        WHEN trong_nuoc_quoc_te IN ('quốc tế', 'quoc te') OR ma_dv = 'L' THEN 'Quốc tế'
+                        WHEN lien_tinh_noi_tinh IN ('1', 'nội tỉnh', 'noi tinh') THEN 'Nội tỉnh'
+                        ELSE 'Liên tỉnh'
+                   END as region_type,
+                   SUM(doanh_thu) as rev, COUNT(id) as orders
+            FROM transactions
+            WHERE ngay_chap_nhan BETWEEN ? AND ? AND ma_kh IS NOT NULL AND ma_kh != ''
+            GROUP BY point_id, ma_dv, region_type
+            """
+            df_rev_ident = pd.read_sql_query(sql_rev_ident, conn, params=(start_date, end_date))
+            for _, r in df_rev_ident.iterrows():
+                # Dùng stage='ACTIVE' làm placeholder cho doanh thu định danh (để Dashboard sum lại)
+                summary_data.append((month_str, int(r['point_id']), 'ACTIVE', r['ma_dv'], r['region_type'], r['rev'], int(r['orders']), 0))
+
+        # 2. Lấy dữ liệu TIỀM NĂNG (Nhóm 2)
+        print(f"    - Processing potential customers (Leads)...")
+        sql_pot = """
+        SELECT 
+            ten_nguoi_gui_canonical as name,
+            dia_chi_nguoi_gui_canonical as addr,
+            point_id, ma_dv,
+            CASE 
+                WHEN trong_nuoc_quoc_te IN ('quốc tế', 'quoc te') OR ma_dv = 'L' THEN 'Quốc tế'
+                WHEN lien_tinh_noi_tinh IN ('1', 'nội tỉnh', 'noi tinh') THEN 'Nội tỉnh'
+                ELSE 'Liên tỉnh'
+            END as region_type,
+            SUM(doanh_thu) as rev, COUNT(id) as orders
+        FROM transactions
+        WHERE ngay_chap_nhan BETWEEN ? AND ? AND (ma_kh IS NULL OR ma_kh = '')
+        GROUP BY name, addr, point_id, ma_dv, region_type
+        """
+        df_pot = pd.read_sql_query(sql_pot, conn, params=(start_date, end_date))
+        if not df_pot.empty:
+            def classify_rank(row):
+                rev, cnt = row['rev'], row['orders']
+                if rev > 5000000 and cnt > 20: return 'KIM CƯƠNG'
+                if rev > 1000000 and cnt > 10: return 'VÀNG'
+                if rev > 500000 and cnt > 5: return 'BẠC'
+                return 'THƯỜNG'
+            
+            df_pot['rank'] = df_pot.apply(classify_rank, axis=1)
+            
+            # Gộp doanh thu Tiềm năng
+            pot_agg = df_pot[df_pot['rank'] != 'THƯỜNG'].groupby(['point_id', 'rank', 'ma_dv', 'region_type']).agg({
+                'rev': 'sum', 'orders': 'sum', 'name': 'count'
+            }).reset_index()
+            for _, r in pot_agg.iterrows():
+                summary_data.append((month_str, int(r['point_id']), r['rank'], r['ma_dv'], r['region_type'], r['rev'], int(r['orders']), int(r['name'])))
+
+        # 3. Lưu Database
         cursor.execute("BEGIN")
         try:
             cursor.execute("DELETE FROM monthly_analytics_summary WHERE year_month = ?", (month_str,))
             insert_sql = "INSERT INTO monthly_analytics_summary (year_month, point_id, lifecycle_stage, ma_dv, region_type, total_revenue, total_orders, total_customers) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-            data = [(month_str, int(row['point_id']), row['stage'], row['ma_dv'], row['region_type'], row['revenue'], int(row['orders']), int(row['customers'])) for _, row in final_agg.iterrows()]
-            cursor.executemany(insert_sql, data)
+            cursor.executemany(insert_sql, summary_data)
             conn.execute("COMMIT")
-            print(f"- Rebuilt summary for {month_str}: {len(data)} records.")
+            print(f"- Rebuilt summary for {month_str}: {len(summary_data)} records.")
         except Exception as e:
             conn.execute("ROLLBACK")
             print(f"ERROR rebuilding month {month_str}: {e}")

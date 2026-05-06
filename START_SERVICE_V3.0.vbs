@@ -7,12 +7,15 @@ Dim pyPath, nodeRoot, npmPath, comspecPath
 Set shell = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 
-baseDir = "d:\Antigravity - Project\KHHH - Antigravity - V3.0"
+' Get current directory dynamically
+baseDir = fso.GetParentFolderName(WScript.ScriptFullName)
 backendDir = baseDir & "\backend"
 logDir = baseDir & "\data\logs"
-pyPath = "C:\Users\Admin\AppData\Local\Programs\Python\Python311\python.exe"
-nodeRoot = "D:\Setup\nodejs_portable\node-v22.12.0-win-x64"
-npmPath = nodeRoot & "\npm.cmd"
+
+' Paths - Try to detect or use absolute if needed
+pyPath = "python" ' Assume in PATH
+nodeRoot = "" ' If node is in PATH
+npmPath = "npm"
 comspecPath = shell.ExpandEnvironmentStrings("%ComSpec%")
 
 If Not fso.FolderExists(logDir) Then
