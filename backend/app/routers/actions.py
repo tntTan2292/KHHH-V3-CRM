@@ -56,6 +56,11 @@ async def assign_task(
     if payload.task_contact_at:
         try:
             contact_dt = datetime.fromisoformat(payload.task_contact_at.replace('Z', '+00:00'))
+            # DRIFT LIMIT: Không cho phép lùi quá 24h
+            if (datetime.now() - contact_dt).total_seconds() > 86400: # 24h
+                 raise HTTPException(status_code=400, detail="Thời điểm tiếp xúc không được lùi quá 24 giờ so với hiện tại")
+        except HTTPException as e:
+            raise e
         except:
             pass
 
@@ -200,6 +205,7 @@ async def get_tasks(
             "bao_cao_ket_qua": t.bao_cao_ket_qua,
             "kenh_tiep_can": t.kenh_tiep_can,
             "ket_qua": t.ket_qua,
+            "is_stale": (datetime.now() - (t.updated_at or t.created_at)).total_seconds() > 432000 if t.trang_thai in ["Mới", "Đang xử lý"] else False, # 5 days
             "ngay_hoan_thanh": t.ngay_hoan_thanh.strftime("%Y-%m-%d %H:%M") if t.ngay_hoan_thanh else None,
             "created_at": t.created_at.strftime("%Y-%m-%d %H:%M") if t.created_at else None
         })
@@ -234,10 +240,22 @@ async def report_task(
         if task.staff_id != current_user.nhan_su_id:
             raise HTTPException(status_code=403, detail="Bạn không có quyền báo cáo cho nhiệm vụ này")
             
-    # Bắt buộc Mã CRM khi lên B3 (Bán hàng)
-    if payload.pipeline_stage == "B3" and not payload.converted_ma_kh:
-        raise HTTPException(status_code=400, detail="Bắt buộc cung cấp Mã CRM để xác nhận bước Bán hàng (B3)")
+    # ENRICHMENT CHECK: Bắt buộc có SĐT hoặc Địa chỉ chi tiết khi lên B3
+    if payload.pipeline_stage == "B3":
+        # Tìm thông tin cũ trong PC table nếu chưa có trong payload
+        from ..utils.normalization import normalize_name
+        existing_pc = db.query(PotentialCustomer).filter(
+            PotentialCustomer.ten_canonical == normalize_name(task.target_id),
+            PotentialCustomer.point_id == (current_user.nhan_su.point_id if current_user.nhan_su else None)
+        ).first()
+        
+        has_enrichment = payload.so_dien_thoai or payload.dia_chi_chi_tiet or (existing_pc and existing_pc.so_dien_thoai)
+        if not has_enrichment:
+            raise HTTPException(status_code=400, detail="Bắt buộc bổ sung SĐT hoặc Địa chỉ chi tiết để xác thực chuyển đổi B3")
 
+    # STAGE-GATE SLA: Chỉ cập nhật updated_at khi có thay đổi Stage hoặc Status
+    is_meaningful = (payload.trang_thai != task.trang_thai) or (payload.pipeline_stage and payload.pipeline_stage != task.pipeline_stage)
+    
     task.trang_thai = payload.trang_thai
     task.bao_cao_ket_qua = payload.bao_cao_ket_qua
     task.pipeline_stage = payload.pipeline_stage or task.pipeline_stage
@@ -249,6 +267,9 @@ async def report_task(
     if payload.pipeline_stage == "B3":
         task.trang_thai = "PENDING_VERIFY"
         task.verified = False
+
+    if is_meaningful:
+        task.updated_at = datetime.now()
 
     # DATA ENRICHMENT: Lưu thông tin SĐT/Địa chỉ nếu có
     if task.loai_doi_tuong == "TiemNang" and (payload.so_dien_thoai or payload.dia_chi_chi_tiet):
@@ -264,8 +285,6 @@ async def report_task(
                 detail_address=payload.dia_chi_chi_tiet
             )
 
-    task.updated_at = datetime.now()
-    
     if payload.trang_thai in ["Hoàn thành", "Thất bại"]:
         task.ngay_hoan_thanh = datetime.now()
         
