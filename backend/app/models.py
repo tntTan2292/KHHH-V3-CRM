@@ -386,3 +386,75 @@ class PotentialCustomer(Base):
     
     # Unique constraint to prevent duplicates
     __table_args__ = (UniqueConstraint('ten_canonical', 'dia_chi_canonical', 'point_id', name='_potential_uc'),)
+
+class EngineRun(Base):
+    __tablename__ = "engine_runs"
+    id = Column(Integer, primary_key=True, index=True)
+    run_id = Column(String(100), unique=True, index=True)
+    engine_name = Column(String(100), index=True)
+    status = Column(String(20), default="STARTED") # STARTED, SUCCESS, FAILED
+    run_hash = Column(String(100), index=True)
+    started_at = Column(DateTime, server_default=func.now())
+    completed_at = Column(DateTime, nullable=True)
+    processed_entities_count = Column(Integer, default=0)
+    generated_events_count = Column(Integer, default=0)
+    failed_entities_count = Column(Integer, default=0)
+    execution_context_json = Column(Text, nullable=True)
+
+class NotificationRule(Base):
+    __tablename__ = "notification_rules"
+    id = Column(Integer, primary_key=True, index=True)
+    event_code = Column(String(100), unique=True, index=True)
+    aggregation_category = Column(String(50), index=True) # CUSTOMER_HEALTH, VIP_RISK, OPERATIONS
+    default_severity = Column(String(20), default="MEDIUM") # CRITICAL, HIGH, MEDIUM, LOW
+    cooldown_hours = Column(Integer, default=24)
+    is_enabled = Column(Boolean, default=True)
+    default_assigned_role = Column(String(50), nullable=True)
+    default_assigned_team = Column(String(100), nullable=True)
+    version = Column(Integer, default=1)
+
+class SystemEvent(Base):
+    __tablename__ = "system_events"
+    id = Column(Integer, primary_key=True, index=True)
+    identity_key = Column(String(255), unique=True, index=True)
+    dedup_hash = Column(String(100), unique=True, index=True)
+    event_code = Column(String(100), index=True)
+    aggregation_category = Column(String(50), index=True)
+    entity_type = Column(String(50), default="CUSTOMER")
+    entity_id = Column(String(100), index=True)
+    source_engine = Column(String(100))
+    severity = Column(String(20))
+    status = Column(String(50), default="OPEN") # OPEN, ACKNOWLEDGED, RESOLVED, SUPPRESSED, REOPENED
+    
+    title = Column(String(200))
+    message = Column(Text)
+    
+    # Governance Snapshots
+    event_input_snapshot_json = Column(Text) # Immutable Truth
+    rule_version = Column(Integer)
+    engine_version = Column(String(20))
+    run_id = Column(String(100), ForeignKey("engine_runs.run_id"))
+    
+    # Ownership
+    assigned_team = Column(String(100), nullable=True)
+    assigned_role = Column(String(50), nullable=True)
+    assigned_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    ownership_status = Column(String(50), default="UNASSIGNED") # UNASSIGNED, ASSIGNED, ESCALATED
+    
+    # Timestamps & Recurrence
+    first_triggered_at = Column(DateTime, server_default=func.now())
+    last_reoccurred_at = Column(DateTime, server_default=func.now())
+    reopened_at = Column(DateTime, nullable=True)
+    resolved_at = Column(DateTime, nullable=True)
+    occurrence_count = Column(Integer, default=1)
+
+class EventStateLog(Base):
+    __tablename__ = "event_state_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    event_id = Column(Integer, ForeignKey("system_events.id"))
+    previous_status = Column(String(50))
+    new_status = Column(String(50))
+    changed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    reason = Column(Text)
+    snapshot_at_change_json = Column(Text, nullable=True)
+    timestamp = Column(DateTime, server_default=func.now())
