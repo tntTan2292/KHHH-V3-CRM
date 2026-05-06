@@ -7,6 +7,7 @@ import os
 import logging
 from .lifecycle_engine import LifecycleEngine
 from .vip_tier_engine import VIPTierEngine
+from .priority_engine import PriorityEngine
 
 logger = logging.getLogger(__name__)
 
@@ -102,23 +103,33 @@ class SummaryService:
         vip_results = VIPTierEngine.process_vip_month(month_str)
         vip_df = pd.DataFrame(vip_results) if vip_results else pd.DataFrame()
         
+        print(f"    - Calculating Priority using PriorityEngine...")
+        priority_results = PriorityEngine.process_priority_month(month_str, ident_results, vip_results)
+        priority_df = pd.DataFrame(priority_results) if priority_results else pd.DataFrame()
+
         summary_data = []
 
         if ident_results:
             df_ident = pd.DataFrame(ident_results)
             
-            # Merge with VIP data
+            # Merge with VIP and Priority data
             if not vip_df.empty:
                 df_ident = pd.merge(df_ident, vip_df[['ma_kh', 'vip_tier', 'risk_status']], on='ma_kh', how='left')
                 df_ident['vip_tier'] = df_ident['vip_tier'].fillna('NORMAL')
             else:
                 df_ident['vip_tier'] = 'NORMAL'
                 df_ident['risk_status'] = None
+                
+            if not priority_df.empty:
+                df_ident = pd.merge(df_ident, priority_df[['ma_kh', 'priority_level']], on='ma_kh', how='left')
+                df_ident['priority_level'] = df_ident['priority_level'].fillna('LOW')
+            else:
+                df_ident['priority_level'] = 'LOW'
 
-            # Gộp theo Stage, Growth và VIP (Dùng ma_dv='ALL' để đếm unique khách hàng)
-            stage_counts = df_ident.groupby(['point_id', 'state', 'growth', 'vip_tier']).size().reset_index(name='count')
+            # Gộp theo Stage, Growth, VIP và Priority
+            stage_counts = df_ident.groupby(['point_id', 'state', 'growth', 'vip_tier', 'priority_level']).size().reset_index(name='count')
             for _, r in stage_counts.iterrows():
-                summary_data.append((month_str, int(r['point_id']), r['state'], r['growth'], r['vip_tier'], 'ALL', 'ALL', 0.0, 0, int(r['count'])))
+                summary_data.append((month_str, int(r['point_id']), r['state'], r['growth'], r['vip_tier'], r['priority_level'], 'ALL', 'ALL', 0.0, 0, int(r['count'])))
             
             # Tính doanh thu thực tế cho nhóm định danh
             sql_rev_ident = """
@@ -135,20 +146,23 @@ class SummaryService:
             """
             df_rev_ident = pd.read_sql_query(sql_rev_ident, conn, params=(start_date, end_date))
             
-            # Map VIP tier to revenue records for proper aggregation if needed, 
-            # but usually dashboard sums by service/region regardless of VIP.
-            # However, for SSOT, we include VIP in the summary record.
+            # Map VIP and Priority
             if not vip_df.empty:
                 df_rev_ident = pd.merge(df_rev_ident, vip_df[['ma_kh', 'vip_tier']], on='ma_kh', how='left')
                 df_rev_ident['vip_tier'] = df_rev_ident['vip_tier'].fillna('NORMAL')
             else:
                 df_rev_ident['vip_tier'] = 'NORMAL'
+                
+            if not priority_df.empty:
+                df_rev_ident = pd.merge(df_rev_ident, priority_df[['ma_kh', 'priority_level']], on='ma_kh', how='left')
+                df_rev_ident['priority_level'] = df_rev_ident['priority_level'].fillna('LOW')
+            else:
+                df_rev_ident['priority_level'] = 'LOW'
 
-            # Aggregate by service/region/VIP
-            rev_agg = df_rev_ident.groupby(['point_id', 'ma_dv', 'region_type', 'vip_tier']).agg({'rev': 'sum', 'orders': 'sum'}).reset_index()
+            # Aggregate
+            rev_agg = df_rev_ident.groupby(['point_id', 'ma_dv', 'region_type', 'vip_tier', 'priority_level']).agg({'rev': 'sum', 'orders': 'sum'}).reset_index()
             for _, r in rev_agg.iterrows():
-                # Dùng stage='ACTIVE' làm placeholder cho doanh thu định danh
-                summary_data.append((month_str, int(r['point_id']), 'ACTIVE', None, r['vip_tier'], r['ma_dv'], r['region_type'], r['rev'], int(r['orders']), 0))
+                summary_data.append((month_str, int(r['point_id']), 'ACTIVE', None, r['vip_tier'], r['priority_level'], r['ma_dv'], r['region_type'], r['rev'], int(r['orders']), 0))
 
         # 2. Lấy dữ liệu TIỀM NĂNG (Nhóm 2)
         print(f"    - Processing potential customers (Leads)...")
@@ -183,13 +197,13 @@ class SummaryService:
                 'rev': 'sum', 'orders': 'sum', 'name': 'count'
             }).reset_index()
             for _, r in pot_agg.iterrows():
-                summary_data.append((month_str, int(r['point_id']), r['rank'], None, 'NORMAL', r['ma_dv'], r['region_type'], r['rev'], int(r['orders']), int(r['name'])))
+                summary_data.append((month_str, int(r['point_id']), r['rank'], None, 'NORMAL', 'LOW', r['ma_dv'], r['region_type'], r['rev'], int(r['orders']), int(r['name'])))
 
         # 3. Lưu Database
         cursor.execute("BEGIN")
         try:
             cursor.execute("DELETE FROM monthly_analytics_summary WHERE year_month = ?", (month_str,))
-            insert_sql = "INSERT INTO monthly_analytics_summary (year_month, point_id, lifecycle_stage, growth_tag, vip_tier, ma_dv, region_type, total_revenue, total_orders, total_customers) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            insert_sql = "INSERT INTO monthly_analytics_summary (year_month, point_id, lifecycle_stage, growth_tag, vip_tier, priority_level, ma_dv, region_type, total_revenue, total_orders, total_customers) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             cursor.executemany(insert_sql, summary_data)
             conn.execute("COMMIT")
             print(f"- Rebuilt summary for {month_str}: {len(summary_data)} records.")
@@ -197,6 +211,7 @@ class SummaryService:
             # Sync customers table for list views
             LifecycleEngine.sync_customers_table(month_str)
             VIPTierEngine.sync_customers_table(month_str)
+            PriorityEngine.sync_customers_table(month_str, priority_results)
         except Exception as e:
             conn.execute("ROLLBACK")
             print(f"ERROR rebuilding month {month_str}: {e}")

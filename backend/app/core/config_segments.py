@@ -32,4 +32,34 @@ VIP_THRESHOLD_GOLD = 150     # Top 51-150
 VIP_THRESHOLD_SILVER = 500    # Top 151-500
 VIP_THRESHOLD_BRONZE = 1000   # Top 501-1000
 
-print("LIFECYCLE & VIP CONFIG LOADED SUCCESSFULLY - CRM 3.0")
+# 4. PRIORITY SCORING (Hybrid Model - CRM 3.0)
+# Fixed Scores (Điểm số cố định dựa trên phân tầng)
+SCORE_VIP = {
+    'DIAMOND': 50,
+    'PLATINUM': 40,
+    'GOLD': 30,
+    'SILVER': 20,
+    'BRONZE': 10,
+    'NORMAL': 0
+}
+
+SCORE_LIFECYCLE = {
+    'NEW': 5,
+    'ACTIVE': 5,
+    'AT_RISK': 20,
+    'CHURNED': 10,
+    'REACTIVATED': 15
+}
+
+# Dynamic Weights (Trọng số biến động dựa trên tín hiệu thị trường)
+WEIGHT_REVENUE_DROP = 30       # Giảm doanh thu trượt mạnh (>30%)
+WEIGHT_RISK_AGING = 20         # Trạng thái AT_RISK kéo dài (>15 ngày)
+WEIGHT_GROWTH_MOMENTUM = 10    # Tăng trưởng mạnh (ưu tiên đẩy số)
+WEIGHT_VIP_DOWNGRADE_RISK = 25 # Nguy cơ tụt hạng VIP
+
+# Priority Level Thresholds
+PRIORITY_THRESHOLD_CRITICAL = 80
+PRIORITY_THRESHOLD_HIGH = 60
+PRIORITY_THRESHOLD_MEDIUM = 40
+
+print("LIFECYCLE, VIP & PRIORITY CONFIG LOADED - CRM 3.0")

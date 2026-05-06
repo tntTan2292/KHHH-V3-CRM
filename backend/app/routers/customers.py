@@ -18,11 +18,14 @@ def get_filter_options(db: Session = Depends(get_db)):
     nhom_khs = [r[0] for r in db.query(Customer.nhom_kh).distinct().all() if r[0]]
     rfm_segments = [r[0] for r in db.query(Customer.rfm_segment).distinct().all() if r[0]]
     vip_tiers = ["DIAMOND", "PLATINUM", "GOLD", "SILVER", "BRONZE", "NORMAL"]
+    vip_tiers = ["DIAMOND", "PLATINUM", "GOLD", "SILVER", "BRONZE", "NORMAL"]
+    priority_levels = ["CRITICAL", "HIGH", "MEDIUM", "LOW"]
     don_vis = [r[0] for r in db.query(Customer.don_vi).distinct().all() if r[0]]
     return {
         "nhom_kh": nhom_khs,
         "rfm_segment": rfm_segments,
         "vip_tier": vip_tiers,
+        "priority_level": priority_levels,
         "don_vi": don_vis
     }
 
@@ -35,6 +38,7 @@ async def get_customers(
     search: str = None,
     lifecycle_status: str = None, 
     vip_tier: str = None,
+    priority_level: str = None,
     rfm_segment: str = None,
     start_date: str = None,
     end_date: str = None,
@@ -50,6 +54,7 @@ async def get_customers(
         search=search,
         lifecycle_status=lifecycle_status,
         vip_tier=vip_tier,
+        priority_level=priority_level,
         rfm_segment=rfm_segment,
         start_date=start_date,
         end_date=end_date,
@@ -80,6 +85,8 @@ async def get_customers(
             "ten_kh": c.ten_kh if c else row.ma_crm_cms,
             "nhom_kh": row.status_type,
             "vip_tier": row.vip_tier,
+            "priority_score": row.priority_score,
+            "priority_level": row.priority_level,
             "rfm_segment": c.rfm_segment if c else "Thường",
             "dynamic_revenue": row.dynamic_revenue,
             "transaction_count": row.transaction_count,
@@ -325,6 +332,8 @@ async def get_customer_details(ma_crm: str, db: Session = Depends(get_db), curre
         "nhom_kh": customer.nhom_kh,
         "loai_kh": customer.loai_kh,
         "vip_tier": customer.vip_tier,
+        "priority_score": customer.priority_score,
+        "priority_level": customer.priority_level,
         "rfm_segment": customer.rfm_segment,
         "tong_doanh_thu": customer.tong_doanh_thu or 0,
         "doanh_thu_luy_ke": total_revenue,

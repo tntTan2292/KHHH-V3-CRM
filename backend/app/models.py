@@ -114,6 +114,8 @@ class Customer(Base):
     lifecycle_state = Column(String(50), index=True, default="NEW")
     growth_tag = Column(String(100), nullable=True)
     vip_tier = Column(String(50), index=True, default="BRONZE")
+    priority_score = Column(Integer, default=0)
+    priority_level = Column(String(20), index=True, default="LOW")
 
     ma_bc_phu_trach = Column(String(50), nullable=True, index=True) 
     assigned_staff_id = Column(Integer, ForeignKey("nhan_su.id"), nullable=True) # Nhân viên được giao CSKH
@@ -297,6 +299,7 @@ class MonthlyAnalyticsSummary(Base):
     ma_dv = Column(String(50), index=True, nullable=True) # Dịch vụ: C, E, M, R, L
     region_type = Column(String(50), index=True, nullable=True) # Nội tỉnh, Liên tỉnh, Quốc tế
     vip_tier = Column(String(50), index=True, nullable=True) # DIAMOND, PLATINUM, GOLD, SILVER, BRONZE
+    priority_level = Column(String(20), index=True, nullable=True) # CRITICAL, HIGH, MEDIUM, LOW
     
     total_revenue = Column(Float, default=0.0)
     total_orders = Column(Integer, default=0)
@@ -305,7 +308,7 @@ class MonthlyAnalyticsSummary(Base):
     last_updated_at = Column(DateTime, server_default=func.now())
     
     __table_args__ = (
-        Index('idx_summary_main', 'point_id', 'year_month', 'lifecycle_stage', 'growth_tag', 'vip_tier', 'ma_dv', 'region_type'),
+        Index('idx_summary_main', 'point_id', 'year_month', 'lifecycle_stage', 'growth_tag', 'vip_tier', 'priority_level', 'ma_dv', 'region_type'),
     )
 
 class LifecycleLog(Base):
@@ -323,6 +326,17 @@ class VipLog(Base):
     ma_kh = Column(String(100), index=True)
     previous_tier = Column(String(50))
     new_tier = Column(String(50))
+    trigger_reason = Column(Text)
+    timestamp = Column(DateTime, server_default=func.now())
+
+class PriorityLog(Base):
+    __tablename__ = "priority_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    ma_kh = Column(String(100), index=True)
+    previous_score = Column(Integer)
+    new_score = Column(Integer)
+    previous_level = Column(String(20))
+    new_level = Column(String(20))
     trigger_reason = Column(Text)
     timestamp = Column(DateTime, server_default=func.now())
 

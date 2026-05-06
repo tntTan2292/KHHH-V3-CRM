@@ -18,6 +18,7 @@ class CustomerService:
         search: str = None,
         lifecycle_status: str = None, 
         vip_tier: str = None,
+        priority_level: str = None,
         rfm_segment: str = None, # Deprecated in V3
         start_date: str = None,
         end_date: str = None,
@@ -107,6 +108,8 @@ class CustomerService:
             Customer.ma_crm_cms,
             Customer.lifecycle_state.label("status_type"),
             Customer.vip_tier.label("vip_tier"),
+            Customer.priority_score.label("priority_score"),
+            Customer.priority_level.label("priority_level"),
             func.coalesce(identified_metrics.c.curr_rev, 0).label("dynamic_revenue"),
             func.coalesce(identified_metrics.c.curr_count, 0).label("transaction_count"),
             Customer.growth_tag.label("growth_velocity"), # Or map to a score
@@ -136,6 +139,9 @@ class CustomerService:
         if vip_tier:
             base_query = base_query.filter(Customer.vip_tier == vip_tier.upper())
 
+        if priority_level:
+            base_query = base_query.filter(Customer.priority_level == priority_level.upper())
+
         # 4. Total Count
         total = base_query.count()
 
@@ -147,6 +153,7 @@ class CustomerService:
             "health_score": "health_score",
             "growth_velocity": "growth_velocity",
             "vip_tier": "vip_tier",
+            "priority_score": "priority_score",
             "ma_crm_cms": "ma_crm_cms",
             "ten_kh": "ten_kh"
         }
