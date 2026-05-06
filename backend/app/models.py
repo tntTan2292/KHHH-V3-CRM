@@ -166,6 +166,7 @@ class Transaction(Base):
 
     # Index tổ hợp để tăng tốc truy vấn doanh thu theo khách hàng + thời gian
     __table_args__ = (
+        Index('idx_trans_point_date_canonical', 'point_id', 'ngay_chap_nhan', 'ten_nguoi_gui_canonical', 'dia_chi_nguoi_gui_canonical'),
         Index('idx_sender_canonical_date', 'ten_nguoi_gui_canonical', 'dia_chi_nguoi_gui_canonical', 'ngay_chap_nhan'),
         Index('idx_trans_ma_kh_date', 'ma_kh', 'ngay_chap_nhan'),
         Index('idx_trans_sender_date', 'ten_nguoi_gui', 'ngay_chap_nhan'),
@@ -257,3 +258,21 @@ class UserSession(Base):
     is_active = Column(Boolean, default=True)
     
     user = relationship("User")
+
+class MonthlyAnalyticsSummary(Base):
+    __tablename__ = "monthly_analytics_summary"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    year_month = Column(String(10), index=True) # 'YYYY-MM'
+    point_id = Column(Integer, ForeignKey("hierarchy_nodes.id"), index=True)
+    lifecycle_stage = Column(String(50), index=True) # NEW, ACTIVE, AT_RISK, CHURNED, REACTIVATED
+    
+    total_revenue = Column(Float, default=0.0)
+    total_orders = Column(Integer, default=0)
+    total_customers = Column(Integer, default=0)
+    
+    last_updated_at = Column(DateTime, server_default=func.now())
+    
+    __table_args__ = (
+        Index('idx_summary_main', 'point_id', 'year_month', 'lifecycle_stage'),
+    )

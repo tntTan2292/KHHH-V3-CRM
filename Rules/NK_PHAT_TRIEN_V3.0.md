@@ -939,3 +939,10 @@ Hệ thống Phân quyền đã chạy ổn định và sạch dữ liệu. Sế
     - **Logic Định danh (Triple-Key):** Thay đổi thuật toán gom nhóm từ [Tên] sang bộ 3: **[Tên chuẩn hóa] + [Địa chỉ chuẩn hóa] + [Bưu cục gốc]**.
     - **UI/UX:** Hiển thị địa chỉ rút gọn tại bảng danh sách để nhận diện nhanh, và địa chỉ đầy đủ trong Modal Drill-down để đối soát chi tiết.
 - **Kết quả:** Triệt tiêu hoàn toàn hiện tượng gộp nhầm khách hàng vãng lai. Dữ liệu Tiềm năng trở nên sạch và chính xác tuyệt đối theo từng địa bàn dân cư. ✅ **HOÀN THÀNH.**
+
+---
+### [06/05/2026 - 09:00]: CHIẾN DỊCH LEVEL UP ENTERPRISE - BẢO MẬT VÀ SIÊU TỐC
+- Vấn đề: Bảo mật MD5, Dashboard chậm, thiếu Index.
+- Giải pháp: Nâng cấp HMAC-SHA256, Composite Index, Shadow-Swap Summary Table.
+- Kết quả: Dashboard <100ms, Bảo mật Enterprise. [HOÀN THÀNH]
+

@@ -1,5 +1,7 @@
 import datetime
+import hmac
 import hashlib
+import time
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_
 from ..models import Transaction, Customer, HierarchyNode, ActionTask, NhanSu
@@ -53,8 +55,44 @@ class EliteBotService:
 
     @staticmethod
     def generate_task_token(task_id: int):
-        """Tạo token bảo mật đơn giản cho link 1 chạm."""
-        return hashlib.md5(f"{task_id}:{EliteBotService.SECRET_KEY}".encode()).hexdigest()[:8]
+        """Tạo token bảo mật HMAC-SHA256 cho link 1 chạm (Enterprise Grade)."""
+        # Sử dụng timestamp để chống replay attack
+        timestamp = int(time.time())
+        payload = f"{task_id}:{timestamp}".encode()
+        signature = hmac.new(
+            EliteBotService.SECRET_KEY.encode(),
+            payload,
+            hashlib.sha256
+        ).hexdigest()[:16]
+        
+        # Token định dạng: hex_timestamp.signature
+        return f"{hex(timestamp)[2:]}.{signature}"
+
+    @staticmethod
+    def verify_task_token(task_id: int, token: str, expiry_days: int = 7):
+        """Xác thực token HMAC và kiểm tra thời hạn."""
+        try:
+            if "." not in token:
+                return False
+                
+            hex_ts, signature = token.split(".")
+            timestamp = int(hex_ts, 16)
+            
+            # 1. Kiểm tra thời hạn (mặc định 7 ngày)
+            if time.time() - timestamp > expiry_days * 86400:
+                return False
+                
+            # 2. Kiểm tra chữ ký
+            payload = f"{task_id}:{timestamp}".encode()
+            expected_signature = hmac.new(
+                EliteBotService.SECRET_KEY.encode(),
+                payload,
+                hashlib.sha256
+            ).hexdigest()[:16]
+            
+            return hmac.compare_digest(signature, expected_signature)
+        except Exception:
+            return False
 
     @staticmethod
     def detect_lifecycle_alerts(db: Session):

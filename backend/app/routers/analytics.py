@@ -4,7 +4,7 @@ from sqlalchemy import func, text
 from datetime import datetime, timedelta
 
 from ..database import get_db
-from ..models import Customer, Transaction, SyncAttempt, SyncLog, HierarchyNode
+from ..models import Customer, Transaction, SyncAttempt, SyncLog, HierarchyNode, MonthlyAnalyticsSummary
 from ..services.lifecycle_service import LifecycleService
 import dateutil.relativedelta
 from ..core.cache import cache_response
@@ -31,6 +31,22 @@ def parse_db_date(db_val):
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
 from ..services.hierarchy_service import HierarchyService
+from ..services.summary_service import SummaryService
+
+@router.post("/refresh-summary")
+async def trigger_summary_refresh(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Kích hoạt làm mới bảng Summary (Shadow-Swap) - Dành cho Admin."""
+    if current_user.role.name != "ADMIN":
+        raise HTTPException(status_code=403, detail="Chỉ Admin mới có quyền làm mới dữ liệu tổng hợp")
+    
+    success = SummaryService.refresh_summary_shadow_swap()
+    if success:
+        return {"status": "success", "message": "Dữ liệu Dashboard đã được làm mới thành công (Shadow-Swap)."}
+    else:
+        raise HTTPException(status_code=500, detail="Lỗi trong quá trình làm mới dữ liệu tổng hợp.")
 
 @router.get("/dashboard")
 @cache_response(ttl_hours=1)
@@ -56,19 +72,52 @@ async def get_dashboard_stats(
     max_data_date_raw = db.query(func.max(Transaction.ngay_chap_nhan)).scalar()
     max_data_date = parse_db_date(max_data_date_raw)
 
-    # 3. Lấy dữ liệu Lifecycle mới từ Service
-    lifecycle_stats = LifecycleService.get_customer_lifecycle_stats(db, None, start_date, end_date, scope_point_ids)
-    
-    # 3. Cơ sở filter cho Transaction (Doanh thu tổng)
-    query = db.query(func.sum(Transaction.doanh_thu))
-    
-    if scope_point_ids is not None: 
-        query = query.filter(Transaction.point_id.in_(scope_point_ids))
-    
-    if start_date:
-        query = query.filter(Transaction.ngay_chap_nhan >= start_date)
-    if end_date:
-        query = query.filter(Transaction.ngay_chap_nhan <= f"{end_date} 23:59:59")
+    # 3. Kiểm tra xem có thể dùng bảng Summary không (Nếu filter theo tháng trọn vẹn)
+    is_monthly = False
+    if start_date and end_date:
+        s_dt = datetime.strptime(start_date, "%Y-%m-%d")
+        e_dt = datetime.strptime(end_date, "%Y-%m-%d")
+        if s_dt.day == 1 and (e_dt + timedelta(days=1)).day == 1:
+            is_monthly = True
+            month_str = s_dt.strftime("%Y-%m")
+
+    # 4. Lấy dữ liệu Lifecycle và Doanh thu
+    if is_monthly:
+        # Lấy từ bảng Summary (Siêu tốc)
+        summary_query = db.query(
+            MonthlyAnalyticsSummary.lifecycle_stage,
+            func.sum(MonthlyAnalyticsSummary.total_revenue).label("revenue"),
+            func.sum(MonthlyAnalyticsSummary.total_customers).label("customers")
+        ).filter(MonthlyAnalyticsSummary.year_month == month_str)
+        
+        if scope_point_ids is not None:
+            summary_query = summary_query.filter(MonthlyAnalyticsSummary.point_id.in_(scope_point_ids))
+            
+        summary_res = summary_query.group_by(MonthlyAnalyticsSummary.lifecycle_stage).all()
+        
+        lifecycle_stats = {r[0].lower(): r[2] for r in summary_res}
+        tong_dt = sum(r[1] for r in summary_res)
+        
+        if scope_point_ids is not None:
+            summary_query = summary_query.filter(MonthlyAnalyticsSummary.point_id.in_(scope_point_ids))
+            
+        summary_res = summary_query.group_by(MonthlyAnalyticsSummary.lifecycle_stage).all()
+        
+        lifecycle_stats = {r[0].lower(): r[2] for r in summary_res}
+        tong_dt = sum(r[1] for r in summary_res)
+    else:
+        # Fallback về logic cũ (Raw Query)
+        lifecycle_stats = LifecycleService.get_customer_lifecycle_stats(db, None, start_date, end_date, scope_point_ids)
+        
+        query = db.query(func.sum(Transaction.doanh_thu))
+        if scope_point_ids is not None: 
+            query = query.filter(Transaction.point_id.in_(scope_point_ids))
+        if start_date:
+            query = query.filter(Transaction.ngay_chap_nhan >= start_date)
+        if end_date:
+            query = query.filter(Transaction.ngay_chap_nhan <= f"{end_date} 23:59:59")
+        tong_dt = query.scalar() or 0.0
+_date} 23:59:59")
         
     tong_dt = query.scalar() or 0.0
     
