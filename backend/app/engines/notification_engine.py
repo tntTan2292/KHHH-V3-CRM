@@ -10,7 +10,7 @@ from ..core.config_segments import *
 logger = logging.getLogger(__name__)
 
 class NotificationEngineCore:
-    VERSION = "1.0.0"
+    VERSION = "1.1.0" # Hardened Governance Version
     PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
     DB_PATH = os.path.join(PROJECT_ROOT, "data", "database", "khhh_v3.db")
 
@@ -21,17 +21,18 @@ class NotificationEngineCore:
     @staticmethod
     def run_engine(month_str):
         """
-        Governed execution of the Notification Engine.
+        Flow 1: Engine Run Flow
+        Tracks the execution and ensures deterministic processing.
         """
         run_id = str(uuid.uuid4())
         conn = NotificationEngineCore.get_connection()
         
-        # 1. Start Engine Run
+        # Start Engine Run Tracking
         NotificationEngineCore._start_run(conn, run_id, month_str)
         
         try:
-            # 2. Collect Signals (From Summaries and Engine Outputs)
-            # For Phase 5.1, we focus on Priority and VIP signals
+            # Flow 2: Event Detection Flow
+            # Consume ONLY from governed summaries
             signals = NotificationEngineCore._collect_signals(conn, month_str)
             
             processed_count = 0
@@ -39,17 +40,17 @@ class NotificationEngineCore:
             
             for signal in signals:
                 processed_count += 1
-                event_created = NotificationEngineCore._process_signal(conn, signal, run_id)
+                # Flow 3, 4, 5: Processing, Dedup, Recurrence, Snapshot
+                event_created = NotificationEngineCore._process_governed_signal(conn, signal, run_id, month_str)
                 if event_created:
                     generated_count += 1
             
-            # 3. Complete Run
             NotificationEngineCore._complete_run(conn, run_id, processed_count, generated_count)
-            print(f"Notification Engine Core run {run_id} completed. Processed: {processed_count}, Generated/Updated: {generated_count}")
+            print(f"Notification Engine run {run_id} SUCCESS. Month: {month_str}, Events: {generated_count}")
             
         except Exception as e:
             NotificationEngineCore._fail_run(conn, run_id, str(e))
-            logger.error(f"Notification Engine Core failed: {e}")
+            logger.error(f"Notification Engine failed: {e}")
             raise e
         finally:
             conn.close()
@@ -57,94 +58,96 @@ class NotificationEngineCore:
     @staticmethod
     def _collect_signals(conn, month_str):
         """
-        Reads governed signals from Customer and Summary tables.
+        Flow 2: Governed Detection
+        Reads exclusively from monthly_analytics_summary (SSOT).
         """
         cursor = conn.cursor()
-        # Get Customers with High Priority or Risk
+        # Find all critical/high priority segments already computed in the summary
+        # We also filter by year_month to ensure temporal accuracy
         cursor.execute("""
-            SELECT ma_crm_cms, vip_tier, priority_score, priority_level, lifecycle_state, growth_tag 
-            FROM customers 
-            WHERE priority_score >= ? OR vip_tier != 'NORMAL'
-        """, (PRIORITY_THRESHOLD_MEDIUM,))
+            SELECT year_month, point_id, lifecycle_stage, growth_tag, vip_tier, priority_level, 
+                   SUM(total_orders) as total_orders, SUM(total_revenue) as total_rev
+            FROM monthly_analytics_summary
+            WHERE year_month = ? AND priority_level IN ('CRITICAL', 'HIGH')
+            GROUP BY year_month, point_id, lifecycle_stage, growth_tag, vip_tier, priority_level
+        """, (month_str,))
         
         columns = [column[0] for column in cursor.description]
         return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
     @staticmethod
-    def _process_signal(conn, signal, run_id):
+    def _process_governed_signal(conn, signal, run_id, month_str):
         """
-        Governed event processing: Identify -> Rule -> Dedup -> Persist.
+        Flow 3, 4, 5: The Governance Processing Layer
         """
-        ma_kh = signal['ma_crm_cms']
+        # Event Code determination based on Governed Summary State
+        event_code = f"{signal['vip_tier']}_{signal['priority_level']}_ALERT"
         
-        # Determine Event Code
-        event_code = None
-        if signal['priority_level'] == 'CRITICAL' and signal['vip_tier'] != 'NORMAL':
-            event_code = 'VIP_CHURN_RISK'
-        elif signal['priority_score'] >= PRIORITY_THRESHOLD_HIGH:
-            event_code = 'CRITICAL_REVENUE_DROP'
-        
-        if not event_code:
-            return False
-
-        # Load Rule
+        # Load Governance Rules
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM notification_rules WHERE event_code = ? AND is_enabled = 1", (event_code,))
         rule_row = cursor.fetchone()
+        
+        # Default rule if specific one doesn't exist
         if not rule_row:
-            return False
+            # Fallback to general priority alert
+            cursor.execute("SELECT * FROM notification_rules WHERE event_code = 'CRITICAL_REVENUE_DROP'", ())
+            rule_row = cursor.fetchone()
             
+        if not rule_row: return False
         rule = dict(zip([c[0] for c in cursor.description], rule_row))
+
+        # Flow 3: Identity & Deduplication
+        # Identity Key: same problem across time
+        # For Summary-level alerts, identity is (event_code, point_id, aggregation_category)
+        identity_key = f"{event_code}:{signal['point_id']}:{rule['aggregation_category']}"
         
-        # 1. Identity Key
-        identity_key = f"{event_code}:{ma_kh}:{rule['aggregation_category']}"
-        
-        # 2. Input Snapshot (Immutable Truth)
+        # Snapshotting (Flow 5): Capture immutable truth from the summary
         snapshot = {
-            "signal": signal,
-            "thresholds": {
-                "critical": PRIORITY_THRESHOLD_CRITICAL,
-                "high": PRIORITY_THRESHOLD_HIGH
-            },
-            "timestamp": datetime.now().isoformat()
+            "source_summary": signal,
+            "engine_version": NotificationEngineCore.VERSION,
+            "rule_version": rule['version'],
+            "triggered_at": datetime.now().isoformat()
         }
         snapshot_json = json.dumps(snapshot)
         
-        # 3. Dedup Hash (Technical Idempotency)
-        # Hash of identity + data + run_id (to prevent double processing in SAME run)
-        dedup_raw = f"{identity_key}:{snapshot_json}"
+        # Dedup Hash (Technical Idempotency)
+        # Prevents same data from being processed twice in same context
+        dedup_raw = f"{identity_key}:{month_str}:{snapshot_json}"
         dedup_hash = hashlib.sha256(dedup_raw.encode()).hexdigest()
 
-        # Check for existing event
-        cursor.execute("SELECT id, status, last_reoccurred_at, occurrence_count FROM system_events WHERE identity_key = ?", (identity_key,))
+        # Recurrence & Lifecycle (Flow 4)
+        cursor.execute("""
+            SELECT id, status, last_reoccurred_at, occurrence_count 
+            FROM system_events 
+            WHERE identity_key = ?
+        """, (identity_key,))
         existing = cursor.fetchone()
-        
+
         if existing:
             event_id, status, last_reoccurred, count = existing
             
-            # Check for Dedup (Idempotency)
+            # Idempotency check
             cursor.execute("SELECT id FROM system_events WHERE dedup_hash = ?", (dedup_hash,))
-            if cursor.fetchone():
-                return False # Already processed this exact data
-                
-            # Recurrence Governance
+            if cursor.fetchone(): return False
+
+            # Recurrence Logic
             cooldown_delta = timedelta(hours=rule['cooldown_hours'])
             last_dt = datetime.strptime(last_reoccurred, '%Y-%m-%d %H:%M:%S')
             
             if status == 'RESOLVED' and (datetime.now() - last_dt) > cooldown_delta:
-                # REOPEN
                 NotificationEngineCore._reopen_event(conn, event_id, status, snapshot_json, run_id, count + 1, dedup_hash)
                 return True
-            elif status == 'OPEN' or status == 'REOPENED':
-                # Update occurrence
+            elif status in ('OPEN', 'ACKNOWLEDGED', 'REOPENED'):
                 NotificationEngineCore._update_occurrence(conn, event_id, count + 1, snapshot_json, dedup_hash)
                 return True
-            else:
-                return False # Still in cooldown or suppressed
+            return False
         else:
-            # New Event Minting
-            title = f"[{rule['aggregation_category']}] {event_code} - {ma_kh}"
-            message = f"Customer {ma_kh} ({signal['vip_tier']}) is at {signal['priority_level']} priority level. Reason: {signal['lifecycle_state']} - {signal['growth_tag']}."
+            # First time detection
+            title = f"[{rule['aggregation_category']}] {event_code} - Point {signal['point_id']}"
+            message = (f"Operational Alert for Point {signal['point_id']} in {month_str}. "
+                       f"VIP: {signal['vip_tier']}, Priority: {signal['priority_level']}, "
+                       f"State: {signal['lifecycle_stage']}, Growth: {signal['growth_tag']}.")
             
             NotificationEngineCore._create_event(conn, identity_key, dedup_hash, event_code, rule, signal, snapshot_json, run_id, title, message)
             return True
@@ -161,13 +164,13 @@ class NotificationEngineCore:
                 first_triggered_at, last_reoccurred_at, occurrence_count
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'), 1)
         """, (
-            identity_key, dedup_hash, event_code, rule['aggregation_category'], signal['ma_crm_cms'],
-            'PRIORITY_ENGINE', rule['default_severity'], 'OPEN', title, message,
+            identity_key, dedup_hash, event_code, rule['aggregation_category'], str(signal['point_id']),
+            'NOTIFICATION_ENGINE_CORE', rule['default_severity'], 'OPEN', title, message,
             snapshot, rule['version'], NotificationEngineCore.VERSION, run_id,
             rule['default_assigned_team'], rule['default_assigned_role'], 'UNASSIGNED'
         ))
         event_id = cursor.lastrowid
-        NotificationEngineCore._log_state_change(conn, event_id, None, 'OPEN', 'Initial detection', snapshot)
+        NotificationEngineCore._log_state_change(conn, event_id, None, 'OPEN', 'Governed summary detection', snapshot)
 
     @staticmethod
     def _reopen_event(conn, event_id, old_status, snapshot, run_id, new_count, new_dedup):
@@ -202,10 +205,18 @@ class NotificationEngineCore:
     def _start_run(conn, run_id, month_str):
         cursor = conn.cursor()
         ctx = json.dumps({"month": month_str})
+        run_hash = hashlib.sha256(f"{month_str}:NOTIFICATION_ENGINE_CORE".encode()).hexdigest()
+        
+        # Check if a started run exists with same context to avoid overlapping
+        cursor.execute("SELECT id FROM engine_runs WHERE run_hash = ? AND status = 'STARTED'", (run_hash,))
+        if cursor.fetchone():
+            # In a real enterprise system, we might fail or wait. Here we log a warning.
+            logger.warning(f"Overlapping run detected for {month_str}. Proceeding with new run ID.")
+
         cursor.execute("""
-            INSERT INTO engine_runs (run_id, engine_name, status, execution_context_json, started_at)
-            VALUES (?, 'NOTIFICATION_ENGINE_CORE', 'STARTED', ?, datetime('now'))
-        """, (run_id, ctx))
+            INSERT INTO engine_runs (run_id, engine_name, status, run_hash, execution_context_json, started_at)
+            VALUES (?, 'NOTIFICATION_ENGINE_CORE', 'STARTED', ?, ?, datetime('now'))
+        """, (run_id, run_hash, ctx))
 
     @staticmethod
     def _complete_run(conn, run_id, processed, generated):
