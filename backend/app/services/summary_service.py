@@ -11,128 +11,165 @@ class SummaryService:
 
     @staticmethod
     def get_connection():
-        # Dùng isolation_level=None để kiểm soát Transaction thủ công tuyệt đối
         return sqlite3.connect(SummaryService.DB_PATH, isolation_level=None)
 
     @staticmethod
-    def refresh_summary_shadow_swap():
-        """Làm mới bảng summary bằng kỹ thuật Shadow-Swap (Tối ưu hiệu năng)."""
+    def initialize_auxiliary_tables():
+        """Khởi tạo dữ liệu cho các bảng phụ từ lịch sử giao dịch (Chỉ chạy 1 lần)."""
+        print("Initializing auxiliary tables from history...")
         conn = SummaryService.get_connection()
         try:
             cursor = conn.cursor()
-            cursor.execute("DROP TABLE IF EXISTS monthly_analytics_summary_shadow")
+            cursor.execute("BEGIN")
+            
+            # 1. Populating customer_first_order
             cursor.execute("""
-            CREATE TABLE monthly_analytics_summary_shadow (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                year_month TEXT,
-                point_id INTEGER,
-                lifecycle_stage TEXT,
-                total_revenue REAL DEFAULT 0.0,
-                total_orders INTEGER DEFAULT 0,
-                total_customers INTEGER DEFAULT 0,
-                last_updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
+            INSERT OR IGNORE INTO customer_first_order (name, addr, point_id, first_month)
+            SELECT 
+                COALESCE(ma_kh, ten_nguoi_gui_canonical || '|' || dia_chi_nguoi_gui_canonical || '|' || point_id) as key_name,
+                COALESCE(dia_chi_nguoi_gui_canonical, '') as addr,
+                point_id,
+                MIN(strftime('%Y-%m', ngay_chap_nhan)) as first_month
+            FROM transactions
+            GROUP BY key_name, addr, point_id
             """)
             
-            # Tính toán dữ liệu
-            SummaryService._calculate_and_insert_summary_fast(conn, "monthly_analytics_summary_shadow")
-            
+            # 2. Populating customer_last_active
             cursor.execute("""
-            CREATE INDEX idx_summary_main_shadow 
-            ON monthly_analytics_summary_shadow (point_id, year_month, lifecycle_stage)
+            INSERT OR REPLACE INTO customer_last_active (name, addr, point_id, last_active_month)
+            SELECT 
+                COALESCE(ma_kh, ten_nguoi_gui_canonical || '|' || dia_chi_nguoi_gui_canonical || '|' || point_id) as key_name,
+                COALESCE(dia_chi_nguoi_gui_canonical, '') as addr,
+                point_id,
+                MAX(strftime('%Y-%m', ngay_chap_nhan)) as last_active_month
+            FROM transactions
+            GROUP BY key_name, addr, point_id
             """)
             
-            # SWAP - Hoán đổi bảng
-            print("Starting Shadow-Swap transaction...")
-            try:
-                cursor.execute("BEGIN")
-                # Xóa bảng cũ nếu tồn tại
-                cursor.execute("DROP TABLE IF EXISTS monthly_analytics_summary_old")
-                # Kiểm tra bảng chính có tồn tại không để Rename
-                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='monthly_analytics_summary'")
-                if cursor.fetchone():
-                    cursor.execute("ALTER TABLE monthly_analytics_summary RENAME TO monthly_analytics_summary_old")
-                # Đổi tên bảng shadow sang chính thức
-                cursor.execute("ALTER TABLE monthly_analytics_summary_shadow RENAME TO monthly_analytics_summary")
-                # Xóa bảng old
-                cursor.execute("DROP TABLE IF EXISTS monthly_analytics_summary_old")
-                cursor.execute("COMMIT")
-                print("SUCCESS: Shadow-Swap completed successfully.")
-                return True
-            except Exception as e:
-                cursor.execute("ROLLBACK")
-                print(f"ERROR: Error during Shadow-Swap transaction: {e}")
-                return False
-                
+            conn.execute("COMMIT")
+            print("SUCCESS: Auxiliary tables initialized.")
         except Exception as e:
-            print(f"ERROR: Error in refresh_summary_shadow_swap: {e}")
-            return False
+            conn.execute("ROLLBACK")
+            print(f"ERROR initializing auxiliary tables: {e}")
         finally:
             conn.close()
 
     @staticmethod
-    def _calculate_and_insert_summary_fast(conn, target_table):
-        """Tính toán KPIs thần tốc bằng SQL + Vectorized Pandas."""
-        print("Calculating summary data (Fast mode)...")
+    def refresh_summary_incremental(target_months=None):
+        if not target_months:
+            now = datetime.now()
+            target_months = [
+                (now - timedelta(days=60)).strftime("%Y-%m"),
+                (now - timedelta(days=30)).strftime("%Y-%m"),
+                now.strftime("%Y-%m")
+            ]
         
+        print(f"Refreshing summary for months: {target_months}")
+        conn = SummaryService.get_connection()
+        try:
+            for month in target_months:
+                SummaryService._rebuild_month_summary_optimized(conn, month)
+            print("SUCCESS: Incremental summary refresh completed.")
+        finally:
+            conn.close()
+
+    @staticmethod
+    def _rebuild_month_summary_optimized(conn, month_str):
+        """Xây dựng lại summary tháng bằng JOIN (Tránh lỗi giới hạn 999 placeholders của SQLite)."""
+        cursor = conn.cursor()
+        
+        # 1. Lấy dữ liệu gộp theo tháng và JOIN trực tiếp với bảng phụ để tính Stage
+        # Đây là cách tối ưu nhất: Để SQLite làm mọi thứ bằng JOIN
         sql = """
-        WITH raw_data AS (
-            SELECT ma_kh as customer_key, point_id, strftime('%Y-%m', ngay_chap_nhan) as year_month, 
-                   doanh_thu, id
-            FROM transactions 
-            WHERE ma_kh IS NOT NULL AND ma_kh != ''
-            UNION ALL
-            SELECT (ten_nguoi_gui_canonical || '|' || dia_chi_nguoi_gui_canonical || '|' || point_id) as customer_key, 
-                   point_id, strftime('%Y-%m', ngay_chap_nhan) as year_month, 
-                   doanh_thu, id
-            FROM transactions 
-            WHERE ma_kh IS NULL OR ma_kh = ''
-        ),
-        monthly_stats AS (
-            SELECT customer_key, point_id, year_month, 
-                   SUM(doanh_thu) as revenue, COUNT(id) as orders
-            FROM raw_data
-            GROUP BY customer_key, point_id, year_month
-        ),
-        first_months AS (
-            SELECT customer_key, MIN(year_month) as first_month
-            FROM monthly_stats
-            GROUP BY customer_key
+        WITH month_tx AS (
+            SELECT 
+                COALESCE(ma_kh, ten_nguoi_gui_canonical || '|' || dia_chi_nguoi_gui_canonical || '|' || point_id) as name,
+                point_id,
+                SUM(doanh_thu) as revenue,
+                COUNT(id) as orders
+            FROM transactions
+            WHERE ngay_chap_nhan BETWEEN ? AND ?
+            GROUP BY name, point_id
         )
-        SELECT m.customer_key, m.point_id, m.year_month, m.revenue, m.orders, f.first_month
-        FROM monthly_stats m
-        JOIN first_months f ON m.customer_key = f.customer_key
+        SELECT 
+            m.point_id,
+            m.revenue,
+            m.orders,
+            f.first_month,
+            l.last_active_month,
+            ? as current_month
+        FROM month_tx m
+        LEFT JOIN customer_first_order f ON m.name = f.name
+        LEFT JOIN customer_last_active l ON m.name = l.name
         """
         
-        df = pd.read_sql_query(sql, conn)
-        if df.empty: return
-
-        def get_month_diff(m1, m2):
-            y1, mo1 = map(int, m1.split('-'))
-            y2, mo2 = map(int, m2.split('-'))
-            return (y1 - y2) * 12 + (mo1 - mo2)
-
-        df['month_diff'] = df.apply(lambda x: get_month_diff(x['year_month'], x['first_month']), axis=1)
-        df['stage'] = 'ACTIVE'
-        df.loc[df['month_diff'] < 3, 'stage'] = 'NEW'
+        # Tạo dải ngày cho tháng
+        start_date = f"{month_str}-01"
+        import calendar as py_calendar
+        y, m = map(int, month_str.split('-'))
+        last_day = py_calendar.monthrange(y, m)[1]
+        end_date = f"{month_str}-{last_day} 23:59:59"
         
-        final_agg = df.groupby(['year_month', 'point_id', 'stage']).agg({
+        df = pd.read_sql_query(sql, conn, params=(start_date, end_date, month_str))
+        if df.empty:
+            cursor.execute("BEGIN")
+            cursor.execute("DELETE FROM monthly_analytics_summary WHERE year_month = ?", (month_str,))
+            conn.execute("COMMIT")
+            return
+
+        def calculate_stage(row):
+            curr_m = row['current_month']
+            first_m = row['first_month']
+            
+            if not isinstance(curr_m, str) or not isinstance(first_m, str):
+                return 'ACTIVE'
+                
+            try:
+                y1, mo1 = map(int, curr_m.split('-'))
+                y2, mo2 = map(int, first_m.split('-'))
+                diff = (y1-y2)*12 + (mo1-mo2)
+                return 'NEW' if diff < 3 else 'ACTIVE'
+            except:
+                return 'ACTIVE'
+
+        df['stage'] = df.apply(calculate_stage, axis=1)
+        
+        final_agg = df.groupby(['point_id', 'stage']).agg({
             'revenue': 'sum',
             'orders': 'sum',
-            'customer_key': 'nunique'
-        }).rename(columns={'customer_key': 'customers'}).reset_index()
+            'current_month': 'count' # Dùng current_month để đếm số khách
+        }).rename(columns={'current_month': 'customers'}).reset_index()
         
-        insert_sql = f"INSERT INTO {target_table} (year_month, point_id, lifecycle_stage, total_revenue, total_orders, total_customers) VALUES (?, ?, ?, ?, ?, ?)"
-        data_to_insert = [
-            (row['year_month'], int(row['point_id']), row['stage'], row['revenue'], int(row['orders']), int(row['customers']))
-            for _, row in final_agg.iterrows()
-        ]
-        
-        # Insert theo lô
-        conn.execute("BEGIN")
-        conn.executemany(insert_sql, data_to_insert)
-        conn.execute("COMMIT")
-        print(f"- Inserted {len(data_to_insert)} summary records.")
+        cursor.execute("BEGIN")
+        try:
+            cursor.execute("DELETE FROM monthly_analytics_summary WHERE year_month = ?", (month_str,))
+            insert_sql = "INSERT INTO monthly_analytics_summary (year_month, point_id, lifecycle_stage, total_revenue, total_orders, total_customers) VALUES (?, ?, ?, ?, ?, ?)"
+            data = [(month_str, int(row['point_id']), row['stage'], row['revenue'], int(row['orders']), int(row['customers'])) for _, row in final_agg.iterrows()]
+            cursor.executemany(insert_sql, data)
+            conn.execute("COMMIT")
+            print(f"- Rebuilt summary for {month_str}: {len(data)} records.")
+        except Exception as e:
+            conn.execute("ROLLBACK")
+            print(f"ERROR rebuilding month {month_str}: {e}")
+
+    @staticmethod
+    def cleanup_expired_tokens():
+        conn = SummaryService.get_connection()
+        try:
+            cursor = conn.cursor()
+            total_deleted = 0
+            while True:
+                cursor.execute("BEGIN")
+                cursor.execute("DELETE FROM used_tokens WHERE expires_at < datetime('now') LIMIT 500")
+                count = cursor.rowcount
+                conn.execute("COMMIT")
+                total_deleted += count
+                if count < 500:
+                    break
+            if total_deleted > 0:
+                print(f"Cleaned up {total_deleted} expired tokens.")
+        finally:
+            conn.close()
 
 if __name__ == "__main__":
-    SummaryService.refresh_summary_shadow_swap()
+    pass

@@ -36,7 +36,7 @@ async def quick_report(
 ):
     """Hiển thị Form báo cáo nhanh từ Zalo (không cần login)."""
     # 1. Kiểm tra token (Enterprise Grade - HMAC Verify)
-    if not EliteBotService.verify_task_token(task_id, token):
+    if not EliteBotService.verify_task_token(db, task_id, token):
         return """
         <html>
             <body style="font-family: sans-serif; text-align: center; padding: 50px; background: #fff1f2;">
@@ -139,8 +139,9 @@ async def submit_quick_report(
 ):
     """Xử lý nộp form báo cáo nhanh."""
     # 1. Kiểm tra token (Enterprise Grade - HMAC Verify)
-    if not EliteBotService.verify_task_token(task_id, token):
-        return "<h2>Lỗi xác thực dữ liệu hoặc liên kết hết hạn</h2>"
+    # Xác thực token bảo mật
+    if not EliteBotService.verify_task_token(db, task_id, token):
+        raise HTTPException(status_code=403, detail="Liên kết không hợp lệ hoặc đã hết hạn")
 
     # 2. Cập nhật task
     task = db.query(ActionTask).filter(ActionTask.id == task_id).first()

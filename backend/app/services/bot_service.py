@@ -4,7 +4,7 @@ import hashlib
 import time
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_
-from ..models import Transaction, Customer, HierarchyNode, ActionTask, NhanSu
+from ..models import Transaction, Customer, HierarchyNode, ActionTask, NhanSu, UsedToken, SystemLog
 
 class EliteBotService:
     SECRET_KEY = "ELITE_ANTIGRAVITY_V3"
@@ -69,8 +69,8 @@ class EliteBotService:
         return f"{hex(timestamp)[2:]}.{signature}"
 
     @staticmethod
-    def verify_task_token(task_id: int, token: str, expiry_days: int = 7):
-        """Xác thực token HMAC và kiểm tra thời hạn."""
+    def verify_task_token(db: Session, task_id: int, token: str, expiry_days: int = 2):
+        """Xác thực token HMAC, kiểm tra thời hạn và chống Replay Attack (Enterprise Security)."""
         try:
             if "." not in token:
                 return False
@@ -78,11 +78,17 @@ class EliteBotService:
             hex_ts, signature = token.split(".")
             timestamp = int(hex_ts, 16)
             
-            # 1. Kiểm tra thời hạn (mặc định 7 ngày)
+            # 1. Kiểm tra thời hạn (Giảm xuống 2 ngày - 48h theo chuẩn Bulletproof)
             if time.time() - timestamp > expiry_days * 86400:
                 return False
                 
-            # 2. Kiểm tra chữ ký
+            # 2. Chống Replay Attack: Kiểm tra xem token đã được sử dụng chưa
+            token_hash = hashlib.sha256(token.encode()).hexdigest()
+            is_used = db.query(UsedToken).filter(UsedToken.token_hash == token_hash).first()
+            if is_used:
+                return False
+
+            # 3. Kiểm tra chữ ký HMAC
             payload = f"{task_id}:{timestamp}".encode()
             expected_signature = hmac.new(
                 EliteBotService.SECRET_KEY.encode(),
@@ -90,7 +96,17 @@ class EliteBotService:
                 hashlib.sha256
             ).hexdigest()[:16]
             
-            return hmac.compare_digest(signature, expected_signature)
+            if not hmac.compare_digest(signature, expected_signature):
+                return False
+                
+            # 4. Ghi nhận token đã sử dụng
+            # Hết hạn cùng lúc với token HMAC
+            expires_at = datetime.datetime.fromtimestamp(timestamp + expiry_days * 86400)
+            new_used_token = UsedToken(token_hash=token_hash, expires_at=expires_at)
+            db.add(new_used_token)
+            db.commit()
+            
+            return True
         except Exception:
             return False
 

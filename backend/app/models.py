@@ -276,3 +276,23 @@ class MonthlyAnalyticsSummary(Base):
     __table_args__ = (
         Index('idx_summary_main', 'point_id', 'year_month', 'lifecycle_stage'),
     )
+
+class CustomerFirstOrder(Base):
+    __tablename__ = "customer_first_order"
+    name = Column(String(255), primary_key=True)
+    addr = Column(String(255), primary_key=True)
+    point_id = Column(Integer, primary_key=True)
+    first_month = Column(String(10)) # YYYY-MM
+
+class CustomerLastActive(Base):
+    __tablename__ = "customer_last_active"
+    name = Column(String(255), primary_key=True)
+    addr = Column(String(255), primary_key=True)
+    point_id = Column(Integer, primary_key=True)
+    last_active_month = Column(String(10)) # YYYY-MM
+
+class UsedToken(Base):
+    __tablename__ = "used_tokens"
+    id = Column(Integer, primary_key=True, index=True)
+    token_hash = Column(String(64), unique=True, index=True)
+    expires_at = Column(DateTime, index=True)
