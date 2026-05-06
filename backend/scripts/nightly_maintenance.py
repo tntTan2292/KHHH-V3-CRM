@@ -39,6 +39,11 @@ def run_nightly_maintenance():
         db = SessionLocal()
         verified = TaskVerifierService.verify_all_pending_tasks(db)
         logger.info(f"Task verification completed. {verified} tasks verified.")
+        
+        logger.info("Unlocking stale tasks (SLA)...")
+        unlocked = TaskVerifierService.auto_unlock_stale_tasks(db)
+        logger.info(f"Task unlocking completed. {unlocked} customers released.")
+        
         db.close()
     except Exception as e:
         logger.error(f"Error verifying tasks: {e}")

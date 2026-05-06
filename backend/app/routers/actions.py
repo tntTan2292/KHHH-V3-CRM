@@ -39,6 +39,7 @@ class AssignTaskPayload(BaseModel):
     template_id: Optional[int] = None
     phan_loai_giao_viec: Optional[str] = "Giao Lead"
     pipeline_stage: Optional[str] = "B1" # B1-B5
+    task_contact_at: Optional[str] = None # YYYY-MM-DD HH:MM
 
 @router.post("/assign")
 async def assign_task(
@@ -50,6 +51,13 @@ async def assign_task(
     deadline_dt = None
     if payload.deadline:
         deadline_dt = datetime.fromisoformat(payload.deadline.replace('Z', '+00:00'))
+    
+    contact_dt = datetime.now()
+    if payload.task_contact_at:
+        try:
+            contact_dt = datetime.fromisoformat(payload.task_contact_at.replace('Z', '+00:00'))
+        except:
+            pass
 
     # Check for Collaboration Mode (Soft Control)
     cross_point_flag = False
@@ -77,6 +85,7 @@ async def assign_task(
         loai_doi_tuong=payload.loai_doi_tuong,
         phan_loai_giao_viec=payload.phan_loai_giao_viec,
         pipeline_stage=payload.pipeline_stage,
+        task_contact_at=contact_dt,
         staff_id=payload.staff_id,
         template_id=payload.template_id,
         noi_dung=payload.noi_dung,
@@ -86,6 +95,13 @@ async def assign_task(
         original_point_id=orig_p_id,
         original_staff_id=orig_s_id
     )
+    
+    # HARD LOCK: Nếu là Khách hiện hữu -> Khóa cho nhân viên này
+    if payload.loai_doi_tuong == "KhachHang":
+        customer = db.query(Customer).filter(Customer.ma_crm_cms == payload.target_id).first()
+        if customer:
+            customer.assigned_staff_id = payload.staff_id
+
     db.add(new_task)
     
     # Neu la HienHuu -> update luon thong tin assign trong bang Customer
@@ -252,6 +268,12 @@ async def report_task(
     
     if payload.trang_thai in ["Hoàn thành", "Thất bại"]:
         task.ngay_hoan_thanh = datetime.now()
+        
+    # MỞ KHÓA (Unlock): Nếu task Thất bại hoặc Hủy -> Giải phóng khách hàng
+    if payload.trang_thai in ["Thất bại", "Hủy"] and task.loai_doi_tuong == "KhachHang":
+        customer = db.query(Customer).filter(Customer.ma_crm_cms == task.target_id).first()
+        if customer:
+            customer.assigned_staff_id = None
         
     db.commit()
     

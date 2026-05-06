@@ -209,6 +209,7 @@ class ActionTask(Base):
     
     # 5B Pipeline & Verification
     pipeline_stage = Column(String(50), nullable=True) # B1, B2, B3, B4, B5
+    task_contact_at = Column(DateTime, server_default=func.now()) # Thời điểm tiếp xúc thực tế
     converted_ma_kh = Column(String(100), nullable=True) # Mã CRM mở thành công
     verified = Column(Boolean, default=False) # Hệ thống đã xác thực qua Transaction chưa?
     

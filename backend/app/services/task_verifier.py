@@ -52,6 +52,39 @@ class TaskVerifierService:
         return verified_count
 
     @staticmethod
+    def auto_unlock_stale_tasks(db: Session, overdue_days: int = 3):
+        """
+        Giải phóng (Unlock) khách hàng nếu Task quá hạn mà không có cập nhật.
+        Áp dụng cho Khách hiện hữu (Hard Lock).
+        """
+        from datetime import timedelta
+        cutoff_date = datetime.now() - timedelta(days=overdue_days)
+        
+        # Tìm các Task Khách hiện hữu quá hạn deadline và không cập nhật lâu hơn cutoff_date
+        stale_tasks = db.query(ActionTask).filter(
+            ActionTask.loai_doi_tuong == "KhachHang",
+            ActionTask.trang_thai.in_(["Mới", "Đang xử lý"]),
+            ActionTask.deadline < datetime.now(),
+            ActionTask.updated_at < cutoff_date
+        ).all()
+        
+        unlocked_count = 0
+        for task in stale_tasks:
+            # Giải phóng khách hàng
+            customer = db.query(Customer).filter(Customer.ma_crm_cms == task.target_id).first()
+            if customer:
+                customer.assigned_staff_id = None
+                
+            # Cập nhật trạng thái task
+            task.trang_thai = "Quá hạn - Giải phóng"
+            task.updated_at = datetime.now()
+            unlocked_count += 1
+            logger.info(f"🔓 Task {task.id} stale: Released customer {task.target_id}")
+            
+        db.commit()
+        return unlocked_count
+
+    @staticmethod
     def auto_promote_stages(db: Session):
         """
         (Nâng cao) Tự động đẩy Stage từ B3 -> B4 (Bùng nổ) 
