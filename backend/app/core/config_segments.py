@@ -24,4 +24,12 @@ MONTHS_FOR_NEW = 3
 # Ngưỡng doanh thu tối thiểu để tính là "Có hoạt động" trong tháng
 MIN_REVENUE_ACTIVE = 1000  # > 1000 VNĐ 
 
-print("LIFECYCLE CONFIG LOADED SUCCESSFULLY - CRM 2.0")
+# 3. VIP TIER RANKING (Relative Top-N)
+# Xếp hạng dựa trên vị trí doanh thu lũy kế 03 tháng (Rolling 3 Months)
+VIP_THRESHOLD_DIAMOND = 10   # Top 10
+VIP_THRESHOLD_PLATINUM = 50  # Top 11-50
+VIP_THRESHOLD_GOLD = 150     # Top 51-150
+VIP_THRESHOLD_SILVER = 500    # Top 151-500
+VIP_THRESHOLD_BRONZE = 1000   # Top 501-1000
+
+print("LIFECYCLE & VIP CONFIG LOADED SUCCESSFULLY - CRM 3.0")

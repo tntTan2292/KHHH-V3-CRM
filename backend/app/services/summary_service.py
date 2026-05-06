@@ -6,6 +6,7 @@ import dateutil.relativedelta
 import os
 import logging
 from .lifecycle_engine import LifecycleEngine
+from .vip_tier_engine import VIPTierEngine
 
 logger = logging.getLogger(__name__)
 
@@ -96,20 +97,32 @@ class SummaryService:
         
         print(f"    - Processing identified customers using LifecycleEngine...")
         ident_results = LifecycleEngine.process_month_summary(month_str)
+        
+        print(f"    - Processing VIP Tiers using VIPTierEngine...")
+        vip_results = VIPTierEngine.process_vip_month(month_str)
+        vip_df = pd.DataFrame(vip_results) if vip_results else pd.DataFrame()
+        
         summary_data = []
 
         if ident_results:
             df_ident = pd.DataFrame(ident_results)
             
-            # Gộp theo Stage và Growth (Dùng ma_dv='ALL' để đếm unique khách hàng)
-            # Lưu ý: Một khách hàng có thể có Growth tag
-            stage_counts = df_ident.groupby(['point_id', 'state', 'growth']).size().reset_index(name='count')
+            # Merge with VIP data
+            if not vip_df.empty:
+                df_ident = pd.merge(df_ident, vip_df[['ma_kh', 'vip_tier', 'risk_status']], on='ma_kh', how='left')
+                df_ident['vip_tier'] = df_ident['vip_tier'].fillna('NORMAL')
+            else:
+                df_ident['vip_tier'] = 'NORMAL'
+                df_ident['risk_status'] = None
+
+            # Gộp theo Stage, Growth và VIP (Dùng ma_dv='ALL' để đếm unique khách hàng)
+            stage_counts = df_ident.groupby(['point_id', 'state', 'growth', 'vip_tier']).size().reset_index(name='count')
             for _, r in stage_counts.iterrows():
-                summary_data.append((month_str, int(r['point_id']), r['state'], r['growth'], 'ALL', 'ALL', 0.0, 0, int(r['count'])))
+                summary_data.append((month_str, int(r['point_id']), r['state'], r['growth'], r['vip_tier'], 'ALL', 'ALL', 0.0, 0, int(r['count'])))
             
-            # Tính doanh thu thực tế cho nhóm định danh (phân rã theo ma_dv, region_type)
+            # Tính doanh thu thực tế cho nhóm định danh
             sql_rev_ident = """
-            SELECT point_id, ma_dv, 
+            SELECT point_id, ma_kh, ma_dv, 
                    CASE 
                         WHEN trong_nuoc_quoc_te IN ('quốc tế', 'quoc te') OR ma_dv = 'L' THEN 'Quốc tế'
                         WHEN lien_tinh_noi_tinh IN ('1', 'nội tỉnh', 'noi tinh') THEN 'Nội tỉnh'
@@ -118,12 +131,24 @@ class SummaryService:
                    SUM(doanh_thu) as rev, COUNT(id) as orders
             FROM transactions
             WHERE ngay_chap_nhan BETWEEN ? AND ? AND ma_kh IS NOT NULL AND ma_kh != ''
-            GROUP BY point_id, ma_dv, region_type
+            GROUP BY point_id, ma_kh, ma_dv, region_type
             """
             df_rev_ident = pd.read_sql_query(sql_rev_ident, conn, params=(start_date, end_date))
-            for _, r in df_rev_ident.iterrows():
+            
+            # Map VIP tier to revenue records for proper aggregation if needed, 
+            # but usually dashboard sums by service/region regardless of VIP.
+            # However, for SSOT, we include VIP in the summary record.
+            if not vip_df.empty:
+                df_rev_ident = pd.merge(df_rev_ident, vip_df[['ma_kh', 'vip_tier']], on='ma_kh', how='left')
+                df_rev_ident['vip_tier'] = df_rev_ident['vip_tier'].fillna('NORMAL')
+            else:
+                df_rev_ident['vip_tier'] = 'NORMAL'
+
+            # Aggregate by service/region/VIP
+            rev_agg = df_rev_ident.groupby(['point_id', 'ma_dv', 'region_type', 'vip_tier']).agg({'rev': 'sum', 'orders': 'sum'}).reset_index()
+            for _, r in rev_agg.iterrows():
                 # Dùng stage='ACTIVE' làm placeholder cho doanh thu định danh
-                summary_data.append((month_str, int(r['point_id']), 'ACTIVE', None, r['ma_dv'], r['region_type'], r['rev'], int(r['orders']), 0))
+                summary_data.append((month_str, int(r['point_id']), 'ACTIVE', None, r['vip_tier'], r['ma_dv'], r['region_type'], r['rev'], int(r['orders']), 0))
 
         # 2. Lấy dữ liệu TIỀM NĂNG (Nhóm 2)
         print(f"    - Processing potential customers (Leads)...")
@@ -158,19 +183,20 @@ class SummaryService:
                 'rev': 'sum', 'orders': 'sum', 'name': 'count'
             }).reset_index()
             for _, r in pot_agg.iterrows():
-                summary_data.append((month_str, int(r['point_id']), r['rank'], None, r['ma_dv'], r['region_type'], r['rev'], int(r['orders']), int(r['name'])))
+                summary_data.append((month_str, int(r['point_id']), r['rank'], None, 'NORMAL', r['ma_dv'], r['region_type'], r['rev'], int(r['orders']), int(r['name'])))
 
         # 3. Lưu Database
         cursor.execute("BEGIN")
         try:
             cursor.execute("DELETE FROM monthly_analytics_summary WHERE year_month = ?", (month_str,))
-            insert_sql = "INSERT INTO monthly_analytics_summary (year_month, point_id, lifecycle_stage, growth_tag, ma_dv, region_type, total_revenue, total_orders, total_customers) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            insert_sql = "INSERT INTO monthly_analytics_summary (year_month, point_id, lifecycle_stage, growth_tag, vip_tier, ma_dv, region_type, total_revenue, total_orders, total_customers) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             cursor.executemany(insert_sql, summary_data)
             conn.execute("COMMIT")
             print(f"- Rebuilt summary for {month_str}: {len(summary_data)} records.")
             
             # Sync customers table for list views
             LifecycleEngine.sync_customers_table(month_str)
+            VIPTierEngine.sync_customers_table(month_str)
         except Exception as e:
             conn.execute("ROLLBACK")
             print(f"ERROR rebuilding month {month_str}: {e}")
