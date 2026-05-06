@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, Index, Boolean, Table, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, Index, Boolean, Table, UniqueConstraint, text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from .database import Base
@@ -400,6 +400,10 @@ class EngineRun(Base):
     generated_events_count = Column(Integer, default=0)
     failed_entities_count = Column(Integer, default=0)
     execution_context_json = Column(Text, nullable=True)
+    
+    __table_args__ = (
+        Index('idx_engine_run_lookup', 'engine_name', 'status', 'started_at'),
+    )
 
 class NotificationRule(Base):
     __tablename__ = "notification_rules"
@@ -416,7 +420,7 @@ class NotificationRule(Base):
 class SystemEvent(Base):
     __tablename__ = "system_events"
     id = Column(Integer, primary_key=True, index=True)
-    identity_key = Column(String(255), unique=True, index=True)
+    identity_key = Column(String(255), index=True) # REMOVED UNIQUE: Support historical records
     dedup_hash = Column(String(100), unique=True, index=True)
     event_code = Column(String(100), index=True)
     aggregation_category = Column(String(50), index=True)
@@ -424,7 +428,13 @@ class SystemEvent(Base):
     entity_id = Column(String(100), index=True)
     source_engine = Column(String(100))
     severity = Column(String(20))
-    status = Column(String(50), default="OPEN") # OPEN, ACKNOWLEDGED, RESOLVED, SUPPRESSED, REOPENED
+    
+    # LOCK STATUS LIFECYCLE
+    status = Column(
+        String(50), 
+        default="OPEN",
+        nullable=False
+    )
     
     title = Column(String(200))
     message = Column(Text)
@@ -447,6 +457,15 @@ class SystemEvent(Base):
     reopened_at = Column(DateTime, nullable=True)
     resolved_at = Column(DateTime, nullable=True)
     occurrence_count = Column(Integer, default=1)
+
+    __table_args__ = (
+        Index('idx_event_identity_status', 'identity_key', 'status'),
+        Index('idx_event_entity_time', 'entity_id', 'first_triggered_at'),
+        Index('idx_event_code_category', 'event_code', 'aggregation_category'),
+        Index('idx_event_ownership', 'assigned_team', 'assigned_role', 'ownership_status'),
+        # Enterprise Lock: Only one active event per identity
+        Index('idx_unique_active_event', 'identity_key', unique=True, sqlite_where=text("status NOT IN ('RESOLVED', 'SUPPRESSED')")),
+    )
 
 class EventStateLog(Base):
     __tablename__ = "event_state_logs"
