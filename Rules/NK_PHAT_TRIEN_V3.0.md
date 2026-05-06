@@ -971,3 +971,11 @@ Hệ thống Phân quyền đã chạy ổn định và sạch dữ liệu. Sế
     - **Xử lý Bộ Nhớ Đệm (Cache Wipe)**: Dọn sạch cache và restart Backend sau quá trình Rebuild 17 tháng dữ liệu để đảm bảo Frontend không bị "kẹt" số liệu cũ.
     - **Nâng cấp Elite Control Center**: Tích hợp các tính năng chẩn đoán mạnh mẽ: Xem Log trực tiếp, Rebuild Summary Data (1-Click), Fix đường dẫn Backup.
 - **Kết quả**: Dashboard hiển thị chính xác các con số vòng đời (Hiện hữu: 722, Nguy cơ: 1106, Mới: 377, Tái bán: 9). Hệ thống đã đạt trạng thái Constitutional Alignment tuyệt đối. ✅ **XỬ LÝ TRIỆT ĐỂ.**
+
+---
+### 🕒 [06/05/2026 - 16:55]: CHUẨN HÓA GOVERNANCE GIỮA LIFECYCLE VÀ GROWTH LAYER
+- **Sự kiện**: Tinh chỉnh lại `Rules/HIEN_PHAP_CRM_3.0.md` để làm rõ ranh giới giữa Lifecycle chính và nhãn đánh giá Growth.
+- **Hạng mục Xử lý**:
+    - **Cấu trúc lại văn bản**: Bổ sung Heading `## 📊 NHÓM ĐÁNH GIÁ PHÁT TRIỂN KHÁCH HÀNG` để phân tách rõ ràng với 5 nhóm Lifecycle gốc.
+    - **Thiết lập Quy tắc Chống Ghi Đè (Anti-Overwrite)**: Thêm điều khoản "Lifecycle gốc vẫn là nguồn xác định trạng thái chính của khách hàng" vào lưu ý của nhóm Growth.
+- **Kết quả**: Khẳng định vững chắc kiến trúc "Overlay Tag" cho nhóm Growth. Ngăn chặn triệt để nguy cơ các truy vấn Analytics hoặc giao diện Dashboard trong tương lai vô tình lấy nhãn Growth đè lên trạng thái Active/New. Đảm bảo tính toàn vẹn (Integrity) của báo cáo vòng đời. ✅ **GOVERNANCE HOÀN TẤT.**

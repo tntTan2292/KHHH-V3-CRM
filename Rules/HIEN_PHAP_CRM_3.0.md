@@ -34,6 +34,9 @@ Dành cho khách hàng đã được cấp mã CRM cố định.
 - **Mục đích**: Cảnh báo sớm để nhân viên liên hệ "cứu chữa" trước khi khách hàng rơi vào trạng thái Rời bỏ.
 
 ---
+
+## 📊 NHÓM ĐÁNH GIÁ PHÁT TRIỂN KHÁCH HÀNG
+
 ### 6. KHÁCH HÀNG TĂNG TRƯỞNG (Growth) 🚀
 - **Điều kiện**:
   - Đang thuộc nhóm: **KHÁCH HÀNG MỚI** HOẶC **KHÁCH HÀNG HIỆN HỮU**.
@@ -46,6 +49,7 @@ Dành cho khách hàng đã được cấp mã CRM cố định.
   - "Khách hàng tăng trưởng" là nhãn đánh giá bổ sung.
   - **KHÔNG** thay thế trạng thái Lifecycle gốc.
   - Một khách hàng có thể đồng thời là: **KHÁCH HÀNG MỚI + TĂNG TRƯỞNG** HOẶC **KHÁCH HÀNG HIỆN HỮU + TĂNG TRƯỞNG**.
+  - Lifecycle gốc vẫn là nguồn xác định trạng thái chính của khách hàng.
 ---
 
 ## 🚀 NHÓM 02: MODULE DANH SÁCH KHÁCH HÀNG TIỀM NĂNG (LEADS - VÃNG LAI)
