@@ -10,6 +10,11 @@
 4.  **No fake KPI / No activity-driven scoring**: Không tính điểm dựa trên số lượng hoạt động (Activity) ảo. Mọi điểm số phải được chứng thực bằng hiệu quả kinh doanh thực tế.
 5.  **Triết lý CRM ưu tiên**: **Giữ khách > Ổn định > Tăng trưởng > Mở mới**.
 
+### 🛡️ Ownership Principle
+- Mỗi khách hàng phải có: Đơn vị quản lý, phạm vi quản lý và Ownership rõ ràng.
+- Mọi Task, Escalation, Notification và Action đều phải tuân thủ Hierarchy, Ownership và Scope quản lý.
+- CRM không được phép: Giao việc vượt phạm vi quản trị hoặc chuyển Ownership trái Hierarchy nếu không có Escalation hợp lệ.
+
 ---
 
 # II. MODULE HÀNH TRÌNH 5B (State Machine cho KH Tiềm năng)
@@ -47,6 +52,11 @@ Dành cho khách hàng đã có mã CMS cố định. Tuân thủ 5 trạng thá
 
 ### 5. KHÁCH HÀNG TÁI BÁN (Re-activated) 🔄
 - **Điều kiện**: Khách từng RỜI BỎ nay quay lại phát sinh đơn hàng. Kéo dài trạng thái này trong 03 tháng đầu quay lại.
+
+### 🚫 No Manual Lifecycle Override
+- Các trạng thái Lifecycle (Mới, Hiện hữu, Nguy cơ, Rời bỏ, Tái bán) **KHÔNG** được phép chỉnh sửa thủ công.
+- Mọi thay đổi Lifecycle phải được xác định tự động từ: Transaction Truth, Lifecycle Engine và Rule Engine.
+- Tuyệt đối không cho phép: Update tay trạng thái, ép trạng thái thủ công hoặc Bypass quy trình xác minh giao dịch (Transaction Verification).
 
 ### 📊 NHÓM ĐÁNH GIÁ TĂNG TRƯỞNG (Growth Tag)
 - **Bản chất**: Là một **Nhãn đánh giá động (Dynamic Tag)**, không phải trạng thái Lifecycle độc lập.
@@ -136,6 +146,11 @@ Giao diện điều hành chia làm 2 lớp tách biệt:
 # XI. SSOT (SINGLE SOURCE OF TRUTH) SUMMARY
 **Transaction Database là nguồn dữ liệu chuẩn duy nhất và cuối cùng**. 
 Mọi thông tin về Lifecycle, Growth, VIP Tier, KPI và Priority đều phải được truy xuất và chứng thực từ đây. Tuyệt đối không chấp nhận các báo cáo thủ công hoặc dữ liệu ảo nhằm ghi đè lên "Sự thật giao dịch" (Transaction Truth).
+
+### 🔍 Auditability Principle
+- Mọi thay đổi quan trọng liên quan đến: Ownership, VIP Tier, Task Reassignment, Escalation, CRM Verification và Customer Mapping đều phải được **Audit Log** đầy đủ.
+- Nội dung Audit Log bắt buộc bao gồm: Ai thay đổi, Thời gian thay đổi, Giá trị trước, Giá trị sau và Lý do thay đổi (nếu có).
+- Audit Log là điều kiện bắt buộc (Mandatory) đối với toàn bộ hành động quản trị quan trọng trong CRM.
 
 ---
 
