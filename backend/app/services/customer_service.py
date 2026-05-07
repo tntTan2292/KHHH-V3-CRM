@@ -40,7 +40,7 @@ class CustomerService:
             if not max_date_raw:
                 return [], 0
             
-            from .analytics import parse_db_date
+            from ..routers.analytics import parse_db_date
             curr_end = parse_db_date(max_date_raw)
             curr_start = curr_end.replace(day=1)
         else:
@@ -74,8 +74,7 @@ class CustomerService:
             Transaction.ma_kh.isnot(None),
             Transaction.ma_kh != '',
             func.trim(Transaction.ma_kh) != '',
-            ~Transaction.ma_kh.in_(['None', 'none', 'NULL', 'null', 'nan', 'NaN']),
-            Transaction.ngay_chap_nhan >= scan_barrier
+            ~Transaction.ma_kh.in_(['None', 'none', 'NULL', 'null', 'nan', 'NaN'])
         )
         
         if scope_ids is not None:
@@ -112,7 +111,7 @@ class CustomerService:
             Customer.priority_level.label("priority_level"),
             func.coalesce(identified_metrics.c.curr_rev, 0).label("dynamic_revenue"),
             func.coalesce(identified_metrics.c.curr_count, 0).label("transaction_count"),
-            Customer.growth_tag.label("growth_velocity"), # Or map to a score
+            growth_velocity,
             health_score.label("health_score"),
             identified_metrics.c.point_id,
             NhanSu.full_name.label("assigned_staff_name")
@@ -131,7 +130,10 @@ class CustomerService:
             )
         
         if lifecycle_status:
-            base_query = base_query.filter(Customer.lifecycle_state == lifecycle_status.upper())
+            status_val = lifecycle_status.upper()
+            if status_val == 'RECOVERED':
+                status_val = 'REBUY'
+            base_query = base_query.filter(Customer.lifecycle_state == status_val)
             
         if rfm_segment:
             base_query = base_query.filter(Customer.rfm_segment == rfm_segment)

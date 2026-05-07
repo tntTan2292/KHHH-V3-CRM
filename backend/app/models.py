@@ -285,10 +285,12 @@ class TaskStateLog(Base):
 class SyncLog(Base):
     __tablename__ = "sync_logs"
     id = Column(Integer, primary_key=True, index=True)
-    entity_name = Column(String(100))
-    records_synced = Column(Integer)
+    folder_name = Column(String(20), index=True)
+    file_name = Column(String(255))
+    file_size = Column(Integer)
+    remote_mtime = Column(String(100))
+    sync_date = Column(DateTime, server_default=func.now())
     status = Column(String(50))
-    timestamp = Column(DateTime, server_default=func.now())
 
 # ==================================================
 # PHASE 8: KPI ENGINE MODELS (Operational Intelligence)
