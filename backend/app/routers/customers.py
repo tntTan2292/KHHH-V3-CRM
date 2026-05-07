@@ -66,46 +66,51 @@ async def get_customers(
         offset=(page - 1) * page_size
     )
 
-    # Map point_id -> point_name/point_code using a dict lookup
     # 1. Pre-fetch node names for the current batch to avoid N+1 queries
-    point_ids = list(set(row.Customer.point_id for row in items if row.Customer and row.Customer.point_id))
+    point_codes = list(set(row.Customer.ma_bc_phu_trach for row in items if row.Customer and row.Customer.ma_bc_phu_trach))
     point_map = {}
-    point_code_map = {}
-    if point_ids:
-        point_nodes = db.query(HierarchyNode.id, HierarchyNode.name, HierarchyNode.code).filter(HierarchyNode.id.in_(point_ids)).all()
-        point_map = {p.id: p.name for p in point_nodes}
-        point_code_map = {p.id: p.code for p in point_nodes}
+    if point_codes:
+        point_nodes = db.query(HierarchyNode.code, HierarchyNode.name).filter(HierarchyNode.code.in_(point_codes)).all()
+        point_map = {p.code: p.name for p in point_nodes}
 
     # 2. Map to dict response (Elite RBAC 3.0 Standard)
     result_items = []
     for row in items:
         # row contains (Customer, dynamic_revenue, transaction_count, last_shipped_absolute, assigned_staff_name)
-        c = row.Customer
-        if not c: continue # Should not happen with inner-join-like logic
+        c = row[0]
+        if not c: continue
         
         # Governance: Fix status casing for frontend compatibility
-        status_raw = c.lifecycle_state or "ACTIVE"
-        status_lower = status_raw.lower()
+        status_raw = (c.lifecycle_state or "ACTIVE").lower()
+        status_map = {
+            "rebuy": "recovered",
+            "reactivated": "recovered",
+            "active": "active",
+            "new": "new",
+            "at_risk": "at_risk",
+            "churned": "churned"
+        }
+        status_final = status_map.get(status_raw, status_raw)
         
         result_items.append({
             "id": c.id,
             "ma_crm_cms": c.ma_crm_cms,
             "ten_kh": c.ten_kh or c.ma_crm_cms,
-            "nhom_kh": status_lower,
-            "status_type": status_lower,
+            "nhom_kh": status_final,
+            "status_type": status_final,
             "vip_tier": c.vip_tier,
             "priority_score": c.priority_score,
             "priority_level": c.priority_level,
             "rfm_segment": c.rfm_segment or "Thường",
-            "dynamic_revenue": float(row.dynamic_revenue or 0),
-            "transaction_count": int(row.transaction_count or 0),
+            "dynamic_revenue": float(row[1] or 0),
+            "transaction_count": int(row[2] or 0),
             "growth_velocity": 0.0, # Removed dynamic calculation for performance, can be restored if needed
             "health_score": 100,
-            "last_shipped": row.last_shipped_absolute.strftime("%Y-%m-%d") if row.last_shipped_absolute else None,
+            "last_shipped": row[3].strftime("%Y-%m-%d") if row[3] else None,
             "assigned_staff_id": c.assigned_staff_id,
-            "assigned_staff_name": row.assigned_staff_name,
-            "point_name": point_map.get(c.point_id, None),
-            "point_code": point_code_map.get(c.point_id, None)
+            "assigned_staff_name": row[4],
+            "point_name": point_map.get(c.ma_bc_phu_trach, None),
+            "point_code": c.ma_bc_phu_trach
         })
 
     return {

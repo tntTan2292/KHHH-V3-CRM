@@ -1138,7 +1138,7 @@ export default function Customers() {
                        {(() => {
                          const status = lifecycleConfig.find(l => l.value === c.status_type) || lifecycleConfig[0];
                          return (
-                           <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase border shadow-sm ${status.color} ${status.bg} border-current/10`}>
+                           <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase border shadow-sm border-${status.color}-200 bg-${status.color}-50 text-${status.color}-700`}>
                              <status.icon size={14} className={c.status_type === 'new' ? 'animate-bounce' : ''} />
                              {(() => {
                                if (c.status_type === 'active') return 'Khách hàng Hiện hữu';

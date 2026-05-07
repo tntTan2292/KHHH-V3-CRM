@@ -56,9 +56,9 @@ class CustomerService:
 
         # 4. Áp dụng Filters (Governance: Sử dụng dữ liệu đã persist từ Engine)
         if lifecycle_status:
-            status_val = lifecycle_status.upper()
-            if status_val == 'RECOVERED': status_val = 'REBUY'
-            base_query = base_query.filter(Customer.lifecycle_state == status_val)
+            status_val = lifecycle_status.lower()
+            if status_val == 'recovered': status_val = 'rebuy'
+            base_query = base_query.filter(func.lower(Customer.lifecycle_state) == status_val)
             
         if rfm_segment:
             base_query = base_query.filter(Customer.rfm_segment == rfm_segment)
@@ -115,9 +115,9 @@ class CustomerService:
         # Thay vì tạo query mới, ta lấy các criteria từ base_query
         # Tuy nhiên trong SQLAlchemy cách sạch nhất là reuse logic filter
         if lifecycle_status:
-            status_val = lifecycle_status.upper()
-            if status_val == 'RECOVERED': status_val = 'REBUY'
-            final_query = final_query.filter(Customer.lifecycle_state == status_val)
+            status_val = lifecycle_status.lower()
+            if status_val == 'recovered': status_val = 'rebuy'
+            final_query = final_query.filter(func.lower(Customer.lifecycle_state) == status_val)
             
         if rfm_segment:
             final_query = final_query.filter(Customer.rfm_segment == rfm_segment)
