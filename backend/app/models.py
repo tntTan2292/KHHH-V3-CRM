@@ -549,3 +549,89 @@ class EscalationRecord(Base):
         Index('idx_escalation_owner_lookup', 'new_owner_id', 'status'),
         Index('idx_escalation_coordinator', 'current_coordinator_id', 'status'),
     )
+
+class SLAPolicy(Base):
+    """
+    GOVERNANCE: Centralized SLA Policies (Agnostic)
+    """
+    __tablename__ = "sla_policies"
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String(100), unique=True, index=True) # e.g., 'VIP_RESPONSE_2H'
+    description = Column(String(500))
+    
+    # Target Governance
+    target_entity_type = Column(String(50), index=True) # 'SYSTEM_EVENT', 'ACTION_TASK', 'ESCALATION'
+    metric_type = Column(String(50)) # 'RESPONSE', 'RESOLUTION', 'OWNERSHIP'
+    
+    # Timing Governance
+    target_hours = Column(Float, default=24.0)
+    warning_threshold_pct = Column(Float, default=80.0)
+    
+    is_enabled = Column(Boolean, default=True)
+    version = Column(Integer, default=1)
+    
+    created_at = Column(DateTime, server_default=func.now())
+
+class SLATracker(Base):
+    """
+    GOVERNANCE: Domain-Agnostic Governed SLA Tracker
+    """
+    __tablename__ = "sla_trackers"
+    id = Column(Integer, primary_key=True, index=True)
+    policy_id = Column(Integer, ForeignKey("sla_policies.id"), index=True)
+    
+    # Identity (Agnostic Attachment)
+    target_type = Column(String(50), index=True) # 'SYSTEM_EVENT', 'ACTION_TASK', etc.
+    target_id = Column(String(100), index=True)
+    
+    # Lifecycle State Machine
+    status = Column(
+        String(50), 
+        default="ACTIVE",
+        nullable=False
+    ) # ACTIVE, PAUSED, MET, BREACHED, CANCELLED
+    
+    # Temporal Measurement
+    start_time = Column(DateTime, server_default=func.now())
+    due_time = Column(DateTime, index=True)
+    end_time = Column(DateTime, nullable=True) # Actual completion time
+    
+    # Pause/Resume Governance
+    total_paused_hours = Column(Float, default=0.0)
+    last_paused_at = Column(DateTime, nullable=True)
+    
+    # Real-time Observation
+    current_elapsed_hours = Column(Float, default=0.0)
+    last_ticked_at = Column(DateTime, nullable=True)
+    
+    # Snapshots & Auditability
+    last_snapshot_id = Column(Integer, nullable=True)
+    
+    policy = relationship("SLAPolicy")
+
+    __table_args__ = (
+        Index('idx_sla_target_lookup', 'target_type', 'target_id'),
+        Index('idx_sla_active_lookup', 'status', 'due_time'),
+    )
+
+class SLASnapshot(Base):
+    """
+    GOVERNANCE: SLA Auditability & Replay Truth
+    """
+    __tablename__ = "sla_snapshots"
+    id = Column(Integer, primary_key=True, index=True)
+    tracker_id = Column(Integer, ForeignKey("sla_trackers.id"), index=True)
+    
+    event_type = Column(String(50)) # CREATED, PAUSED, RESUMED, MET, BREACHED, OWNERSHIP_CHANGE
+    
+    # Immutable State Snapshot
+    status_at_snapshot = Column(String(50))
+    elapsed_at_snapshot = Column(Float)
+    remaining_at_snapshot = Column(Float)
+    
+    # Context (Governance Snapshots)
+    snapshot_json = Column(Text) # Additional metadata (Owner, Entity State)
+    
+    recorded_at = Column(DateTime, server_default=func.now())
+    
+    tracker = relationship("SLATracker")
