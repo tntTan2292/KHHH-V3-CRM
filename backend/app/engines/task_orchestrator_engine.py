@@ -12,12 +12,13 @@ sys.path.append(PROJECT_ROOT)
 
 from backend.app.database import SessionLocal
 from backend.app.services.task_service import TaskService
-from backend.app.models import SystemEvent, ActionTaskTemplate, Customer
+from backend.app.services.sla_service import SLAService
+from backend.app.models import SystemEvent, ActionTaskTemplate, Customer, ActionTask, SLATracker
 
 logger = logging.getLogger(__name__)
 
 class TaskOrchestratorEngine:
-    VERSION = "1.0.0"
+    VERSION = "1.1.0"
     DB_PATH = os.path.join(PROJECT_ROOT, "data", "database", "khhh_v3.db")
 
     @staticmethod
@@ -93,6 +94,28 @@ class TaskOrchestratorEngine:
                     )
                     if task:
                         tasks_created += 1
+            
+            # --- BLOCK 3: EXECUTION PROCESSING & SLA SYNC ---
+            # 1. Handle Automatic Assignment (Mới -> Đã giao)
+            new_tasks = db.query(ActionTask).filter(ActionTask.trang_thai == 'Mới', ActionTask.staff_id != None).all()
+            for task in new_tasks:
+                TaskService.update_task_status(db, task.id, 'Đã giao', 'AUTO_ASSIGN', reason="Orchestrator assigned staff")
+            
+            # 2. SLA Sync & Escalation Trigger
+            # We look for tasks that have a linked SLATracker that has BREACHED
+            breached_tasks = db.query(ActionTask).join(SLATracker).filter(
+                ActionTask.trang_thai.in_(['Đã giao', 'Đã xác nhận', 'Đang xử lý']),
+                SLATracker.status == 'BREACHED'
+            ).all()
+            
+            for task in breached_tasks:
+                # Trigger Escalation logic here
+                # For now, we move the task to 'Escalation' state
+                TaskService.update_task_status(
+                    db, task.id, 'Escalation', 'SLA_BREACH', 
+                    reason=f"SLA Breached (Tracker ID: {task.sla_tracker_id})"
+                )
+                # In a real scenario, we would also call EscalationService.trigger(...)
             
             # 4. Complete Run
             cursor.execute("""

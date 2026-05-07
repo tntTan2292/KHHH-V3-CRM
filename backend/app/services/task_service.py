@@ -8,6 +8,28 @@ from backend.app.services.sla_service import SLAService
 logger = logging.getLogger(__name__)
 
 class TaskService:
+    # GOVERNANCE: Strict Task Lifecycle State Machine
+    ALLOWED_TRANSITIONS = {
+        'Mới': ['Đã giao', 'Hủy'],
+        'Đã giao': ['Đã xác nhận', 'Hủy', 'Escalation'],
+        'Đã xác nhận': ['Đang xử lý', 'Hủy', 'Escalation'],
+        'Đang xử lý': ['Hoàn thành', 'Thất bại', 'Hủy', 'Escalation'],
+        'Hoàn thành': ['Đóng'], # RESOLVED -> CLOSED
+        'Thất bại': ['Đóng'],
+        'Hủy': [],
+        'Đóng': [],
+        'Escalation': ['Đã giao', 'Hủy'] # After escalation, it might be reassigned
+    }
+
+    @staticmethod
+    def validate_transition(current_status, new_status):
+        """
+        Hardened Lifecycle Governance
+        """
+        allowed = TaskService.ALLOWED_TRANSITIONS.get(current_status, [])
+        if new_status not in allowed:
+            raise Exception(f"CRITICAL TASK GOVERNANCE FAILURE: Illegal transition from {current_status} to {new_status}")
+
     @staticmethod
     def create_task_from_template(db, template_id, target_id, source_event_id=None, staff_id=None, context=None):
         """
@@ -76,6 +98,10 @@ class TaskService:
         if not task: return None
 
         old_status = task.trang_thai
+        
+        # Validate Governance
+        TaskService.validate_transition(old_status, new_status)
+        
         task.trang_thai = new_status
         if new_status == 'Hoàn thành':
             task.ngay_hoan_thanh = datetime.now()
