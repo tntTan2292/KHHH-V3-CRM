@@ -47,6 +47,7 @@ async def get_customers(
     node_code: str = None,
     current_user: User = Depends(get_current_user)
 ):
+    print(f"DEBUG_API: GET /api/customers | page={page}, ps={page_size}, status={lifecycle_status}, start={start_date}, end={end_date}, node={node_code}")
     # Sử dụng Service để lấy dữ liệu (Elite RBAC 3.0)
     items, total = CustomerService.get_customers_data(
         db=db,
@@ -66,7 +67,8 @@ async def get_customers(
     )
 
     # Map point_id -> point_name/point_code using a dict lookup
-    point_ids = list(set(row.point_id for row in items if row.point_id))
+    # 1. Pre-fetch node names for the current batch to avoid N+1 queries
+    point_ids = list(set(row.Customer.point_id for row in items if row.Customer and row.Customer.point_id))
     point_map = {}
     point_code_map = {}
     if point_ids:
@@ -74,29 +76,36 @@ async def get_customers(
         point_map = {p.id: p.name for p in point_nodes}
         point_code_map = {p.id: p.code for p in point_nodes}
 
-    # Map to dict response
+    # 2. Map to dict response (Elite RBAC 3.0 Standard)
     result_items = []
     for row in items:
-        # row contains (Customer, ma_crm_cms, status_type, dynamic_revenue, transaction_count, growth_velocity, health_score, point_id, assigned_staff_name)
+        # row contains (Customer, dynamic_revenue, transaction_count, last_shipped_absolute, assigned_staff_name)
         c = row.Customer
+        if not c: continue # Should not happen with inner-join-like logic
+        
+        # Governance: Fix status casing for frontend compatibility
+        status_raw = c.lifecycle_state or "ACTIVE"
+        status_lower = status_raw.lower()
+        
         result_items.append({
-            "id": c.id if c else 0,
-            "ma_crm_cms": row.ma_crm_cms,
-            "ten_kh": c.ten_kh if c else row.ma_crm_cms,
-            "nhom_kh": row.status_type,
-            "vip_tier": row.vip_tier,
-            "priority_score": row.priority_score,
-            "priority_level": row.priority_level,
-            "rfm_segment": c.rfm_segment if c else "Thường",
-            "dynamic_revenue": row.dynamic_revenue,
-            "transaction_count": row.transaction_count,
-            "growth_velocity": round(row.growth_velocity or 0, 1),
-            "health_score": int(row.health_score or 0),
-            "assigned_staff_id": c.assigned_staff_id if c else None,
+            "id": c.id,
+            "ma_crm_cms": c.ma_crm_cms,
+            "ten_kh": c.ten_kh or c.ma_crm_cms,
+            "nhom_kh": status_lower,
+            "status_type": status_lower,
+            "vip_tier": c.vip_tier,
+            "priority_score": c.priority_score,
+            "priority_level": c.priority_level,
+            "rfm_segment": c.rfm_segment or "Thường",
+            "dynamic_revenue": float(row.dynamic_revenue or 0),
+            "transaction_count": int(row.transaction_count or 0),
+            "growth_velocity": 0.0, # Removed dynamic calculation for performance, can be restored if needed
+            "health_score": 100,
+            "last_shipped": row.last_shipped_absolute.strftime("%Y-%m-%d") if row.last_shipped_absolute else None,
+            "assigned_staff_id": c.assigned_staff_id,
             "assigned_staff_name": row.assigned_staff_name,
-            "status_type": row.status_type,
-            "point_name": point_map.get(row.point_id, None),
-            "point_code": point_code_map.get(row.point_id, None)
+            "point_name": point_map.get(c.point_id, None),
+            "point_code": point_code_map.get(c.point_id, None)
         })
 
     return {

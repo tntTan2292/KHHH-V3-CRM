@@ -29,12 +29,7 @@ class CustomerService:
         offset: int = 0,
         include_all: bool = False # For Export
     ):
-        # 1a. Xác định phạm vi
-        scope_ids = ScopingService.get_effective_scope_ids(db, current_user, node_code)
-        if scope_ids is not None and not scope_ids:
-            return [], 0
-
-        # 1. Xác định mốc thời gian
+        # 1. Xác định mốc thời gian (Vẫn dùng Full History theo Hiến pháp)
         if not start_date or not end_date:
             max_date_raw = db.query(func.max(Transaction.ngay_chap_nhan)).scalar()
             if not max_date_raw:
@@ -47,92 +42,22 @@ class CustomerService:
             curr_start = datetime.strptime(start_date, "%Y-%m-%d")
             curr_end = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
 
-        prev_start = curr_start - dateutil.relativedelta.relativedelta(months=1)
         prev_end = curr_start - timedelta(days=1)
-        scan_barrier = curr_start - dateutil.relativedelta.relativedelta(months=12)
         prev_3m_start = curr_start - dateutil.relativedelta.relativedelta(months=3)
-        
-        new_threshold_date = curr_start - dateutil.relativedelta.relativedelta(months=MONTHS_FOR_NEW - 1)
-        new_threshold_date = new_threshold_date.replace(day=1)
-        
-        fifteen_days_threshold = curr_end - timedelta(days=15)
-        churn_threshold_date = curr_start - dateutil.relativedelta.relativedelta(months=3)
 
-        # 2. Logic Lifecycle SQL
-        identified_metrics = db.query(
-            Transaction.ma_kh.label("ma_kh"),
-            func.sum(case((Transaction.ngay_chap_nhan.between(curr_start, curr_end), Transaction.doanh_thu), else_=0)).label("curr_rev"),
-            func.count(case((Transaction.ngay_chap_nhan.between(curr_start, curr_end), Transaction.id), else_=None)).label("curr_count"),
-            func.sum(case((Transaction.ngay_chap_nhan.between(prev_start, prev_end), Transaction.doanh_thu), else_=0)).label("prev_rev"),
-            func.sum(case((Transaction.ngay_chap_nhan.between(prev_3m_start, prev_end), Transaction.doanh_thu), else_=0)).label("prev_3m_rev"),
-            func.min(Transaction.ngay_chap_nhan).label("first_seen_all_time"),
-            func.max(case((Transaction.ngay_chap_nhan < curr_start, Transaction.ngay_chap_nhan), else_=None)).label("last_shipped_before"),
-            func.max(Transaction.ngay_chap_nhan).label("last_shipped_absolute"),
-            func.max(Transaction.ten_nguoi_gui).label("last_known_name"),
-            func.max(Transaction.point_id).label("point_id")
-        ).filter(
-            Transaction.ma_kh.isnot(None),
-            Transaction.ma_kh != '',
-            func.trim(Transaction.ma_kh) != '',
-            ~Transaction.ma_kh.in_(['None', 'none', 'NULL', 'null', 'nan', 'NaN'])
-        )
-        
-        if scope_ids is not None:
-            identified_metrics = identified_metrics.filter(Transaction.point_id.in_(scope_ids))
-            
-        identified_metrics = identified_metrics.group_by(Transaction.ma_kh).subquery()
+        # 2. Scoping
+        scope_ids = ScopingService.get_effective_scope_ids(db, current_user, node_code)
+        if scope_ids is not None and not scope_ids:
+            return [], 0
 
-        identified_status = case(
-            (identified_metrics.c.first_seen_all_time >= new_threshold_date, 'new'),
-            (and_(identified_metrics.c.curr_rev > 0, identified_metrics.c.prev_3m_rev == 0), 'recovered'),
-            (identified_metrics.c.curr_rev > 0, 'active'),
-            (identified_metrics.c.last_shipped_absolute <= churn_threshold_date, 'churned'),
-            (identified_metrics.c.last_shipped_absolute <= fifteen_days_threshold, 'at_risk'),
-            else_='active'
-        ).label("status_type")
+        # 3. Base Query - Driver là bảng Customer (Đã được Engine cập nhật trạng thái)
+        # Việc dùng bảng Customer làm driver giúp tận dụng Index trên lifecycle_state, rfm_segment
+        base_query = db.query(Customer)
 
-        rev_score = func.min(100, (func.coalesce(identified_metrics.c.curr_rev, 0) * 100 / THRESHOLD_DIAMOND_REV))
-        freq_score = func.min(100, (func.coalesce(identified_metrics.c.curr_count, 0) * 100 / THRESHOLD_DIAMOND_SHIP))
-        health_score = (rev_score * 0.7 + freq_score * 0.3).label("health_score")
-
-        growth_velocity = case(
-            (identified_metrics.c.prev_rev > 0, 
-             (func.coalesce(identified_metrics.c.curr_rev, 0) - identified_metrics.c.prev_rev) * 100 / identified_metrics.c.prev_rev),
-            (and_(identified_metrics.c.prev_rev == 0, identified_metrics.c.curr_rev > 0), 100.0),
-            else_=0.0
-        ).label("growth_velocity")
-
-        base_query = db.query(
-            Customer,
-            Customer.ma_crm_cms,
-            Customer.lifecycle_state.label("status_type"),
-            Customer.vip_tier.label("vip_tier"),
-            Customer.priority_score.label("priority_score"),
-            Customer.priority_level.label("priority_level"),
-            func.coalesce(identified_metrics.c.curr_rev, 0).label("dynamic_revenue"),
-            func.coalesce(identified_metrics.c.curr_count, 0).label("transaction_count"),
-            growth_velocity,
-            health_score.label("health_score"),
-            identified_metrics.c.point_id,
-            NhanSu.full_name.label("assigned_staff_name")
-        ).select_from(identified_metrics)\
-         .outerjoin(Customer, Customer.ma_crm_cms == identified_metrics.c.ma_kh)\
-         .outerjoin(NhanSu, Customer.assigned_staff_id == NhanSu.id)
-
-        # 3. Final Filtering
-        if search:
-            base_query = base_query.filter(
-                or_(
-                    identified_metrics.c.ma_kh.ilike(f"%{search}%"),
-                    Customer.ten_kh.ilike(f"%{search}%"),
-                    identified_metrics.c.last_known_name.ilike(f"%{search}%")
-                )
-            )
-        
+        # 4. Áp dụng Filters (Governance: Sử dụng dữ liệu đã persist từ Engine)
         if lifecycle_status:
             status_val = lifecycle_status.upper()
-            if status_val == 'RECOVERED':
-                status_val = 'REBUY'
+            if status_val == 'RECOVERED': status_val = 'REBUY'
             base_query = base_query.filter(Customer.lifecycle_state == status_val)
             
         if rfm_segment:
@@ -144,40 +69,62 @@ class CustomerService:
         if priority_level:
             base_query = base_query.filter(Customer.priority_level == priority_level.upper())
 
-        # 4. Total Count
+        if search:
+            base_query = base_query.filter(
+                or_(
+                    Customer.ma_crm_cms.ilike(f"%{search}%"),
+                    Customer.ten_kh.ilike(f"%{search}%")
+                )
+            )
+
+        if scope_ids is not None:
+            # Khách hàng thuộc về các đơn vị trong scope
+            base_query = base_query.filter(Customer.point_id.in_(scope_ids))
+
+        # 5. Total Count (Lấy từ bảng Customer - Rất nhanh)
         total = base_query.count()
 
-        # 5. Sorting
+        # 6. Metrics Subquery - CHỈ tính cho tháng hiện tại (Dynamic Metrics)
+        # Các trạng thái Lifecycle bền vững (SSOT) đã được Engine lưu vào bảng Customer
+        metrics_sub = db.query(
+            Transaction.ma_kh.label("ma_kh"),
+            func.sum(Transaction.doanh_thu).label("dynamic_revenue"),
+            func.count(Transaction.id).label("transaction_count"),
+            func.max(Transaction.ngay_chap_nhan).label("last_shipped_absolute")
+        ).filter(
+            Transaction.ngay_chap_nhan.between(curr_start, curr_end),
+            Transaction.ma_kh.isnot(None)
+        ).group_by(Transaction.ma_kh).subquery()
+
+        # 7. Final Query Assembly
+        # Ta join Customer với metrics_sub
+        final_query = db.query(
+            Customer,
+            func.coalesce(metrics_sub.c.dynamic_revenue, 0).label("dynamic_revenue"),
+            func.coalesce(metrics_sub.c.transaction_count, 0).label("transaction_count"),
+            metrics_sub.c.last_shipped_absolute,
+            NhanSu.full_name.label("assigned_staff_name")
+        ).select_from(Customer)\
+         .outerjoin(metrics_sub, Customer.ma_crm_cms == metrics_sub.c.ma_kh)\
+         .outerjoin(NhanSu, Customer.assigned_staff_id == NhanSu.id)
+
+        # 8. Sorting
         sort_map = {
-            "revenue": "dynamic_revenue",
-            "dynamic_revenue": "dynamic_revenue",
-            "transaction_count": "transaction_count",
-            "health_score": "health_score",
-            "growth_velocity": "growth_velocity",
-            "vip_tier": "vip_tier",
-            "priority_score": "priority_score",
-            "ma_crm_cms": "ma_crm_cms",
-            "ten_kh": "ten_kh"
+            "revenue": text("dynamic_revenue"),
+            "dynamic_revenue": text("dynamic_revenue"),
+            "transaction_count": text("transaction_count"),
+            "ma_crm_cms": Customer.ma_crm_cms,
+            "ten_kh": Customer.ten_kh
         }
         
-        sort_key = sort_map.get(sort_by, "dynamic_revenue")
-        # Handle sorting based on subquery columns or customer columns
-        if sort_key in ["dynamic_revenue", "transaction_count", "health_score", "growth_velocity"]:
-             sort_field = text(sort_key)
-        elif sort_key == "ma_crm_cms":
-             sort_field = identified_metrics.c.ma_kh
-        else:
-             sort_field = Customer.ten_kh
+        sort_field = sort_map.get(sort_by, text("dynamic_revenue"))
         
         if order == "asc":
-            base_query = base_query.order_by(asc(sort_field))
+            final_query = final_query.order_by(asc(sort_field))
         else:
-            base_query = base_query.order_by(desc(sort_field))
+            final_query = final_query.order_by(desc(sort_field))
 
-        # 6. Pagination or All
-        if not include_all:
-            results = base_query.offset(offset).limit(limit).all()
-        else:
-            results = base_query.all()
+        # 9. Execution (Deterministic Pagination)
+        results = final_query.offset(offset).limit(limit).all()
 
         return results, total
