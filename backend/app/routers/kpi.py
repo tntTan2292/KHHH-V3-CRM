@@ -39,3 +39,20 @@ async def get_kpi_scores(
     current_user: User = Depends(get_current_user)
 ):
     return KPIService.get_scores(db, entity_type, entity_id, period_key)
+
+@router.post("/calculate/{kpi_code}")
+async def calculate_kpi(
+    kpi_code: str,
+    entity_type: str,
+    entity_id: str,
+    period_key: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role.name not in ["ADMIN", "SUPERADMIN"]:
+        raise HTTPException(status_code=403, detail="Permission denied")
+    
+    if kpi_code == 'SLA_COMPLIANCE_RATE':
+        return KPIService.calculate_sla_compliance(db, entity_type, entity_id, period_key)
+    else:
+        raise HTTPException(status_code=400, detail="KPI Calculation not implemented for this code")

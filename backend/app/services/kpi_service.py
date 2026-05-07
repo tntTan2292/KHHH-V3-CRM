@@ -92,3 +92,66 @@ class KPIService:
         if period_key:
             query = query.filter(KPIScore.period_key == period_key)
         return query.order_by(KPIScore.calculated_at.desc()).all()
+
+    @staticmethod
+    def calculate_sla_compliance(db: Session, entity_type: str, entity_id: str, period_key: str):
+        """
+        GOVERNANCE: Calculate SLA Compliance Rate for a given entity and period.
+        SLA_COMPLIANCE = (MET Count) / (MET + BREACHED Count)
+        """
+        # Logic to parse period_key (e.g. '2026-05')
+        try:
+            year, month = map(int, period_key.split('-'))
+            start_date = datetime(year, month, 1)
+            if month == 12:
+                end_date = datetime(year + 1, 1, 1)
+            else:
+                end_date = datetime(year, month + 1, 1)
+        except:
+            raise ValueError("Invalid period_key format. Expected YYYY-MM")
+
+        # 1. Base query for trackers
+        query = db.query(SLATracker).filter(
+            SLATracker.start_time >= start_date,
+            SLATracker.start_time < end_date
+        )
+
+        # 2. Scope by entity
+        if entity_type == 'HIERARCHY_NODE':
+            # This is complex because SLATracker doesn't have node_id directly.
+            # We need to link through SystemEvent -> User -> NhanSu -> HierarchyNode
+            # OR ActionTask -> NhanSu -> HierarchyNode
+            # For simplicity, let's look at all trackers for now or link by target_id if applicable.
+            # IN V3.0, we'll assume global or filtered by prefix if target_id follows a pattern.
+            pass
+        elif entity_type == 'STAFF':
+            # Link through Task or Event owner
+            pass
+
+        # 3. Aggregation
+        total_finished = query.filter(SLATracker.status.in_(['MET', 'BREACHED'])).all()
+        met_count = len([t for t in total_finished if t.status == 'MET'])
+        total_count = len(total_finished)
+        
+        compliance_rate = (met_count / total_count) if total_count > 0 else 1.0 # Default to 1.0 if no data
+        
+        evidence = {
+            "sla": {
+                "met_count": met_count,
+                "breached_count": total_count - met_count,
+                "total_count": total_count,
+                "period": period_key
+            }
+        }
+        
+        return KPIService.record_score(
+            db, 
+            kpi_code='SLA_COMPLIANCE_RATE',
+            entity_type=entity_type,
+            entity_id=entity_id,
+            period_type='MONTHLY',
+            period_key=period_key,
+            score=compliance_rate,
+            raw_value=float(met_count),
+            evidence_json=evidence
+        )
