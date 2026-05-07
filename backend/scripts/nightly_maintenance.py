@@ -47,6 +47,21 @@ def run_nightly_maintenance():
         db.close()
     except Exception as e:
         logger.error(f"Error verifying tasks: {e}")
+
+    # 4. Recalculate Governed KPIs
+    try:
+        logger.info("Recalculating Governed KPIs...")
+        db = SessionLocal()
+        current_period = datetime.now().strftime('%Y-%m')
+        
+        # Recalculate SLA Compliance
+        from backend.app.services.kpi_service import KPIService
+        KPIService.calculate_sla_compliance(db, entity_type='GLOBAL', entity_id='SYSTEM', period_key=current_period)
+        
+        logger.info("KPI Recalculation completed.")
+        db.close()
+    except Exception as e:
+        logger.error(f"Error recalculating KPIs: {e}")
         
     logger.info("Nightly maintenance finished.")
 
