@@ -209,11 +209,6 @@ export default function Customers() {
     } catch(err) { console.error(err); }
   };
 
-  const formatCurrency = (val) => {
-    if (val === undefined || val === null || isNaN(val)) return '0 ₫';
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
-  };
-
   const fetchCustomers = async (targetPage = 1) => {
     setLoading(true);
     try {
