@@ -10,6 +10,6 @@ from app.models import *
 print("Applying database migrations (Enterprise Hardening)...")
 try:
     Base.metadata.create_all(bind=engine)
-    print("✅ Successfully applied migrations and created indexes.")
+    print("Successfully applied migrations and created indexes.")
 except Exception as e:
-    print(f"❌ Error applying migrations: {e}")
+    print(f"Error applying migrations: {e}")

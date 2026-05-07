@@ -155,3 +155,32 @@ class KPIService:
             raw_value=float(met_count),
             evidence_json=evidence
         )
+
+    @staticmethod
+    def get_kpi_dashboard(db: Session, entity_type: str = None, entity_id: str = None, period_key: str = None):
+        """
+        GOVERNANCE: Get the latest score for each defined KPI.
+        """
+        definitions = db.query(KPIDefinition).all()
+        results = []
+        
+        for defn in definitions:
+            latest_score = db.query(KPIScore).filter(
+                KPIScore.kpi_id == defn.id
+            )
+            
+            if entity_type:
+                latest_score = latest_score.filter(KPIScore.entity_type == entity_type)
+            if entity_id:
+                latest_score = latest_score.filter(KPIScore.entity_id == entity_id)
+            if period_key:
+                latest_score = latest_score.filter(KPIScore.period_key == period_key)
+                
+            latest_score = latest_score.order_by(KPIScore.calculated_at.desc()).first()
+            
+            results.append({
+                "definition": defn,
+                "latest_score": latest_score
+            })
+            
+        return results

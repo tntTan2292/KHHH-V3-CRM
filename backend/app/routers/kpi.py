@@ -56,3 +56,13 @@ async def calculate_kpi(
         return KPIService.calculate_sla_compliance(db, entity_type, entity_id, period_key)
     else:
         raise HTTPException(status_code=400, detail="KPI Calculation not implemented for this code")
+
+@router.get("/dashboard")
+async def get_kpi_dashboard(
+    entity_type: Optional[str] = None,
+    entity_id: Optional[str] = None,
+    period_key: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return KPIService.get_kpi_dashboard(db, entity_type, entity_id, period_key)
