@@ -304,6 +304,7 @@ class KPIDefinition(Base):
     name = Column(String(200))
     description = Column(Text)
     formula_description = Column(Text)
+    formula_config_json = Column(Text, nullable=True) # Structured contract for calculation
     target_value = Column(Float, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
 

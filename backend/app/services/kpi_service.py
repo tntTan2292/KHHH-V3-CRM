@@ -77,7 +77,7 @@ class KPIService:
         return db.query(KPIDefinition).all()
 
     @staticmethod
-    def create_definition(db: Session, code: str, name: str, description: str, formula: str, target: float = None):
+    def create_definition(db: Session, code: str, name: str, description: str, formula_desc: str, formula_config: dict = None, target: float = None):
         existing = db.query(KPIDefinition).filter(KPIDefinition.code == code).first()
         if existing:
             return existing
@@ -86,7 +86,8 @@ class KPIService:
             code=code,
             name=name,
             description=description,
-            formula_description=formula,
+            formula_description=formula_desc,
+            formula_config_json=json.dumps(formula_config) if formula_config else None,
             target_value=target,
             created_at=KPIService._get_governed_now()
         )
