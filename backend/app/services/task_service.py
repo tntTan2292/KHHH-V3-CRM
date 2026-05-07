@@ -48,6 +48,20 @@ class TaskService:
 
         now = TaskService._get_governed_now()
         
+        # 0. Idempotency Check
+        task_identity_key = f"TPL:{template_id}|TGT:{target_id}"
+        if source_event_id:
+            task_identity_key += f"|EVT:{source_event_id}"
+        
+        # If it's a recurring event, we might append the run_id or period to the key
+        if context and context.get("run_id"):
+            task_identity_key += f"|RUN:{context['run_id']}"
+            
+        existing = db.query(ActionTask).filter(ActionTask.task_identity_key == task_identity_key).first()
+        if existing:
+            logger.info(f"Task already exists for identity {task_identity_key}. Skipping creation.")
+            return existing
+
         # 1. Create the Task
         task = ActionTask(
             target_id=target_id,
@@ -61,6 +75,7 @@ class TaskService:
             resolution_config_json=template.resolution_config_json,
             source_event_id=source_event_id,
             governance_snapshot_json=json.dumps(context) if context else None,
+            task_identity_key=task_identity_key,
             created_at=now
         )
         db.add(task)

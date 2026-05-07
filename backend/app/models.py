@@ -244,6 +244,9 @@ class ActionTask(Base):
     
     # GOVERNANCE: Snapshot Truth
     governance_snapshot_json = Column(Text, nullable=True) # Trạng thái context lúc giao việc
+
+    # GOVERNANCE: Idempotency & Replay Safety
+    task_identity_key = Column(String(255), unique=True, index=True, nullable=True)
     
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
@@ -256,6 +259,10 @@ class ActionTask(Base):
     source_event = relationship("SystemEvent")
     sla_tracker = relationship("SLATracker")
     escalation = relationship("EscalationRecord")
+
+    __table_args__ = (
+        Index('idx_task_identity_lookup', 'task_identity_key'),
+    )
 
 class TaskStateLog(Base):
     """
@@ -277,14 +284,75 @@ class TaskStateLog(Base):
 
 class SyncLog(Base):
     __tablename__ = "sync_logs"
-
     id = Column(Integer, primary_key=True, index=True)
-    folder_name = Column(String(20), unique=True, index=True) # YYYYMMDD
-    file_name = Column(String(255))
-    file_size = Column(Integer)
-    remote_mtime = Column(String(100)) # Thời gian sửa đổi trên server
-    sync_date = Column(DateTime, server_default=func.now())
-    status = Column(String(50)) # 'COMPLETED', 'FAILED', 'REVISED'
+    entity_name = Column(String(100))
+    records_synced = Column(Integer)
+    status = Column(String(50))
+    timestamp = Column(DateTime, server_default=func.now())
+
+# ==================================================
+# PHASE 8: KPI ENGINE MODELS (Operational Intelligence)
+# ==================================================
+
+class KPIDefinition(Base):
+    """
+    GOVERNANCE: Defined metrics that the engine measures.
+    """
+    __tablename__ = "kpi_definitions"
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String(100), unique=True, index=True) # e.g., 'SLA_COMPLIANCE_RATE'
+    name = Column(String(200))
+    description = Column(Text)
+    formula_description = Column(Text)
+    target_value = Column(Float, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+class KPIScore(Base):
+    """
+    GOVERNANCE: The resulting scores for entities over time.
+    """
+    __tablename__ = "kpi_scores"
+    id = Column(Integer, primary_key=True, index=True)
+    kpi_id = Column(Integer, ForeignKey("kpi_definitions.id"))
+    
+    # Entity being measured
+    entity_type = Column(String(50)) # 'STAFF', 'HIERARCHY_NODE'
+    entity_id = Column(String(100), index=True)
+    
+    # Period
+    period_type = Column(String(20)) # 'DAILY', 'MONTHLY'
+    period_key = Column(String(50), index=True) # '2026-05', '2026-05-07'
+    
+    score = Column(Float)
+    raw_value = Column(Float, nullable=True) # The underlying metric value (e.g. 0.95 for 95%)
+    
+    # Link to the Truth Snapshot
+    snapshot_id = Column(Integer, ForeignKey("kpi_audit_snapshots.id"), nullable=True)
+    
+    calculated_at = Column(DateTime, server_default=func.now())
+    
+    kpi = relationship("KPIDefinition")
+    snapshot = relationship("KPIAuditSnapshot")
+
+class KPIAuditSnapshot(Base):
+    """
+    GOVERNANCE: Immutable truth at the time of calculation.
+    """
+    __tablename__ = "kpi_audit_snapshots"
+    id = Column(Integer, primary_key=True, index=True)
+    kpi_score_id = Column(Integer, nullable=True) # Circular link handled by app logic
+    
+    # The "Field of Evidence"
+    kpi_snapshot_json = Column(Text) # The immutable truth: SLA stats, Task stats, etc.
+    
+    # Environment Context
+    engine_version = Column(String(50))
+    governed_at = Column(DateTime, server_default=func.now())
+    
+    # Metrics breakdown for analytics
+    sla_metrics_json = Column(Text, nullable=True)
+    task_metrics_json = Column(Text, nullable=True)
+    escalation_metrics_json = Column(Text, nullable=True)
 
 class SyncAttempt(Base):
     __tablename__ = "sync_attempts"
