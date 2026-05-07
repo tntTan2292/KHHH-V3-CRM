@@ -11,14 +11,13 @@ class TaskService:
     # GOVERNANCE: Strict Task Lifecycle State Machine
     ALLOWED_TRANSITIONS = {
         'Mới': ['Đã giao', 'Hủy'],
-        'Đã giao': ['Đã xác nhận', 'Hủy', 'Escalation'],
-        'Đã xác nhận': ['Đang xử lý', 'Hủy', 'Escalation'],
+        'Đã giao': ['Đang xử lý', 'Hủy', 'Escalation'], # NEW -> ASSIGNED -> IN_PROGRESS
         'Đang xử lý': ['Hoàn thành', 'Thất bại', 'Hủy', 'Escalation'],
-        'Hoàn thành': ['Đóng'], # RESOLVED -> CLOSED
+        'Hoàn thành': ['Đóng'], # COMPLETED -> CLOSED
         'Thất bại': ['Đóng'],
+        'Escalation': ['Đã giao', 'Hủy'],
         'Hủy': [],
-        'Đóng': [],
-        'Escalation': ['Đã giao', 'Hủy'] # After escalation, it might be reassigned
+        'Đóng': []
     }
 
     @staticmethod
