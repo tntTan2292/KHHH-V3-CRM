@@ -336,6 +336,16 @@ class KPIScore(Base):
     kpi = relationship("KPIDefinition")
     snapshot = relationship("KPIAuditSnapshot")
 
+    __table_args__ = (
+        # GOVERNANCE: Only one official (FINALIZED) truth per context per period
+        Index(
+            'idx_kpi_score_truth_uniqueness', 
+            'kpi_id', 'entity_type', 'entity_id', 'period_type', 'period_key',
+            unique=True,
+            sqlite_where=text("status = 'FINALIZED'")
+        ),
+    )
+
 class KPIAuditSnapshot(Base):
     """
     GOVERNANCE: Immutable truth at the time of calculation.
