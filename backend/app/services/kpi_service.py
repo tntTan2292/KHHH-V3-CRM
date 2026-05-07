@@ -16,9 +16,10 @@ class KPIService:
     
     # GOVERNANCE: Strict KPI Score Lifecycle
     ALLOWED_TRANSITIONS = {
-        'DRAFT': ['FINALIZED', 'SUPERSEDED'],
+        'DRAFT': ['FINALIZED', 'SUPERSEDED', 'NO_DATA'],
         'FINALIZED': ['SUPERSEDED'],
-        'SUPERSEDED': []
+        'SUPERSEDED': [],
+        'NO_DATA': ['FINALIZED', 'SUPERSEDED']
     }
 
     @staticmethod
@@ -74,8 +75,7 @@ class KPIService:
             })
         )
         db.add(engine_run)
-        db.commit()
-        db.refresh(engine_run)
+        db.flush() # Ensure run is tracked
         return engine_run
 
     @staticmethod
@@ -86,7 +86,6 @@ class KPIService:
         engine_run.status = status
         engine_run.completed_at = KPIService._get_governed_now()
         engine_run.processed_entities_count = count
-        db.commit()
     
     @staticmethod
     def get_definitions(db: Session):
@@ -113,7 +112,7 @@ class KPIService:
         return definition
 
     @staticmethod
-    def record_score(
+    def record_score_transactional(
         db: Session, 
         kpi_code: str, 
         entity_type: str, 
@@ -121,11 +120,12 @@ class KPIService:
         period_type: str, 
         period_key: str, 
         score: float, 
+        status: str = 'FINALIZED',
         raw_value: float = None,
         evidence_json: dict = None
     ):
         """
-        GOVERNANCE: Record a KPI score with an immutable truth snapshot.
+        GOVERNANCE: Atomic transaction for Score + Snapshot + Supersede logic.
         """
         definition = db.query(KPIDefinition).filter(KPIDefinition.code == kpi_code).first()
         if not definition:
@@ -133,7 +133,7 @@ class KPIService:
 
         now = KPIService._get_governed_now()
 
-        # 0. Lifecycle Governance: Supersede previous records for same context
+        # 1. Lifecycle Governance: Supersede previous records
         existing_active = db.query(KPIScore).filter(
             KPIScore.kpi_id == definition.id,
             KPIScore.entity_type == entity_type,
@@ -146,7 +146,7 @@ class KPIService:
             KPIService.validate_transition(old_score.status, 'SUPERSEDED')
             old_score.status = 'SUPERSEDED'
 
-        # 1. Create the score record
+        # 2. Create the score record
         kpi_score = KPIScore(
             kpi_id=definition.id,
             entity_type=entity_type,
@@ -156,36 +156,35 @@ class KPIService:
             score=score,
             raw_value=raw_value,
             calculated_at=now,
-            status='FINALIZED'
+            status=status
         )
         db.add(kpi_score)
-        db.flush() # Get ID
+        db.flush() # Secure score ID
 
-        # 2. Create the immutable audit snapshot
+        # 3. Create the immutable audit snapshot (Deterministic Linkage)
         snapshot = KPIAuditSnapshot(
             kpi_score_id=kpi_score.id,
             kpi_snapshot_json=json.dumps({
                 "score_context": {
                     "kpi_code": kpi_code,
                     "entity": f"{entity_type}:{entity_id}",
-                    "period": f"{period_type}:{period_key}"
+                    "period": f"{period_type}:{period_key}",
+                    "governance_status": status
                 },
                 "formula_snapshot": definition.formula_config_json,
                 "evidence": evidence_json
             }),
-            engine_version="3.1.0-KPI-HARDENED",
+            engine_version="3.2.0-KPI-HARDENED-ATOMIC",
             sla_metrics_json=json.dumps(evidence_json.get("sla", {})) if evidence_json and "sla" in evidence_json else None,
             task_metrics_json=json.dumps(evidence_json.get("tasks", {})) if evidence_json and "tasks" in evidence_json else None,
             escalation_metrics_json=json.dumps(evidence_json.get("escalations", {})) if evidence_json and "escalations" in evidence_json else None,
             governed_at=now
         )
         db.add(snapshot)
+        db.flush() # Secure snapshot ID
         
         # Link back
         kpi_score.snapshot_id = snapshot.id
-        
-        db.commit()
-        db.refresh(kpi_score)
         return kpi_score
 
     @staticmethod
@@ -202,59 +201,75 @@ class KPIService:
     @staticmethod
     def calculate_sla_compliance(db: Session, entity_type: str, entity_id: str, period_key: str):
         """
-        GOVERNANCE: Calculate SLA Compliance Rate with full EngineRun orchestration.
+        GOVERNANCE: Hardened calculation with Atomic Transactions and No-Data awareness.
         """
         engine_run = KPIService.start_engine_run(db, 'SLA_COMPLIANCE_RATE', period_key, entity_type, entity_id)
         
         try:
-            # Logic to parse period_key (e.g. '2026-05')
+            # 1. Period Parsing
             year, month = map(int, period_key.split('-'))
             start_date = datetime(year, month, 1)
-            if month == 12:
-                end_date = datetime(year + 1, 1, 1)
-            else:
-                end_date = datetime(year, month + 1, 1)
+            end_date = datetime(year + 1, 1, 1) if month == 12 else datetime(year, month + 1, 1)
 
-            # 1. Base query for trackers
-            query = db.query(SLATracker).filter(
+            # 2. Metric Aggregation
+            total_finished = db.query(SLATracker).filter(
                 SLATracker.start_time >= start_date,
-                SLATracker.start_time < end_date
-            )
+                SLATracker.start_time < end_date,
+                SLATracker.status.in_(['MET', 'BREACHED'])
+            ).all()
 
-            # 2. Aggregation
-            total_finished = query.filter(SLATracker.status.in_(['MET', 'BREACHED'])).all()
             met_count = len([t for t in total_finished if t.status == 'MET'])
             total_count = len(total_finished)
             
-            compliance_rate = (met_count / total_count) if total_count > 0 else 1.0
+            # 3. No-Data Governance
+            if total_count == 0:
+                score_record = KPIService.record_score_transactional(
+                    db, 
+                    kpi_code='SLA_COMPLIANCE_RATE',
+                    entity_type=entity_type,
+                    entity_id=entity_id,
+                    period_type='MONTHLY',
+                    period_key=period_key,
+                    score=None, # Explicit NULL
+                    status='NO_DATA', # Explicit status
+                    raw_value=0.0,
+                    evidence_json={"info": "No SLA trackers found in this period", "run_id": engine_run.run_id}
+                )
+                KPIService.end_engine_run(db, engine_run, status='SUCCESS', count=0)
+            else:
+                compliance_rate = met_count / total_count
+                score_record = KPIService.record_score_transactional(
+                    db, 
+                    kpi_code='SLA_COMPLIANCE_RATE',
+                    entity_type=entity_type,
+                    entity_id=entity_id,
+                    period_type='MONTHLY',
+                    period_key=period_key,
+                    score=compliance_rate,
+                    status='FINALIZED',
+                    raw_value=float(met_count),
+                    evidence_json={
+                        "sla": {"met_count": met_count, "breached_count": total_count - met_count, "total_count": total_count},
+                        "run_id": engine_run.run_id
+                    }
+                )
+                KPIService.end_engine_run(db, engine_run, status='SUCCESS', count=total_count)
             
-            evidence = {
-                "sla": {
-                    "met_count": met_count,
-                    "breached_count": total_count - met_count,
-                    "total_count": total_count,
-                    "period": period_key
-                },
-                "run_id": engine_run.run_id
-            }
-            
-            score_record = KPIService.record_score(
-                db, 
-                kpi_code='SLA_COMPLIANCE_RATE',
-                entity_type=entity_type,
-                entity_id=entity_id,
-                period_type='MONTHLY',
-                period_key=period_key,
-                score=compliance_rate,
-                raw_value=float(met_count),
-                evidence_json=evidence
-            )
-            
-            KPIService.end_engine_run(db, engine_run, status='SUCCESS', count=total_count)
+            db.commit() # ATOMIC BOUNDARY
             return score_record
 
         except Exception as e:
-            KPIService.end_engine_run(db, engine_run, status='FAILED')
+            db.rollback() # Ensure nothing dangles
+            # Attempt to mark run as failed in separate transaction
+            try:
+                from ..database import SessionLocal
+                db_fail = SessionLocal()
+                run_fail = db_fail.query(EngineRun).filter(EngineRun.run_id == engine_run.run_id).first()
+                if run_fail:
+                    run_fail.status = 'FAILED'
+                    db_fail.commit()
+                db_fail.close()
+            except: pass
             raise e
 
     @staticmethod
