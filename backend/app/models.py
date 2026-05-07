@@ -326,6 +326,7 @@ class KPIScore(Base):
     
     score = Column(Float)
     raw_value = Column(Float, nullable=True) # The underlying metric value (e.g. 0.95 for 95%)
+    status = Column(String(50), default="FINALIZED") # DRAFT, FINALIZED, SUPERSEDED
     
     # Link to the Truth Snapshot
     snapshot_id = Column(Integer, ForeignKey("kpi_audit_snapshots.id"), nullable=True)

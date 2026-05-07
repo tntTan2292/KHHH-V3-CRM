@@ -14,6 +14,22 @@ class KPIService:
     Handles definition, calculation, persistence, and audit snapshots.
     """
     
+    # GOVERNANCE: Strict KPI Score Lifecycle
+    ALLOWED_TRANSITIONS = {
+        'DRAFT': ['FINALIZED', 'SUPERSEDED'],
+        'FINALIZED': ['SUPERSEDED'],
+        'SUPERSEDED': []
+    }
+
+    @staticmethod
+    def validate_transition(current_status, new_status):
+        """
+        Hardened Lifecycle Governance
+        """
+        allowed = KPIService.ALLOWED_TRANSITIONS.get(current_status, [])
+        if new_status not in allowed:
+            raise Exception(f"CRITICAL KPI GOVERNANCE FAILURE: Illegal transition from {current_status} to {new_status}")
+    
     @staticmethod
     def _get_governed_now():
         """
@@ -117,6 +133,19 @@ class KPIService:
 
         now = KPIService._get_governed_now()
 
+        # 0. Lifecycle Governance: Supersede previous records for same context
+        existing_active = db.query(KPIScore).filter(
+            KPIScore.kpi_id == definition.id,
+            KPIScore.entity_type == entity_type,
+            KPIScore.entity_id == entity_id,
+            KPIScore.period_key == period_key,
+            KPIScore.status == 'FINALIZED'
+        ).all()
+        
+        for old_score in existing_active:
+            KPIService.validate_transition(old_score.status, 'SUPERSEDED')
+            old_score.status = 'SUPERSEDED'
+
         # 1. Create the score record
         kpi_score = KPIScore(
             kpi_id=definition.id,
@@ -126,7 +155,8 @@ class KPIService:
             period_key=period_key,
             score=score,
             raw_value=raw_value,
-            calculated_at=now
+            calculated_at=now,
+            status='FINALIZED'
         )
         db.add(kpi_score)
         db.flush() # Get ID
@@ -152,7 +182,7 @@ class KPIService:
 
     @staticmethod
     def get_scores(db: Session, entity_type: str = None, entity_id: str = None, period_key: str = None):
-        query = db.query(KPIScore)
+        query = db.query(KPIScore).filter(KPIScore.status == 'FINALIZED')
         if entity_type:
             query = query.filter(KPIScore.entity_type == entity_type)
         if entity_id:
@@ -229,7 +259,8 @@ class KPIService:
         
         for defn in definitions:
             latest_score = db.query(KPIScore).filter(
-                KPIScore.kpi_id == defn.id
+                KPIScore.kpi_id == defn.id,
+                KPIScore.status == 'FINALIZED'
             )
             
             if entity_type:
