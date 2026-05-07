@@ -14,8 +14,26 @@ sys.path.append(PROJECT_ROOT)
 logger = logging.getLogger(__name__)
 
 class SLAEngineCore:
-    VERSION = "1.0.0"
+    VERSION = "1.1.0"
     DB_PATH = os.path.join(PROJECT_ROOT, "data", "database", "khhh_v3.db")
+
+    # GOVERNANCE: Strict SLA Lifecycle State Machine
+    ALLOWED_TRANSITIONS = {
+        'ACTIVE': ['PAUSED', 'MET', 'BREACHED', 'CANCELLED'],
+        'PAUSED': ['ACTIVE', 'CANCELLED'],
+        'BREACHED': ['MET', 'CANCELLED'],
+        'MET': [],
+        'CANCELLED': []
+    }
+
+    @staticmethod
+    def validate_transition(current_status, new_status):
+        """
+        Hardened Lifecycle Governance
+        """
+        allowed = SLAEngineCore.ALLOWED_TRANSITIONS.get(current_status, [])
+        if new_status not in allowed:
+            raise Exception(f"CRITICAL SLA ENGINE GOVERNANCE FAILURE: Illegal transition from {current_status} to {new_status}")
 
     @staticmethod
     def get_connection():
@@ -131,8 +149,16 @@ class SLAEngineCore:
         # Breach Detection
         if status == 'ACTIVE' and now > due_time:
             new_status = 'BREACHED'
+            SLAEngineCore.validate_transition(status, new_status)
             state_changed = True
             is_breached = True
+
+        # Warning Detection
+        is_warning = False
+        if status == 'ACTIVE' and new_status == 'ACTIVE':
+            warning_threshold_hours = tracker['target_hours'] * (tracker['warning_threshold_pct'] / 100.0)
+            if elapsed >= warning_threshold_hours:
+                is_warning = True
         
         # Update Tracker State
         cursor.execute("""
@@ -143,9 +169,16 @@ class SLAEngineCore:
             WHERE id = ?
         """, (elapsed, now.strftime('%Y-%m-%d %H:%M:%S'), new_status, tracker['id']))
 
-        # Auditability: Record Snapshot on State Change
-        if state_changed:
-            SLAEngineCore._create_snapshot(conn, tracker['id'], 'BREACHED' if is_breached else 'TICK', new_status, elapsed, tracker, now)
+        # Auditability: Record Snapshot on State Change or Warning Threshold Hit
+        if state_changed or is_warning:
+            event_type = 'BREACHED' if is_breached else ('WARNING' if is_warning else 'TICK')
+            
+            # Check if we already recorded a warning to avoid spamming
+            cursor.execute("SELECT id FROM sla_snapshots WHERE tracker_id = ? AND event_type = 'WARNING' LIMIT 1", (tracker['id'],))
+            already_warned = cursor.fetchone()
+            
+            if state_changed or (is_warning and not already_warned):
+                SLAEngineCore._create_snapshot(conn, tracker['id'], event_type, new_status, elapsed, tracker, now)
 
         return state_changed, is_breached
 
@@ -159,7 +192,10 @@ class SLAEngineCore:
             "policy_code": tracker['policy_code'],
             "target_type": tracker['target_type'],
             "target_id": tracker['target_id'],
-            "governed_now": now.strftime('%Y-%m-%d %H:%M:%S')
+            "engine_version": SLAEngineCore.VERSION,
+            "governed_now": now.strftime('%Y-%m-%d %H:%M:%S'),
+            "is_breach": 1 if event_type == 'BREACHED' else 0,
+            "is_warning": 1 if event_type == 'WARNING' else 0
         }
         
         cursor.execute("""

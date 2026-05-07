@@ -7,8 +7,26 @@ import json
 logger = logging.getLogger(__name__)
 
 class SLAService:
+    # GOVERNANCE: Strict SLA Lifecycle State Machine
+    ALLOWED_TRANSITIONS = {
+        'ACTIVE': ['PAUSED', 'MET', 'BREACHED', 'CANCELLED'],
+        'PAUSED': ['ACTIVE', 'CANCELLED'],
+        'BREACHED': ['MET', 'CANCELLED'],
+        'MET': [],
+        'CANCELLED': []
+    }
+
     @staticmethod
-    def attach_tracker(db, target_type, target_id, policy_code):
+    def validate_transition(current_status, new_status):
+        """
+        Hardened Lifecycle Governance
+        """
+        allowed = SLAService.ALLOWED_TRANSITIONS.get(current_status, [])
+        if new_status not in allowed:
+            raise Exception(f"CRITICAL SLA GOVERNANCE FAILURE: Illegal transition from {current_status} to {new_status}")
+
+    @staticmethod
+    def attach_tracker(db, target_type, target_id, policy_code, context=None):
         """
         GOVERNANCE: Attach an SLA Tracker to an operational entity
         """
@@ -43,14 +61,16 @@ class SLAService:
         db.add(tracker)
         db.flush() # Get ID
 
-        # Initial Snapshot
+        snapshot_meta = {"policy_code": policy_code}
+        if context: snapshot_meta.update(context)
+        
         snapshot = SLASnapshot(
             tracker_id=tracker.id,
             event_type='CREATED',
             status_at_snapshot='ACTIVE',
             elapsed_at_snapshot=0.0,
             remaining_at_snapshot=policy.target_hours,
-            snapshot_json=json.dumps({"policy_code": policy_code}),
+            snapshot_json=json.dumps(snapshot_meta),
             recorded_at=now
         )
         db.add(snapshot)
@@ -80,6 +100,9 @@ class SLAService:
         
         for tracker in trackers:
             if tracker.status == 'MET': continue
+            
+            # Validate Governance
+            SLAService.validate_transition(tracker.status, 'MET')
             
             elapsed = (now - tracker.start_time).total_seconds() / 3600 - (tracker.total_paused_hours or 0)
             
@@ -114,6 +137,9 @@ class SLAService:
         
         now = datetime.now()
         for tracker in trackers:
+            # Validate Governance
+            SLAService.validate_transition(tracker.status, 'PAUSED')
+            
             tracker.status = 'PAUSED'
             tracker.last_paused_at = now
             
@@ -143,6 +169,9 @@ class SLAService:
         
         now = datetime.now()
         for tracker in trackers:
+            # Validate Governance
+            SLAService.validate_transition(tracker.status, 'ACTIVE')
+            
             if tracker.last_paused_at:
                 paused_duration = (now - tracker.last_paused_at).total_seconds() / 3600
                 tracker.total_paused_hours = (tracker.total_paused_hours or 0.0) + paused_duration
