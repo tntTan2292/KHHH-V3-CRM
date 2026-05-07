@@ -42,12 +42,16 @@ class ScopingService:
             return user_descendants
 
         # Nếu chọn node_code cụ thể, phải kiểm tra xem node đó có thuộc quyền quản lý không
-        # Support fallback: nếu node_code không phải mã thì thử tìm theo tên
         requested_node = db.query(HierarchyNode).filter(
             (HierarchyNode.code == node_code) | (HierarchyNode.name == node_code)
         ).first()
         
-        if not requested_node or requested_node.id not in user_descendants:
+        if not requested_node:
+            # [GOVERNANCE] If node requested but not found, return empty to prevent data leakage
+            # Unless user is Admin, then return None to show all (as per previous logic)
+            return [] if not is_admin else None
+            
+        if not is_admin and requested_node.id not in user_descendants:
             return []
             
         return HierarchyService.get_descendant_ids_by_id(db, requested_node.id, include_children=True)

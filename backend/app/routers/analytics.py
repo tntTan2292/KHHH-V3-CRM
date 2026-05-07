@@ -89,11 +89,16 @@ async def get_dashboard_stats(
     
     # [GOVERNANCE] Lifecycle is a Historical State Machine. 
     # Dashboard summary should always reflect the CURRENT state distribution.
-    lifecycle_stats = {}
+    lifecycle_stats = {
+        "active": 0,
+        "new": 0,
+        "recovered": 0,
+        "at_risk": 0,
+        "churned": 0
+    }
     growth_stats = {"GROWTH": 0, "STABLE": 0, "DECLINING": 0}
 
     # Fetch Lifecycle from CURRENT month summary (SSOT)
-    # We use ma_dv='ALL' as the canonical source for unique customer counts
     curr_summary_res = db.query(
         MonthlyAnalyticsSummary.lifecycle_stage,
         func.sum(MonthlyAnalyticsSummary.total_customers).label("customers")
@@ -114,16 +119,12 @@ async def get_dashboard_stats(
         "churned": "churned"
     }
 
-    # Reset stats to ensure 0s are explicitly returned if no data exists
-    for k in ["active", "new", "recovered", "at_risk", "churned"]:
-        lifecycle_stats[k] = 0
-
     for stage, cust in curr_summary_res.group_by(MonthlyAnalyticsSummary.lifecycle_stage).all():
         if not stage: continue
         raw_key = stage.lower()
         target_key = stage_map.get(raw_key, raw_key)
         if target_key in lifecycle_stats:
-            lifecycle_stats[target_key] += int(cust or 0)
+            lifecycle_stats[target_key] = int(cust or 0)
 
     # Fetch Revenue and Growth from FILTERED month summary
     summary_exists = db.query(MonthlyAnalyticsSummary).filter(MonthlyAnalyticsSummary.year_month == month_str).first() is not None
