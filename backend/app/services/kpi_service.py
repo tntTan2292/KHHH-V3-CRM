@@ -164,7 +164,15 @@ class KPIService:
         # 2. Create the immutable audit snapshot
         snapshot = KPIAuditSnapshot(
             kpi_score_id=kpi_score.id,
-            kpi_snapshot_json=json.dumps(evidence_json) if evidence_json else "{}",
+            kpi_snapshot_json=json.dumps({
+                "score_context": {
+                    "kpi_code": kpi_code,
+                    "entity": f"{entity_type}:{entity_id}",
+                    "period": f"{period_type}:{period_key}"
+                },
+                "formula_snapshot": definition.formula_config_json,
+                "evidence": evidence_json
+            }),
             engine_version="3.1.0-KPI-HARDENED",
             sla_metrics_json=json.dumps(evidence_json.get("sla", {})) if evidence_json and "sla" in evidence_json else None,
             task_metrics_json=json.dumps(evidence_json.get("tasks", {})) if evidence_json and "tasks" in evidence_json else None,
