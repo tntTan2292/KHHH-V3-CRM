@@ -64,7 +64,17 @@ class LifecycleEngine:
                 prev_states[row[0]] = row[1]
 
             results = []
-            now_dt = datetime(y, m, 1)
+            
+            # [GOVERNANCE] Lifecycle State Machine must anchor to REAL BUSINESS TIME (Latest Transaction)
+            # NOT to the first day of the month.
+            cursor.execute("SELECT MAX(ngay_chap_nhan) FROM transactions")
+            max_ts = cursor.fetchone()[0]
+            if max_ts:
+                now_dt = pd.to_datetime(max_ts)
+            else:
+                now_dt = datetime(y, m, 1)
+            
+            logger.info(f"Lifecycle Governance: Anchoring calculations to {now_dt}")
             
             for _, row in df.iterrows():
                 ma_kh = row['ma_kh']
@@ -95,38 +105,43 @@ class LifecycleEngine:
             conn.close()
 
     @staticmethod
-    def _determine_state_v2(curr_month_dt, first_order_dt, last_order_before_dt, curr_rev):
+    def _determine_state_v2(now_dt, first_order_dt, last_order_before_dt, curr_rev):
         """
-        HISTORICAL STATE MACHINE LOGIC (Constitution Section III Hardened)
-        - NEW: First order within 3 months of curr_month.
-        - ACTIVE: Has order this month, or had order in last 3 months.
-        - AT_RISK: Over 30 days since last order.
-        - CHURN: 3 consecutive months (90 days) no order.
-        - REBUY: Churned customer returns.
+        [GOVERNANCE] Lifecycle state transitions are calculated using governed current business time, 
+        not month-start anchors. This ensures atomic and deterministic status evaluation based on 
+        REAL inactivity duration.
+        
+        Logic (Constitution Section III Hardened):
+        - NEW: First order within 3 months of current business time.
+        - REBUY: Churned customer (>90 days inactive before this month) returns.
+        - AT_RISK: Over 30 days since last activity.
+        - CHURNED: Over 90 days since last activity.
+        - ACTIVE: Activity within last 30 days.
         """
-        # 1. NEW Customer Check (First 3 months)
-        months_since_start = (curr_month_dt.year - first_order_dt.year) * 12 + (curr_month_dt.month - first_order_dt.month)
+        # 1. NEW Customer Check (First 3 months from first order)
+        months_since_start = (now_dt.year - first_order_dt.year) * 12 + (now_dt.month - first_order_dt.month)
         if months_since_start < 3:
             return 'NEW'
         
         has_current = curr_rev > 0
         
         if has_current:
-            # If they were CHURNED before (no order for >90 days before this month)
+            # Check for REBUY (Was CHURNED before this month started)
+            # A customer is REBUY if they return after >90 days of total silence
             if last_order_before_dt:
-                days_inactive_before = (curr_month_dt - last_order_before_dt).days
-                if days_inactive_before > 90:
+                days_inactive_before_month = (now_dt.replace(day=1) - last_order_before_dt).days
+                if days_inactive_before_month > 90:
                     return 'REBUY'
             return 'ACTIVE'
         else:
-            # No revenue this month
+            # No revenue in the current month - evaluate state based on REAL inactivity
             if last_order_before_dt:
-                days_since_last = (curr_month_dt - last_order_before_dt).days
+                days_since_last = (now_dt - last_order_before_dt).days
                 if days_since_last > 90:
                     return 'CHURNED'
                 if days_since_last > 30:
                     return 'AT_RISK'
-                return 'ACTIVE' # Still active if last order was < 30 days ago
+                return 'ACTIVE' 
             return 'CHURNED'
 
     @staticmethod
