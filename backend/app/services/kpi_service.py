@@ -275,7 +275,10 @@ class KPIService:
     @staticmethod
     def get_kpi_dashboard(db: Session, entity_type: str = None, entity_id: str = None, period_key: str = None):
         """
-        GOVERNANCE: Get the latest score for each defined KPI.
+        GOVERNANCE: Executive Dashboard Data Retrieval Strategy.
+        - Only reads 'FINALIZED' truth.
+        - Avoids ambiguous latest-record logic.
+        - Supports 'NO_DATA' awareness.
         """
         definitions = db.query(KPIDefinition).all()
         results = []
@@ -293,6 +296,8 @@ class KPIService:
             if period_key:
                 latest_score = latest_score.filter(KPIScore.period_key == period_key)
                 
+            # Deterministic selection: The most recently calculated FINALIZED record
+            # Note: Database uniqueness index idx_kpi_score_truth_uniqueness ensures only one per period
             latest_score = latest_score.order_by(KPIScore.calculated_at.desc()).first()
             
             results.append({
@@ -301,3 +306,27 @@ class KPIService:
             })
             
         return results
+
+# ==============================================================================
+# GOVERNANCE POLICY: KPI ORCHESTRATION ENGINE
+# ==============================================================================
+# 1. OFFICIAL TRUTH POLICY:
+#    - Only records with status 'FINALIZED' are considered "Official Truth".
+#    - Dashboard and Reporting layers MUST filter by status='FINALIZED'.
+#
+# 2. REPLAY & RECALCULATION STRATEGY:
+#    - Re-running a calculation for the same period/entity will:
+#      a. Mark previous 'FINALIZED' records as 'SUPERSEDED'.
+#      b. Create a new 'FINALIZED' record within an Atomic Transaction.
+#    - Database Index 'idx_kpi_score_truth_uniqueness' enforces this policy.
+#
+# 3. NO-DATA POLICY:
+#    - "No data" is NOT equal to "100% Compliance".
+#    - If no underlying metrics found, a record with status 'NO_DATA' and score NULL is created.
+#    - This ensures auditable transparency of missing data periods.
+#
+# 4. ATOMICITY:
+#    - Every calculation session is tracked by an EngineRun.
+#    - Score + Snapshot + Linkage + Status updates are committed as a single transaction.
+#    - Failures trigger a Rollback to prevent dangling metrics.
+# ==============================================================================
