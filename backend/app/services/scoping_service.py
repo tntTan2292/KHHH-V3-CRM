@@ -5,15 +5,25 @@ from typing import List, Type
 
 class ScopingService:
     @staticmethod
+    def is_admin(user: User) -> bool:
+        """
+        [GOVERNANCE] Centralized Admin Detection.
+        Must be the ONLY authoritative source for admin status.
+        """
+        if not user or not user.role:
+            return False
+        return user.role.name.upper() in ("ADMIN", "SUPERADMIN")
+
+    @staticmethod
     def get_user_scope_ids(db: Session, user: User) -> List[int]:
         """
         Lấy toàn bộ ID của các node trong phạm vi của user (bao gồm cả node con).
-        Nếu user là ADMIN (không có scope_node_id), trả về None để bỏ qua filter.
+        Nếu user là ADMIN, trả về None để bỏ qua filter.
         """
+        if ScopingService.is_admin(user) and not user.scope_node_id:
+            return None
+            
         if not user.scope_node_id:
-            # Check if user has ADMIN or SUPERADMIN role name to be sure
-            if user.role and user.role.name in ("ADMIN", "SUPERADMIN"):
-                return None
             return []
             
         return HierarchyService.get_descendant_ids_by_id(db, user.scope_node_id, include_children=True)
@@ -22,14 +32,11 @@ class ScopingService:
     def get_effective_scope_ids(db: Session, user: User, node_code: str = None) -> List[int]:
         """
         Xác định danh sách Node IDs hiệu lực để truy vấn dữ liệu.
-        - Nếu có node_code: Kiểm tra xem có nằm trong phạm vi của user không.
-        - Nếu không có node_code: Trả về toàn bộ phạm vi của user.
-        - Trả về None nếu là ADMIN và không chọn node cụ thể.
         """
         user_scope_node_id = user.scope_node_id
-        is_admin = (user.role and user.role.name in ("ADMIN", "SUPERADMIN"))
+        is_admin = ScopingService.is_admin(user)
 
-        # 1. Trường hợp là ADMIN / SUPERADMIN
+        # 1. Trường hợp là ADMIN / SUPERADMIN (Không giới hạn Scope cứng)
         if is_admin and not user_scope_node_id:
             if not node_code:
                 return None # Admin sees all
