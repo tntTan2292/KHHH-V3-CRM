@@ -209,6 +209,11 @@ export default function Customers() {
     } catch(err) { console.error(err); }
   };
 
+  const formatCurrency = (val) => {
+    if (val === undefined || val === null || isNaN(val)) return '0 ₫';
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+  };
+
   const fetchCustomers = async (targetPage = 1) => {
     setLoading(true);
     try {
@@ -225,11 +230,15 @@ export default function Customers() {
         node_code: selectedNode?.key || undefined
       };
       
-      const res = await api.get('/api/customers', { params });
-      setCustomers(res.data.items || []);
-      setTotal(res.data.total || 0);
-      setTotalPages(res.data.total_pages || 1);
-      setPage(res.data.page || 1);
+       const res = await api.get('/api/customers', { params });
+       console.log("DEBUG: fetchCustomers response:", res.data);
+       if (!res.data || !res.data.items) {
+         console.warn("DEBUG: API Response is missing items array!", res.data);
+       }
+       setCustomers(res.data.items || []);
+       setTotal(res.data.total || 0);
+       setTotalPages(res.data.total_pages || 1);
+       setPage(res.data.page || 1);
     } catch (err) {
       console.error(err);
     } finally {
@@ -1112,7 +1121,7 @@ export default function Customers() {
                 </td></tr>
               ) : (
                 customers.map(c => (
-                  <tr key={c.id} onClick={() => handleRowClick(c.ma_crm_cms)} className="group transition-all duration-300 cursor-pointer hover:bg-indigo-50/30">
+                  <tr key={c.ma_crm_cms} onClick={() => handleRowClick(c.ma_crm_cms)} className="group transition-all duration-300 cursor-pointer hover:bg-indigo-50/30">
                     <td className="p-4">
                       <span className="font-mono text-[11px] font-black px-2 py-1 rounded-md bg-blue-50 text-vnpost-blue">
                         {c.ma_crm_cms}
