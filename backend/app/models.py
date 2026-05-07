@@ -185,10 +185,16 @@ class ActionTaskTemplate(Base):
     __tablename__ = "action_task_templates"
     
     id = Column(Integer, primary_key=True, index=True)
+    trigger_event_code = Column(String(100), index=True) # Mã sự kiện kích hoạt (ví dụ: 'VIP_RISK_DETECTED')
     loai_doi_tuong = Column(String(50)) # 'HienHuu' hoặc 'TiemNang'
     nhom_kh = Column(String(100)) # Active, New, At Risk, Churned, Kim Cuong, Vang...
     tieu_de = Column(String(200))
     noi_dung_mau = Column(Text)
+    
+    # GOVERNANCE: Resolution Strategy
+    default_resolution_strategy = Column(String(50), default="MANUAL_CONFIRM") # MANUAL_CONFIRM, SSOT_TRANSACTION, EVENT_RESOLVED, ESCALATION_RESOLVED, HYBRID
+    resolution_config_json = Column(Text, nullable=True) # Cấu hình tham số cho strategy (ví dụ: mã dịch vụ cần check)
+    
     approval_required = Column(Boolean, default=False) # Cấu hình: Task này có cần Leader duyệt không?
     created_at = Column(DateTime, server_default=func.now())
 
@@ -227,12 +233,17 @@ class ActionTask(Base):
     original_point_id = Column(Integer, ForeignKey("hierarchy_nodes.id"), nullable=True) # Điểm phục vụ gốc
     original_staff_id = Column(Integer, ForeignKey("nhan_su.id"), nullable=True) # Nhân sự chăm sóc gốc
     
-    # Approval Workflow
-    approval_status = Column(String(50), default="Không yêu cầu") # Chờ duyệt, Đã duyệt, Từ chối
+    # GOVERNANCE: Engine Orchestration Links
+    source_event_id = Column(Integer, ForeignKey("system_events.id"), nullable=True)
+    sla_tracker_id = Column(Integer, ForeignKey("sla_trackers.id"), nullable=True)
+    escalation_id = Column(Integer, ForeignKey("escalation_records.id"), nullable=True)
     
-    # Báo cáo kết quả
-    bao_cao_ket_qua = Column(Text, nullable=True)
-    ngay_hoan_thanh = Column(DateTime, nullable=True)
+    # GOVERNANCE: Resolution Governance
+    resolution_strategy = Column(String(50), default="MANUAL_CONFIRM")
+    resolution_config_json = Column(Text, nullable=True)
+    
+    # GOVERNANCE: Snapshot Truth
+    governance_snapshot_json = Column(Text, nullable=True) # Trạng thái context lúc giao việc
     
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
@@ -242,6 +253,27 @@ class ActionTask(Base):
     original_staff = relationship("NhanSu", foreign_keys=[original_staff_id])
     original_point = relationship("HierarchyNode")
     template = relationship("ActionTaskTemplate")
+    source_event = relationship("SystemEvent")
+    sla_tracker = relationship("SLATracker")
+    escalation = relationship("EscalationRecord")
+
+class TaskStateLog(Base):
+    """
+    GOVERNANCE: Task Auditability & Lifecycle Tracking
+    """
+    __tablename__ = "task_state_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    task_id = Column(Integer, ForeignKey("action_tasks.id"))
+    previous_status = Column(String(100))
+    new_status = Column(String(100))
+    changed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    action_type = Column(String(50)) # ASSIGN, START, COMPLETE, FAIL, PAUSE, RESUME, ESCALATE
+    reason = Column(Text)
+    evidence_snapshot_json = Column(Text, nullable=True) # Lưu bằng chứng nếu là kết thúc task
+    timestamp = Column(DateTime, server_default=func.now())
+    
+    task = relationship("ActionTask")
+    user = relationship("User")
 
 class SyncLog(Base):
     __tablename__ = "sync_logs"
