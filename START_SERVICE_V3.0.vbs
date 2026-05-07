@@ -12,10 +12,10 @@ baseDir = fso.GetParentFolderName(WScript.ScriptFullName)
 backendDir = baseDir & "\backend"
 logDir = baseDir & "\data\logs"
 
-' Paths - Try to detect or use absolute if needed
-pyPath = "python" ' Assume in PATH
-nodeRoot = "" ' If node is in PATH
-npmPath = "npm"
+' Paths - Hardened for Portable Node.js (V3.0 Elite)
+pyPath = "python"
+nodeRoot = "C:\Users\Admin\nodejs_portable_v22\node-v22.12.0-win-x64"
+npmPath = nodeRoot & "\npm.cmd"
 comspecPath = shell.ExpandEnvironmentStrings("%ComSpec%")
 
 If Not fso.FolderExists(logDir) Then
@@ -25,13 +25,14 @@ End If
 RunHidden """" & pyPath & """ """ & baseDir & "\backend\scripts\check_sync_on_startup.py"" >> """ & logDir & "\startup_sync.log"" 2>>&1", False
 
 If Not IsPortListening(8000) Then
-    RunHidden "cd /d """ & backendDir & """ && """ & pyPath & """ -m uvicorn app.main:app --host 0.0.0.0 --port 8000 >> """ & logDir & "\backend_runtime.log"" 2>>&1", False
+    RunHidden "cd /d """ & backendDir & """ && set PATH=" & nodeRoot & ";%PATH% && """ & pyPath & """ -m uvicorn app.main:app --host 0.0.0.0 --port 8000 >> """ & logDir & "\backend_runtime.log"" 2>>&1", False
 End If
 
 WaitForBackend 20
 
 If Not IsPortListening(5181) Then
-    RunHidden "cd /d """ & baseDir & """ && set PATH=" & nodeRoot & ";%PATH% && """ & npmPath & """ run dev -- --port 5181 --host >> """ & logDir & "\frontend_runtime.log"" 2>>&1", False
+    ' Elite Hardening: Force PREFIX to portable node root to prevent MODULE_NOT_FOUND
+    RunHidden "cd /d """ & baseDir & """ && set PATH=" & nodeRoot & ";%PATH% && set PREFIX=" & nodeRoot & " && """ & npmPath & """ run dev -- --port 5181 --host >> """ & logDir & "\frontend_runtime.log"" 2>>&1", False
 End If
 
 ' Start Elite Bot Scheduler

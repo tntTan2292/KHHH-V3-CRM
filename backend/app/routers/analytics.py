@@ -82,21 +82,59 @@ async def get_dashboard_stats(
         e_dt = datetime.strptime(end_date, "%Y-%m-%d")
         if s_dt.day == 1 and (e_dt + timedelta(days=1)).day == 1:
             is_monthly = True
-            month_str = s_dt.strftime("%Y-%m")
 
     # 4. Lấy dữ liệu Lifecycle và Doanh thu (ƯU TIÊN SUMMARY)
     month_str = (start_date[:7] if start_date else None) or max_data_date.strftime("%Y-%m")
+    current_month_str = max_data_date.strftime("%Y-%m")
     
-    # Kiểm tra xem có bản ghi nào trong Summary cho tháng này không
+    # [GOVERNANCE] Lifecycle is a Historical State Machine. 
+    # Dashboard summary should always reflect the CURRENT state distribution.
+    lifecycle_stats = {}
+    growth_stats = {"GROWTH": 0, "STABLE": 0, "DECLINING": 0}
+
+    # Fetch Lifecycle from CURRENT month summary (SSOT)
+    # We use ma_dv='ALL' as the canonical source for unique customer counts
+    curr_summary_res = db.query(
+        MonthlyAnalyticsSummary.lifecycle_stage,
+        func.sum(MonthlyAnalyticsSummary.total_customers).label("customers")
+    ).filter(
+        MonthlyAnalyticsSummary.year_month == current_month_str,
+        MonthlyAnalyticsSummary.ma_dv == 'ALL' 
+    )
+    if scope_point_ids is not None:
+        curr_summary_res = curr_summary_res.filter(MonthlyAnalyticsSummary.point_id.in_(scope_point_ids))
+    
+    # Terminology mapping (Backend SSOT -> Frontend View)
+    stage_map = {
+        "active": "active",
+        "new": "new",
+        "rebuy": "recovered",
+        "reactivated": "recovered",
+        "at_risk": "at_risk",
+        "churned": "churned"
+    }
+
+    # Reset stats to ensure 0s are explicitly returned if no data exists
+    for k in ["active", "new", "recovered", "at_risk", "churned"]:
+        lifecycle_stats[k] = 0
+
+    for stage, cust in curr_summary_res.group_by(MonthlyAnalyticsSummary.lifecycle_stage).all():
+        if not stage: continue
+        raw_key = stage.lower()
+        target_key = stage_map.get(raw_key, raw_key)
+        if target_key in lifecycle_stats:
+            lifecycle_stats[target_key] += int(cust or 0)
+
+    # Fetch Revenue and Growth from FILTERED month summary
     summary_exists = db.query(MonthlyAnalyticsSummary).filter(MonthlyAnalyticsSummary.year_month == month_str).first() is not None
 
     if summary_exists:
-        # Lấy từ bảng Summary (Siêu tốc)
         summary_query = db.query(
             MonthlyAnalyticsSummary.lifecycle_stage,
             func.sum(MonthlyAnalyticsSummary.total_revenue).label("revenue"),
             func.sum(MonthlyAnalyticsSummary.total_customers).label("customers"),
-            func.sum(MonthlyAnalyticsSummary.total_orders).label("orders")
+            func.sum(MonthlyAnalyticsSummary.total_orders).label("orders"),
+            MonthlyAnalyticsSummary.growth_tag
         ).filter(MonthlyAnalyticsSummary.year_month == month_str)
         
         if scope_point_ids is not None:
@@ -104,12 +142,7 @@ async def get_dashboard_stats(
             
         summary_res = summary_query.group_by(MonthlyAnalyticsSummary.lifecycle_stage, MonthlyAnalyticsSummary.growth_tag).all()
         
-        lifecycle_stats = {}
-        growth_stats = {"GROWTH": 0, "STABLE": 0, "DECLINING": 0}
-        
         for stage, rev, cust, ords, growth in summary_res:
-            stage_key = stage.lower() if stage else "unknown"
-            lifecycle_stats[stage_key] = lifecycle_stats.get(stage_key, 0) + (cust or 0)
             if growth in growth_stats:
                 growth_stats[growth] += (cust or 0)
         
@@ -117,7 +150,8 @@ async def get_dashboard_stats(
     else:
         # Fallback về logic cũ (Raw Query) nhưng log lại để audit performance
         logger.warning(f"Performance Alert: Dashboard fallback to Raw Query for range {start_date} to {end_date}")
-        lifecycle_stats = LifecycleService.get_customer_lifecycle_stats(db, None, start_date, end_date, scope_point_ids)
+        # GOVERNANCE: We NO LONGER overwrite lifecycle_stats from legacy filtered logic.
+        # Lifecycle distribution stays decoupled as per SSOT mandate.
         
         query = db.query(func.sum(Transaction.doanh_thu))
         if scope_point_ids is not None: 
@@ -212,7 +246,7 @@ async def get_dashboard_stats(
     }
 
 @router.get("/summary")
-@cache_response(ttl_hours=12)
+# @cache_response(ttl_hours=12)
 async def get_analytics_summary(
     start_date: str = None,
     end_date: str = None,

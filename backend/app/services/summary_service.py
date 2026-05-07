@@ -127,7 +127,7 @@ class SummaryService:
                 df_ident['priority_level'] = 'LOW'
 
             # Gộp theo Stage, Growth, VIP và Priority
-            stage_counts = df_ident.groupby(['point_id', 'state', 'growth', 'vip_tier', 'priority_level']).size().reset_index(name='count')
+            stage_counts = df_ident.groupby(['point_id', 'state', 'growth', 'vip_tier', 'priority_level'], dropna=False).size().reset_index(name='count')
             for _, r in stage_counts.iterrows():
                 summary_data.append((month_str, int(r['point_id']), r['state'], r['growth'], r['vip_tier'], r['priority_level'], 'ALL', 'ALL', 0.0, 0, int(r['count'])))
             

@@ -26,20 +26,22 @@ class LifecycleEngine:
             y, m = map(int, month_str.split('-'))
             
             # Date windows
+            # Date windows
             t_minus_1_month = (datetime(y, m, 1) - dateutil.relativedelta.relativedelta(months=1)).strftime('%Y-%m')
-            t_minus_3_month = (datetime(y, m, 1) - dateutil.relativedelta.relativedelta(months=3)).strftime('%Y-%m')
             t_minus_12_month = (datetime(y, m, 1) - dateutil.relativedelta.relativedelta(months=12)).strftime('%Y-%m')
             
-            # Fetch data
+            # Fetch data with deep historical scanning (SSOT Principle)
             sql = """
             WITH customer_base AS (
                 SELECT 
                     ma_kh,
-                    MIN(strftime('%Y-%m', ngay_chap_nhan)) as first_month,
-                    MAX(CASE WHEN strftime('%Y-%m', ngay_chap_nhan) < '{m}' THEN strftime('%Y-%m', ngay_chap_nhan) ELSE NULL END) as last_month_before,
+                    MIN(ngay_chap_nhan) as first_order_date,
+                    MAX(ngay_chap_nhan) as latest_order_date,
+                    MAX(CASE WHEN strftime('%Y-%m', ngay_chap_nhan) < '{m}' THEN ngay_chap_nhan ELSE NULL END) as last_order_before,
                     SUM(CASE WHEN strftime('%Y-%m', ngay_chap_nhan) = '{m}' THEN doanh_thu ELSE 0 END) as curr_rev,
                     SUM(CASE WHEN strftime('%Y-%m', ngay_chap_nhan) = '{m_1}' THEN doanh_thu ELSE 0 END) as prev_rev,
-                    MAX(CASE WHEN strftime('%Y-%m', ngay_chap_nhan) BETWEEN '{m_3}' AND '{m_1}' THEN 1 ELSE 0 END) as active_in_rolling_3m,
+                    COUNT(id) as total_orders_hist,
+                    SUM(doanh_thu) as total_rev_hist,
                     point_id
                 FROM transactions
                 WHERE ma_kh IS NOT NULL AND ma_kh != ''
@@ -47,14 +49,14 @@ class LifecycleEngine:
                 GROUP BY ma_kh, point_id
             )
             SELECT * FROM customer_base
-            WHERE curr_rev > 0 OR (last_month_before IS NOT NULL AND last_month_before >= '{m_12}')
-            """.format(m=month_str, m_1=t_minus_1_month, m_3=t_minus_3_month, m_12=t_minus_12_month, 
+            WHERE curr_rev > 0 OR latest_order_date IS NOT NULL
+            """.format(m=month_str, m_1=t_minus_1_month, 
                        p_filter=f"AND point_id = {point_id}" if point_id else "")
             
             df = pd.read_sql_query(sql, conn)
             if df.empty: return []
 
-            # Fetch previous states from the customers table for logging
+            # Pre-load previous states for transition logging
             prev_states = {}
             cursor = conn.cursor()
             cursor.execute("SELECT ma_crm_cms, lifecycle_state FROM customers")
@@ -62,16 +64,23 @@ class LifecycleEngine:
                 prev_states[row[0]] = row[1]
 
             results = []
+            now_dt = datetime(y, m, 1)
+            
             for _, row in df.iterrows():
                 ma_kh = row['ma_kh']
                 pid = int(row['point_id'])
-                state = LifecycleEngine._determine_state(y, m, row['first_month'], row['last_month_before'], row['curr_rev'])
+                
+                # Parse dates
+                first_dt = pd.to_datetime(row['first_order_date'])
+                last_before_dt = pd.to_datetime(row['last_order_before']) if row['last_order_before'] else None
+                
+                state = LifecycleEngine._determine_state_v2(now_dt, first_dt, last_before_dt, row['curr_rev'])
                 growth = LifecycleEngine._calculate_growth_tag(row['curr_rev'], row['prev_rev'])
                 
-                # Log transition if changed
+                # Log transition
                 prev_state = prev_states.get(ma_kh)
                 if prev_state and prev_state != state:
-                    LifecycleEngine.log_transition(conn, ma_kh, prev_state, state, f"Auto-recalc for {month_str}")
+                    LifecycleEngine.log_transition(conn, ma_kh, prev_state, state, f"Governance re-calc for {month_str}")
                 
                 results.append({
                     'ma_kh': ma_kh,
@@ -79,32 +88,45 @@ class LifecycleEngine:
                     'state': state,
                     'growth': growth,
                     'rev': row['curr_rev'],
-                    'orders': 0 # Will be updated by summary service
+                    'orders': 0 # Updated by summary service
                 })
             return results
         finally:
             conn.close()
 
     @staticmethod
-    def _determine_state(curr_y, curr_m, first_month, last_month_before, curr_rev):
-        # NEW
-        y_f, m_f = map(int, first_month.split('-'))
-        diff_f = (curr_y - y_f) * 12 + (curr_m - m_f)
-        if diff_f < 3: return 'NEW'
+    def _determine_state_v2(curr_month_dt, first_order_dt, last_order_before_dt, curr_rev):
+        """
+        HISTORICAL STATE MACHINE LOGIC (Constitution Section III Hardened)
+        - NEW: First order within 3 months of curr_month.
+        - ACTIVE: Has order this month, or had order in last 3 months.
+        - AT_RISK: Over 30 days since last order.
+        - CHURN: 3 consecutive months (90 days) no order.
+        - REBUY: Churned customer returns.
+        """
+        # 1. NEW Customer Check (First 3 months)
+        months_since_start = (curr_month_dt.year - first_order_dt.year) * 12 + (curr_month_dt.month - first_order_dt.month)
+        if months_since_start < 3:
+            return 'NEW'
         
-        has_now = curr_rev > 0
-        if has_now:
-            if last_month_before:
-                y_l, m_l = map(int, last_month_before.split('-'))
-                diff_l = (curr_y - y_l) * 12 + (curr_m - m_l)
-                if diff_l >= 4: return 'REACTIVATED'
+        has_current = curr_rev > 0
+        
+        if has_current:
+            # If they were CHURNED before (no order for >90 days before this month)
+            if last_order_before_dt:
+                days_inactive_before = (curr_month_dt - last_order_before_dt).days
+                if days_inactive_before > 90:
+                    return 'REBUY'
             return 'ACTIVE'
         else:
-            if last_month_before:
-                y_l, m_l = map(int, last_month_before.split('-'))
-                diff_l = (curr_y - y_l) * 12 + (curr_m - m_l)
-                if diff_l >= 4: return 'CHURNED'
-                return 'AT_RISK'
+            # No revenue this month
+            if last_order_before_dt:
+                days_since_last = (curr_month_dt - last_order_before_dt).days
+                if days_since_last > 90:
+                    return 'CHURNED'
+                if days_since_last > 30:
+                    return 'AT_RISK'
+                return 'ACTIVE' # Still active if last order was < 30 days ago
             return 'CHURNED'
 
     @staticmethod
