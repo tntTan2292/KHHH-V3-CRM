@@ -88,7 +88,7 @@ const PotentialCustomers_V3 = () => {
 
   const getEffectiveNodeCode = () => {
     if (selectedNode?.key) return selectedNode.key;
-    if (!user?.scope || user.scope === "Bưu điện thành phố Huế" || user.scope === "Toàn tỉnh") return undefined;
+    if (!user?.scope || user.scope === "Toàn tỉnh") return undefined;
     return user.scope;
   };
 
@@ -484,7 +484,7 @@ const PotentialCustomers_V3 = () => {
                      onClick={() => setIsTreeOpen(!isTreeOpen)}
                      className={`w-full bg-white border rounded-[1.2rem] px-5 py-4 text-xs font-bold text-vnpost-blue flex justify-between items-center shadow-sm transition-all ${isTreeOpen ? 'ring-2 ring-vnpost-blue/20 border-vnpost-blue/30' : 'border-gray-100 hover:bg-gray-50'}`}
                    >
-                     <span className="truncate">{selectedNode ? selectedNode.title : ((user?.scope === "Toàn tỉnh" || !user?.scope) ? "Bưu điện thành phố Huế" : user.scope)}</span>
+                     <span className="truncate">{selectedNode ? selectedNode.title : (user?.scope || "Toàn tỉnh")}</span>
                      <ChevronDown size={14} className={`transition-transform duration-300 ${isTreeOpen ? 'rotate-180' : ''}`} />
                    </button>
 

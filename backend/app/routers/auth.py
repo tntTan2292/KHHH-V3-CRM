@@ -141,7 +141,7 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
             "username": user.username,
             "full_name": user.full_name,
             "role": role.name if role else "STAFF",
-            "scope": node_code if node_code else "Bưu điện thành phố Huế",
+            "scope": node_code, # NULL for SUPERADMIN
             "permissions": permissions,
             "must_change_password": user.must_change_password
         }
@@ -166,7 +166,7 @@ async def get_me(current_user: User = Depends(get_current_user), db: Session = D
         "full_name": user.full_name,
         "role": user.role.name if user.role else "STAFF",
         "role_display": user.role.description if user.role else "Nhân viên",
-        "scope": user.scope_node.name if user.scope_node else "Bưu điện thành phố Huế",
+        "scope": user.scope_node.name if user.scope_node else None,
         "hr_id": user.nhan_su.hr_id if user.nhan_su else None,
         "is_active": user.is_active,
         "must_change_password": user.must_change_password,

@@ -233,7 +233,7 @@ async def get_dashboard_stats(
         else:
             latest_date_str = str(latest_date)
 
-    return {
+    response_data = {
         "tong_doanh_thu": tong_dt,
         "tong_kh": tong_kh,
         "kh_moi": kh_moi,
@@ -243,8 +243,16 @@ async def get_dashboard_stats(
         "latest_date": latest_date_str,
         "lifecycle": lifecycle_stats,
         "growth": growth_stats,
-        "potential_ranks": potential_ranks
+        "potential_ranks": potential_ranks,
+        "debug_info": {
+            "month": current_month_str,
+            "scope_ids": scope_point_ids,
+            "is_admin": ScopingService.is_admin(current_user)
+        }
     }
+    
+    logger.info(f"DASHBOARD API SUCCESS: {current_month_str} | Scope: {scope_point_ids} | Results: {lifecycle_stats}")
+    return response_data
 
 @router.get("/summary")
 # @cache_response(ttl_hours=12)

@@ -263,7 +263,7 @@ function Dashboard() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [botReport, setBotReport] = useState(null);
   const [loadingBot, setLoadingBot] = useState(false);
-  const [navStack, setNavStack] = useState([{ key: "", title: user?.scope || "Bưu điện thành phố Huế" }]);
+  const [navStack, setNavStack] = useState([{ key: "", title: user?.scope || "Toàn tỉnh" }]);
   const dashboardRef = useRef();
 
   // --- SWR DATA FETCHING (Giai đoạn 3: Elite UX) ---
@@ -357,7 +357,7 @@ function Dashboard() {
   
   // Đồng bộ navStack khi user load xong
   useEffect(() => {
-    if (user?.scope && navStack[0].title === "Bưu điện thành phố Huế" && user.scope !== "Bưu điện thành phố Huế") {
+    if (user?.scope && navStack[0].title === "Toàn tỉnh" && user.scope !== "Toàn tỉnh") {
       setNavStack([{ key: "", title: user.scope }]);
     }
   }, [user, navStack]);
@@ -365,10 +365,10 @@ function Dashboard() {
   const handleNodeSelect = (node) => {
     if (!node) {
       setSelectedNode(null);
-      setNavStack([{ key: "", title: user?.scope || "Bưu điện thành phố Huế" }]);
+      setNavStack([{ key: "", title: user?.scope || "Toàn tỉnh" }]);
     } else {
       setSelectedNode(node);
-      setNavStack([{ key: "", title: user?.scope || "Bưu điện thành phố Huế" }, node]);
+      setNavStack([{ key: "", title: user?.scope || "Toàn tỉnh" }, node]);
     }
   };
 
@@ -502,7 +502,7 @@ function Dashboard() {
                 <span className="text-xs bg-vnpost-orange text-white px-3 py-1 rounded-full font-black uppercase shadow-sm">Đang soi: {selectedNode.title}</span>
               ) : (
                 <span className="text-xs bg-vnpost-blue/10 text-vnpost-blue px-3 py-1 rounded-full font-bold uppercase border border-vnpost-blue/10">
-                  {(user?.scope === "Toàn tỉnh" || !user?.scope) ? "Bưu điện thành phố Huế" : user.scope}
+                  {user?.scope || "Toàn tỉnh"}
                 </span>
               )}
               <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest bg-gray-100 px-2 py-1 rounded">Bản Nâng Cấp Elite</span>
@@ -540,7 +540,7 @@ function Dashboard() {
                   onClick={() => setIsTreeOpen(!isTreeOpen)}
                   className={`w-full bg-gray-50 border rounded-xl px-4 py-2.5 text-xs font-bold text-vnpost-blue flex justify-between items-center transition-all shadow-inner ${isTreeOpen ? 'ring-2 ring-vnpost-blue/20 border-vnpost-blue/30 bg-white' : 'border-gray-100 hover:bg-white'}`}
                 >
-                  <span className="truncate">{selectedNode ? selectedNode.title : ((user?.scope === "Toàn tỉnh" || !user?.scope) ? "Bưu điện thành phố Huế" : user.scope)}</span>
+                  <span className="truncate">{selectedNode ? selectedNode.title : (user?.scope || "Toàn tỉnh")}</span>
                   <ArrowUpRight size={14} className={`transition-transform duration-300 ${isTreeOpen ? 'rotate-180 opacity-100' : 'rotate-90 opacity-40'}`} />
                 </button>
 

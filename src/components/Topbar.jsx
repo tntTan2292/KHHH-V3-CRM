@@ -108,7 +108,7 @@ export default function Topbar({ onMenuClick }) {
                 <p className="text-xs text-gray-400 font-medium">Đang đăng nhập với</p>
                 <p className="text-sm font-bold text-gray-800 truncate">{user?.username}</p>
                 <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-vnpost-blue text-[10px] font-black rounded-md">
-                  {user?.scope || 'Bưu điện thành phố Huế'}
+                  {user?.scope || 'Toàn tỉnh'}
                 </div>
               </div>
               <button className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors">

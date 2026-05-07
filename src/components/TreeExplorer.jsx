@@ -131,7 +131,7 @@ export default function TreeExplorer({ onSelect, selectedNode }) {
                 <Globe size={18} className={!selectedNode ? 'text-white' : 'text-vnpost-blue'} />
               </span>
               <span className="text-sm font-black uppercase tracking-tight truncate">
-                {user?.scope || "Bưu điện thành phố Huế"}
+                {user?.scope || "Toàn tỉnh"}
               </span>
             </div>
             <div className="h-px bg-gray-100 my-2 mx-2" />
