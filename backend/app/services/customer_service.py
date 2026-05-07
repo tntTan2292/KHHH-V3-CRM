@@ -78,8 +78,10 @@ class CustomerService:
             )
 
         if scope_ids is not None:
-            # Khách hàng thuộc về các đơn vị trong scope
-            base_query = base_query.filter(Customer.point_id.in_(scope_ids))
+            # Lấy list ma_bc từ scope_ids để filter
+            scope_nodes = db.query(HierarchyNode.code).filter(HierarchyNode.id.in_(scope_ids)).all()
+            scope_codes = [n.code for n in scope_nodes]
+            base_query = base_query.filter(Customer.ma_bc_phu_trach.in_(scope_codes))
 
         # 5. Total Count (Lấy từ bảng Customer - Rất nhanh)
         total = base_query.count()
@@ -97,7 +99,8 @@ class CustomerService:
         ).group_by(Transaction.ma_kh).subquery()
 
         # 7. Final Query Assembly
-        # Ta join Customer với metrics_sub
+        # Ta join Customer với metrics_sub để lấy số liệu động
+        # Quan trọng: Phải giữ lại các filter từ base_query
         final_query = db.query(
             Customer,
             func.coalesce(metrics_sub.c.dynamic_revenue, 0).label("dynamic_revenue"),
@@ -107,6 +110,33 @@ class CustomerService:
         ).select_from(Customer)\
          .outerjoin(metrics_sub, Customer.ma_crm_cms == metrics_sub.c.ma_kh)\
          .outerjoin(NhanSu, Customer.assigned_staff_id == NhanSu.id)
+
+        # Re-apply all filters from base_query to final_query
+        # Thay vì tạo query mới, ta lấy các criteria từ base_query
+        # Tuy nhiên trong SQLAlchemy cách sạch nhất là reuse logic filter
+        if lifecycle_status:
+            status_val = lifecycle_status.upper()
+            if status_val == 'RECOVERED': status_val = 'REBUY'
+            final_query = final_query.filter(Customer.lifecycle_state == status_val)
+            
+        if rfm_segment:
+            final_query = final_query.filter(Customer.rfm_segment == rfm_segment)
+            
+        if search:
+            final_query = final_query.filter(
+                or_(
+                    Customer.ma_crm_cms.ilike(f"%{search}%"),
+                    Customer.ten_kh.ilike(f"%{search}%")
+                )
+            )
+
+        if scope_ids is not None:
+            # Vì Customer không có point_id (Integer), ta dùng ma_bc_phu_trach (String) 
+            # hoặc filter thông qua Transaction scope (Tuy nhiên Customer driver nên dùng ma_bc_phu_trach)
+            # Lấy list ma_bc từ scope_ids
+            scope_nodes = db.query(HierarchyNode.code).filter(HierarchyNode.id.in_(scope_ids)).all()
+            scope_codes = [n.code for n in scope_nodes]
+            final_query = final_query.filter(Customer.ma_bc_phu_trach.in_(scope_codes))
 
         # 8. Sorting
         sort_map = {

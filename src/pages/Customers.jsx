@@ -226,10 +226,6 @@ export default function Customers() {
       };
       
        const res = await api.get('/api/customers', { params });
-       console.log("DEBUG: fetchCustomers response:", res.data);
-       if (!res.data || !res.data.items) {
-         console.warn("DEBUG: API Response is missing items array!", res.data);
-       }
        setCustomers(res.data.items || []);
        setTotal(res.data.total || 0);
        setTotalPages(res.data.total_pages || 1);
