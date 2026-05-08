@@ -117,17 +117,38 @@ class EscalationEngineCore:
         columns = [column[0] for column in cursor.description]
         return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
+    MAX_ESCALATION_LEVEL = 5
+    COOLDOWN_MINUTES = 60
+
     @staticmethod
     def _should_escalate(conn, event, rule, now):
         """
-        Flow 3: Governed Condition Detection
+        Flow 3: Governed Condition Detection with Anti-loop & Cooldown
         """
+        # [GOVERNANCE] Anti-loop: Prevent escalation beyond Max Level
+        if rule['escalation_level'] > EscalationEngineCore.MAX_ESCALATION_LEVEL:
+            logger.warning(f"Governance Block: Max escalation level reached for Event {event['id']}")
+            return False
+
         cursor = conn.cursor()
+        
+        # [GOVERNANCE] Check for duplicate level
         cursor.execute("""
             SELECT id FROM escalation_records 
             WHERE event_id = ? AND escalation_level = ? AND status != 'CLOSED'
         """, (event['id'], rule['escalation_level']))
         if cursor.fetchone(): return False 
+
+        # [GOVERNANCE] Cooldown Protection: Check for recent escalation of ANY level for this event
+        cursor.execute("""
+            SELECT MAX(escalated_at) FROM escalation_records WHERE event_id = ?
+        """, (event['id'],))
+        last_esc_at_raw = cursor.fetchone()[0]
+        if last_esc_at_raw:
+            last_esc_at = datetime.strptime(last_esc_at_raw, '%Y-%m-%d %H:%M:%S')
+            if (now - last_esc_at).total_seconds() < EscalationEngineCore.COOLDOWN_MINUTES * 60:
+                # Still in cooldown
+                return False
 
         triggered_at = datetime.strptime(event['first_triggered_at'], '%Y-%m-%d %H:%M:%S')
         elapsed_hours = (now - triggered_at).total_seconds() / 3600
@@ -179,7 +200,12 @@ class EscalationEngineCore:
 
     @staticmethod
     def _transfer_ownership(conn, event_id, rule):
+        """
+        Flow 5: Ownership Transfer with Auditability
+        """
         cursor = conn.cursor()
+        
+        # 1. Update the event
         cursor.execute("""
             UPDATE system_events 
             SET ownership_status = 'ESCALATED', 
@@ -187,6 +213,17 @@ class EscalationEngineCore:
                 assigned_team = ?
             WHERE id = ?
         """, (rule['target_role'], rule['target_team'], event_id))
+
+        # 2. Add an entry to event history if available, or update notes
+        # For simplicity in this refactor, we update event notes to include the escalation trace
+        audit_note = f" --- OWNERSHIP ESCALATED to {rule['target_role']} (Level {rule['escalation_level']}) by Rule {rule['id']}"
+        cursor.execute("""
+            UPDATE system_events 
+            SET notes = COALESCE(notes, '') || ?
+            WHERE id = ?
+        """, (audit_note, event_id))
+        
+        logger.info(f"Ownership transferred for Event {event_id} to {rule['target_role']}")
 
 if __name__ == "__main__":
     EscalationEngineCore.run_engine()
