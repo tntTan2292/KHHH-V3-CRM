@@ -287,7 +287,10 @@ export default function Customers() {
       gradient: "from-blue-600 to-indigo-700",
       accent: "#0054A6",
       bgLight: "bg-blue-50/80",
-      borderCol: "border-indigo-600"
+      borderCol: "border-indigo-600",
+      colorClass: 'border-blue-200',
+      bgClass: 'bg-blue-50',
+      textClass: 'text-blue-700'
     },
     { 
       label: "KH Hiện hữu", 
@@ -297,7 +300,10 @@ export default function Customers() {
       gradient: "from-green-500 to-green-700",
       accent: "#22C55E",
       bgLight: "bg-green-50/80",
-      borderCol: "border-green-500"
+      borderCol: "border-green-500",
+      colorClass: 'border-green-200',
+      bgClass: 'bg-green-50',
+      textClass: 'text-green-700'
     },
     { 
       label: "KH Mới", 
@@ -307,7 +313,10 @@ export default function Customers() {
       gradient: "from-sky-500 to-blue-700",
       accent: "#0EA5E9",
       bgLight: "bg-sky-50/80",
-      borderCol: "border-sky-500"
+      borderCol: "border-sky-500",
+      colorClass: 'border-sky-200',
+      bgClass: 'bg-sky-50',
+      textClass: 'text-sky-700'
     },
     { 
       label: "KH Phục hồi", 
@@ -317,7 +326,10 @@ export default function Customers() {
       gradient: "from-indigo-500 to-indigo-800",
       accent: "#6366F1",
       bgLight: "bg-indigo-50/80",
-      borderCol: "border-indigo-500"
+      borderCol: "border-indigo-500",
+      colorClass: 'border-indigo-200',
+      bgClass: 'bg-indigo-50',
+      textClass: 'text-indigo-700'
     },
     { 
       label: "KH Nguy cơ", 
@@ -327,7 +339,10 @@ export default function Customers() {
       gradient: "from-orange-400 to-orange-600",
       accent: "#F97316",
       bgLight: "bg-orange-50/80",
-      borderCol: "border-orange-500"
+      borderCol: "border-orange-500",
+      colorClass: 'border-orange-200',
+      bgClass: 'bg-orange-50',
+      textClass: 'text-orange-700'
     },
     { 
       label: "KH Mất", 
@@ -337,7 +352,10 @@ export default function Customers() {
       gradient: "from-rose-500 to-red-800",
       accent: "#F43F5E",
       bgLight: "bg-rose-50/80",
-      borderCol: "border-rose-500"
+      borderCol: "border-rose-500",
+      colorClass: 'border-rose-200',
+      bgClass: 'bg-rose-50',
+      textClass: 'text-rose-700'
     },
   ];
 
@@ -1138,7 +1156,7 @@ export default function Customers() {
                        {(() => {
                          const status = lifecycleConfig.find(l => l.value === c.status_type) || lifecycleConfig[0];
                          return (
-                           <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase border shadow-sm border-${status.color}-200 bg-${status.color}-50 text-${status.color}-700`}>
+                           <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase border shadow-sm ${status.colorClass} ${status.bgClass} ${status.textClass}`}>
                              <status.icon size={14} className={c.status_type === 'new' ? 'animate-bounce' : ''} />
                              {(() => {
                                if (c.status_type === 'active') return 'Khách hàng Hiện hữu';
