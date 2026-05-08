@@ -246,6 +246,7 @@ class ActionTask(Base):
     
     # GOVERNANCE: Snapshot Truth
     governance_snapshot_json = Column(Text, nullable=True) # Trạng thái context lúc giao việc
+    governance_notes = Column(Text, nullable=True) # Nhật ký quản trị (Audit Log)
 
     # GOVERNANCE: Idempotency & Replay Safety
     task_identity_key = Column(String(255), unique=True, index=True, nullable=True)

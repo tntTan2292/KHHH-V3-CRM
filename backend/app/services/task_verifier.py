@@ -10,8 +10,10 @@ class TaskVerifierService:
     @staticmethod
     def verify_all_pending_tasks(db: Session):
         """
-        Quét toàn bộ Task đang ở trạng thái PENDING_VERIFY để đối soát với Transaction thực tế.
-        Nếu phát hiện có đơn hàng phát sinh sau ngày giao việc -> Xác thực thành công B3.
+        [GOVERNANCE] Thắt chặt đối soát B3:
+        1. Kiểm tra sự tồn tại của Giao dịch (SSOT).
+        2. Kiểm tra tính nhất quán về Quyền sở hữu (point_id).
+        3. Khóa Attribution sau khi xác thực thành công.
         """
         pending_tasks = db.query(ActionTask).filter(
             ActionTask.trang_thai == "PENDING_VERIFY",
@@ -19,37 +21,61 @@ class TaskVerifierService:
         ).all()
         
         verified_count = 0
+        conflict_count = 0
         
         for task in pending_tasks:
-            # 1. Tìm giao dịch của mã CRM này phát sinh SAU khi task được tạo
-            # Chúng ta dùng ngày tạo task làm mốc bắt đầu
-            
-            # Match criteria:
-            # - Đúng mã CRM (converted_ma_kh)
-            # - Ngày chấp nhận >= Ngày tạo task
-            
+            # 1. Tìm giao dịch của mã CRM phát sinh SAU khi task được tạo
             match = db.query(Transaction).filter(
                 Transaction.ma_kh == task.converted_ma_kh,
                 Transaction.ngay_chap_nhan >= task.created_at
-            ).first()
+            ).order_by(Transaction.ngay_chap_nhan.asc()).first()
             
             if match:
-                # 🏆 XÁC THỰC THÀNH CÔNG
+                # [GOVERNANCE] Kiểm tra tính nhất quán Sở hữu (Ownership Consistency)
+                # Đơn vị phát sinh giao dịch (match.point_id) phải khớp với Đơn vị giao việc (task.original_point_id)
+                target_point_id = task.original_point_id
+                
+                # Nếu task không có original_point_id, lấy từ nhân viên được giao
+                if not target_point_id and task.staff:
+                    target_point_id = task.staff.point_id
+
+                if target_point_id and match.point_id != target_point_id:
+                    # 🔴 XUNG ĐỘT QUẢN TRỊ: Giao dịch phát sinh tại điểm khác với điểm khai thác Lead
+                    error_msg = (
+                        f"OWNERSHIP_MISMATCH: Task expects Point {target_point_id}, "
+                        f"but Transaction occurred at Point {match.point_id} (Code {match.ma_dv_chap_nhan})."
+                    )
+                    logger.warning(f"⚠️ {error_msg} for CRM {task.converted_ma_kh}")
+                    
+                    task.trang_thai = "Tranh chấp sở hữu"
+                    task.governance_notes = error_msg
+                    conflict_count += 1
+                    continue
+
+                # 🏆 XÁC THỰC THÀNH CÔNG (B3)
                 task.verified = True
-                task.trang_thai = "Hoàn thành" # Hoặc giữ nguyên PENDING_VERIFY nhưng verified=True
+                task.trang_thai = "Hoàn thành"
                 task.pipeline_stage = "B3"
                 task.updated_at = datetime.now()
+                task.governance_notes = f"B3_VERIFIED: Transaction {match.shbg} matched at Point {target_point_id}."
                 
-                # Cập nhật thông tin vào bảng Customer nếu chưa có staff phụ trách
+                # 🔒 ATTRIBUTION LOCK & OWNERSHIP SYNC
                 customer = db.query(Customer).filter(Customer.ma_crm_cms == task.converted_ma_kh).first()
-                if customer and not customer.assigned_staff_id:
-                    customer.assigned_staff_id = task.staff_id
+                if customer:
+                    # Gán nhân viên phụ trách nếu chưa có
+                    if not customer.assigned_staff_id:
+                        customer.assigned_staff_id = task.staff_id
+                    
+                    # Cập nhật/Khóa point_id chính thức cho khách hàng
+                    if not customer.point_id or customer.point_id != target_point_id:
+                        customer.point_id = target_point_id
+                        customer.ma_bc_phu_trach = match.ma_dv_chap_nhan
                 
                 verified_count += 1
-                logger.info(f"✅ Task {task.id} verified: CRM {task.converted_ma_kh} has transactions.")
+                logger.info(f"✅ Task {task.id} verified: B3 success for CRM {task.converted_ma_kh}")
         
         db.commit()
-        return verified_count
+        return {"verified": verified_count, "conflicts": conflict_count}
 
     @staticmethod
     def auto_unlock_stale_tasks(db: Session, overdue_days: int = 3):
