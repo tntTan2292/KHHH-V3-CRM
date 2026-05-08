@@ -7,6 +7,7 @@ from ..services.operational_risk_service import OperationalRiskService
 from ..services.executive_situation_service import ExecutiveSituationService
 from ..services.executive_trend_service import ExecutiveTrendService
 from ..services.executive_forecast_service import ExecutiveForecastService
+from ..services.executive_command_service import ExecutiveCommandService
 from ..auth.auth_service import get_current_user
 from ..models import User
 from datetime import datetime
@@ -163,3 +164,32 @@ async def get_executive_forecast_api(
         return forecast_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Executive Forecast Engine Error: {str(e)}")
+
+@router.get("/command-center")
+async def get_executive_command_center(
+    node_id: Optional[int] = None,
+    period_key: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    GOVERNANCE: Unified Endpoint for Executive Command Center.
+    Aggregates all Executive Intelligence into a single Governed Payload.
+    """
+    target_node_id = node_id or current_user.scope_node_id
+    
+    if not target_node_id:
+        from ..models import HierarchyNode
+        root_node = db.query(HierarchyNode).filter(HierarchyNode.parent_id == None).first()
+        if root_node:
+            target_node_id = root_node.id
+        else:
+            raise HTTPException(status_code=400, detail="No hierarchy context found.")
+
+    target_period = period_key or datetime.now().strftime('%Y-%m')
+
+    try:
+        command_payload = ExecutiveCommandService.build_executive_command_payload(db, 'HIERARCHY_NODE', str(target_node_id), target_period)
+        return command_payload
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Executive Command Center Error: {str(e)}")
