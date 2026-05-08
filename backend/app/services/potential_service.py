@@ -149,23 +149,24 @@ class PotentialService:
         for canonical, cg in canonical_groups.items():
             if cg["tong_so_don"] >= 1: # Theo Hiến pháp: Chỉ cần có đơn
                 
-                # Phân hạng RFM (Sếp muốn hiển thị điểm cho Tiềm năng)
-                revenue = cg["tong_doanh_thu"]
-                frequency = cg["tong_so_don"]
+                # [GOVERNANCE] Use centralized LeadTierEngine for ranking
+                from .lead_tier_engine import LeadTierEngine
+                segment = LeadTierEngine.classify_lead_rank(cg["tong_doanh_thu"], cg["tong_so_don"])
                 
-                segment = "Thường"
-                if revenue >= 5000000 and frequency >= 5: segment = "Kim Cương"
-                elif revenue >= 2000000 and frequency >= 3: segment = "Vàng"
-                elif revenue >= 500000 or frequency >= 2: segment = "Bạc"
+                # Normalize names to match Summary (Uppercase)
+                segment = segment.upper()
                 
-                summary_counts[segment] += 1
+                # Mapping display names if needed (e.g., "KIM CƯƠNG" -> "Kim Cương" for list)
+                display_segment = segment.title() if segment != "THƯỜNG" else "Thường"
+                
+                summary_counts[display_segment] += 1
                 summary_counts["Tất cả"] += 1
                 
-                if rfm_segment and rfm_segment != segment and rfm_segment != "Tất cả":
+                if rfm_segment and rfm_segment != display_segment and rfm_segment != "Tất cả":
                     continue
                 
                 # Ẩn hạng THƯỜNG khỏi module (Trừ khi Dashboard gọi lấy tổng số)
-                if not include_all and segment == "Thường":
+                if not include_all and segment == "THƯỜNG":
                     continue
 
                 # Rút gọn địa chỉ để hiển thị bảng (VD: "Phú Lộc, Huế")

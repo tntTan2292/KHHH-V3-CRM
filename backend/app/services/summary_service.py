@@ -183,14 +183,10 @@ class SummaryService:
         """
         df_pot = pd.read_sql_query(sql_pot, conn, params=(start_date, end_date))
         if not df_pot.empty:
-            def classify_rank(row):
-                rev, cnt = row['rev'], row['orders']
-                if rev > 5000000 and cnt > 20: return 'KIM CƯƠNG'
-                if rev > 1000000 and cnt > 10: return 'VÀNG'
-                if rev > 500000 and cnt > 5: return 'BẠC'
-                return 'THƯỜNG'
+            from .lead_tier_engine import LeadTierEngine
             
-            df_pot['rank'] = df_pot.apply(classify_rank, axis=1)
+            # [GOVERNANCE] Use centralized LeadTierEngine
+            df_pot['rank'] = df_pot.apply(lambda r: LeadTierEngine.classify_lead_rank(r['rev'], r['orders']), axis=1)
             
             # Gộp doanh thu Tiềm năng
             pot_agg = df_pot[df_pot['rank'] != 'THƯỜNG'].groupby(['point_id', 'rank', 'ma_dv', 'region_type']).agg({
