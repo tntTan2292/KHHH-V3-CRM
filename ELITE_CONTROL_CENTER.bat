@@ -36,6 +36,8 @@ goto MENU
 
 :START_APP
 echo.
+echo [+] Dang kiem tra quan tri (Governance Check)...
+python "%~dp0backend\scripts\governance_cleanup.py"
 echo [+] Dang khoi dong cac dich vu ngam...
 wscript.exe //B "%~dp0START_SERVICE_V3.0.vbs"
 echo [OK] He thong dang duoc kich hoat. Vui long cho 5-10 giay.

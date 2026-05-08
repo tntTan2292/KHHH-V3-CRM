@@ -22,6 +22,7 @@ If Not fso.FolderExists(logDir) Then
     fso.CreateFolder(logDir)
 End If
 
+RunHidden """" & pyPath & """ """ & baseDir & "\backend\scripts\governance_cleanup.py"" >> """ & logDir & "\startup_sync.log"" 2>>&1", True
 RunHidden """" & pyPath & """ """ & baseDir & "\backend\scripts\check_sync_on_startup.py"" >> """ & logDir & "\startup_sync.log"" 2>>&1", False
 
 If Not IsPortListening(8000) Then

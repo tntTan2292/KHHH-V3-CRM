@@ -18,8 +18,11 @@ def cleanup_governance():
         if admin and super_role:
             admin.role_id = super_role.id
             admin.scope_node_id = None
+            admin.failed_login_attempts = 0
+            admin.locked_until = None
+            admin.is_active = True
             db.add(admin)
-            print(f"SUCCESS: 'admin' user restored to SUPERADMIN with NULL scope.")
+            print(f"SUCCESS: 'admin' user restored to SUPERADMIN and UNLOCKED.")
         else:
             print("WARNING: Could not find 'admin' user or 'SUPERADMIN' role.")
 

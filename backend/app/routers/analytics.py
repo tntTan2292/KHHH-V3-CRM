@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func, text
 from datetime import datetime, timedelta
@@ -48,19 +48,17 @@ def get_governed_comparison_periods(db, start_date, end_date, comparison_type="m
         if not max_data_date:
             return None, None, None, None, None
         curr_start = max_data_date.replace(day=1, hour=0, minute=0, second=0)
-        curr_end = max_data_date
+        # [USER RULE] Always use end of day to include all transactions
+        curr_end = max_data_date.replace(hour=23, minute=59, second=59)
     else:
         curr_start = datetime.strptime(start_date, "%Y-%m-%d")
         curr_end = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
-        # CRITICAL SSOT: Cap to max data date to ensure Like-for-Like (e.g. 8 days vs 8 days)
-        if max_data_date and curr_end > max_data_date:
-            curr_end = max_data_date
 
     if comparison_type == "yoy":
         prev_start = curr_start - dateutil.relativedelta.relativedelta(years=1)
         prev_end = curr_end - dateutil.relativedelta.relativedelta(years=1)
     else:
-        # Standard MoM date shift
+        # Standard MoM date shift (Preserving the 23:59:59 boundary)
         prev_start = curr_start - dateutil.relativedelta.relativedelta(months=1)
         prev_end = curr_end - dateutil.relativedelta.relativedelta(months=1)
         
@@ -213,13 +211,12 @@ async def get_dashboard_stats(
     if not curr_start:
         rev_growth = 0
     else:
-
-    latest_val = db.query(func.sum(Transaction.doanh_thu)).filter(
-        Transaction.ngay_chap_nhan.between(curr_start, curr_end)
-    )
-    prev_val_q = db.query(func.sum(Transaction.doanh_thu)).filter(
-        Transaction.ngay_chap_nhan.between(prev_start, prev_end)
-    )
+        latest_val = db.query(func.sum(Transaction.doanh_thu)).filter(
+            Transaction.ngay_chap_nhan.between(curr_start, curr_end)
+        )
+        prev_val_q = db.query(func.sum(Transaction.doanh_thu)).filter(
+            Transaction.ngay_chap_nhan.between(prev_start, prev_end)
+        )
 
     if scope_point_ids is not None:
         latest_val = latest_val.filter(Transaction.point_id.in_(scope_point_ids))
@@ -267,7 +264,7 @@ async def get_dashboard_stats(
     return response_data
 
 @router.get("/summary")
-# @cache_response(ttl_hours=12)
+# @cache_response(ttl_hours=24) # Tạm thời tắt để refresh số liệu SSOT
 async def get_analytics_summary(
     start_date: str = None,
     end_date: str = None,
@@ -511,7 +508,7 @@ async def get_revenue_by_region(
     return [{"name": k, "value": v} for k, v in result.items() if v > 0]
 
 @router.get("/top-movers")
-@cache_response(ttl_hours=6)
+# @cache_response(ttl_hours=6) # Tạm thời tắt để refresh số liệu SSOT
 async def get_top_movers(
     start_date: str = None,
     end_date: str = None,
@@ -1045,24 +1042,7 @@ async def get_heatmap_units(
     if not sub_groups:
         return []
         
-    # [SSOT] Calculate TOTAL scope revenue to identify "Orphan Revenue"
-    total_c_val_q = db.query(func.sum(Transaction.doanh_thu)).filter(
-        Transaction.ngay_chap_nhan.between(curr_start, curr_end)
-    )
-    total_p_val_q = db.query(func.sum(Transaction.doanh_thu)).filter(
-        Transaction.ngay_chap_nhan.between(prev_start, prev_end)
-    )
-    
-    if user_scope_ids is not None:
-        total_c_val_q = total_c_val_q.filter(Transaction.point_id.in_(user_scope_ids))
-        total_p_val_q = total_p_val_q.filter(Transaction.point_id.in_(user_scope_ids))
-        
-    total_c_val = total_c_val_q.scalar() or 0
-    total_p_val = total_p_val_q.scalar() or 0
-
     results = []
-    sum_c_val = 0
-    sum_p_val = 0
     for group in sub_groups:
         # Lấy tất cả descendant IDs của group này
         group_desc_ids = HierarchyService.get_descendant_ids(db, group.code)
