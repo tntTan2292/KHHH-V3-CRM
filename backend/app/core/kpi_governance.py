@@ -15,6 +15,10 @@ class AggregationType(str, enum.Enum):
     PERCENT = "PERCENT"
     RATIO = "RATIO"
 
+class ScoringDirection(str, enum.Enum):
+    HIGHER_BETTER = "HIGHER_BETTER"
+    LOWER_BETTER = "LOWER_BETTER"
+
 class HierarchyLevel(str, enum.Enum):
     PROVINCE = "PROVINCE"
     CENTER = "CENTER"
@@ -33,6 +37,12 @@ class KPIDefinition(BaseModel):
     is_executive: bool = False
     can_escalate: bool = False
     unit: str = ""            # e.g., "VND", "Customers", "%"
+    
+    # [SCORING ENGINE FOUNDATION]
+    scoring_direction: ScoringDirection = ScoringDirection.HIGHER_BETTER
+    target_value: Optional[float] = None
+    critical_threshold: Optional[float] = None # Value at which performance is unacceptable
+    scoring_scale: float = 100.0 # Default max base score
 
 class KPIRegistry:
     """
@@ -45,49 +55,56 @@ class KPIRegistry:
             authority=KPIAuthority.GOVERNED, source_table="transactions", 
             owner_engine="SummaryService", aggregation_type=AggregationType.SUM,
             hierarchy_scope=[HierarchyLevel.PROVINCE, HierarchyLevel.CENTER, HierarchyLevel.CLUSTER, HierarchyLevel.UNIT, HierarchyLevel.STAFF],
-            is_executive=True, can_escalate=True, unit="VND"
+            is_executive=True, can_escalate=True, unit="VND",
+            scoring_direction=ScoringDirection.HIGHER_BETTER, target_value=100000000.0, critical_threshold=50000000.0
         ),
         "VOLUME": KPIDefinition(
             code="VOLUME", display_name="Tổng Sản lượng", 
             authority=KPIAuthority.GOVERNED, source_table="transactions", 
             owner_engine="SummaryService", aggregation_type=AggregationType.COUNT,
             hierarchy_scope=[HierarchyLevel.PROVINCE, HierarchyLevel.CENTER, HierarchyLevel.CLUSTER, HierarchyLevel.UNIT, HierarchyLevel.STAFF],
-            is_executive=True, can_escalate=True, unit="Đơn"
+            is_executive=True, can_escalate=True, unit="Đơn",
+            scoring_direction=ScoringDirection.HIGHER_BETTER, target_value=1000.0, critical_threshold=200.0
         ),
         "ACTIVE_CUSTOMERS": KPIDefinition(
             code="ACTIVE_CUSTOMERS", display_name="KH Hiện hữu", 
             authority=KPIAuthority.SSOT, source_table="monthly_analytics_summary", 
             owner_engine="LifecycleEngine", aggregation_type=AggregationType.COUNT,
             hierarchy_scope=[HierarchyLevel.PROVINCE, HierarchyLevel.CENTER, HierarchyLevel.CLUSTER, HierarchyLevel.UNIT],
-            is_executive=True, can_escalate=False, unit="KH"
+            is_executive=True, can_escalate=False, unit="KH",
+            scoring_direction=ScoringDirection.HIGHER_BETTER, target_value=500.0
         ),
         "CHURN_CUSTOMERS": KPIDefinition(
             code="CHURN_CUSTOMERS", display_name="KH Rời bỏ", 
             authority=KPIAuthority.SSOT, source_table="monthly_analytics_summary", 
             owner_engine="LifecycleEngine", aggregation_type=AggregationType.COUNT,
             hierarchy_scope=[HierarchyLevel.PROVINCE, HierarchyLevel.CENTER, HierarchyLevel.CLUSTER, HierarchyLevel.UNIT],
-            is_executive=True, can_escalate=True, unit="KH"
+            is_executive=True, can_escalate=True, unit="KH",
+            scoring_direction=ScoringDirection.LOWER_BETTER, target_value=10.0, critical_threshold=50.0
         ),
         "NEW_CUSTOMERS": KPIDefinition(
             code="NEW_CUSTOMERS", display_name="KH Mới", 
             authority=KPIAuthority.SSOT, source_table="monthly_analytics_summary", 
             owner_engine="LifecycleEngine", aggregation_type=AggregationType.COUNT,
             hierarchy_scope=[HierarchyLevel.PROVINCE, HierarchyLevel.CENTER, HierarchyLevel.CLUSTER, HierarchyLevel.UNIT],
-            is_executive=True, can_escalate=False, unit="KH"
+            is_executive=True, can_escalate=False, unit="KH",
+            scoring_direction=ScoringDirection.HIGHER_BETTER, target_value=50.0
         ),
         "POTENTIAL_LEADS": KPIDefinition(
             code="POTENTIAL_LEADS", display_name="KH Tiềm năng", 
             authority=KPIAuthority.SSOT, source_table="monthly_analytics_summary", 
             owner_engine="LeadTierEngine", aggregation_type=AggregationType.COUNT,
             hierarchy_scope=[HierarchyLevel.PROVINCE, HierarchyLevel.CENTER, HierarchyLevel.CLUSTER, HierarchyLevel.UNIT],
-            is_executive=True, can_escalate=False, unit="Leads"
+            is_executive=True, can_escalate=False, unit="Leads",
+            scoring_direction=ScoringDirection.HIGHER_BETTER, target_value=100.0
         ),
         "REVENUE_GROWTH": KPIDefinition(
             code="REVENUE_GROWTH", display_name="Tăng trưởng Doanh thu", 
             authority=KPIAuthority.DERIVED, source_table="calculated", 
             owner_engine="AnalyticsRouter", aggregation_type=AggregationType.PERCENT,
             hierarchy_scope=[HierarchyLevel.PROVINCE, HierarchyLevel.CENTER, HierarchyLevel.CLUSTER, HierarchyLevel.UNIT, HierarchyLevel.STAFF],
-            is_executive=True, can_escalate=True, unit="%"
+            is_executive=True, can_escalate=True, unit="%",
+            scoring_direction=ScoringDirection.HIGHER_BETTER, target_value=10.0, critical_threshold=0.0
         ),
     }
 
