@@ -54,6 +54,24 @@ class KPIRollupService:
         
         results["CHURN_CUSTOMERS"] = float(churn_count)
         
+        # 5. Fetch New Customers
+        new_count = db.query(func.sum(MonthlyAnalyticsSummary.total_customers)).filter(
+            MonthlyAnalyticsSummary.point_id.in_(descendant_ids),
+            MonthlyAnalyticsSummary.year_month == year_month,
+            MonthlyAnalyticsSummary.lifecycle_stage == 'new',
+            MonthlyAnalyticsSummary.ma_dv == 'ALL'
+        ).scalar() or 0
+        results["NEW_CUSTOMERS"] = float(new_count)
+
+        # 6. Fetch Potential Leads
+        potential_count = db.query(func.sum(MonthlyAnalyticsSummary.total_customers)).filter(
+            MonthlyAnalyticsSummary.point_id.in_(descendant_ids),
+            MonthlyAnalyticsSummary.year_month == year_month,
+            MonthlyAnalyticsSummary.lifecycle_stage == 'potential', # Logic alignment with LeadTierEngine
+            MonthlyAnalyticsSummary.ma_dv == 'ALL'
+        ).scalar() or 0
+        results["POTENTIAL_LEADS"] = float(potential_count)
+        
         return results
 
     @staticmethod
