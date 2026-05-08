@@ -50,27 +50,25 @@ class CustomerService:
         if scope_ids is not None and not scope_ids:
             return [], 0
 
-        # 3. Base Query - Driver là bảng Customer (Đã được Engine cập nhật trạng thái)
-        # Việc dùng bảng Customer làm driver giúp tận dụng Index trên lifecycle_state, rfm_segment
-        base_query = db.query(Customer)
-
-        # 4. Áp dụng Filters (Governance: Sử dụng dữ liệu đã persist từ Engine)
+        # 3. Build Shared Filters (Governance: Single Source of Truth for Queries)
+        filters = []
+        
         if lifecycle_status:
             status_val = lifecycle_status.lower()
             if status_val == 'recovered': status_val = 'rebuy'
-            base_query = base_query.filter(func.lower(Customer.lifecycle_state) == status_val)
+            filters.append(func.lower(Customer.lifecycle_state) == status_val)
             
         if rfm_segment:
-            base_query = base_query.filter(Customer.rfm_segment == rfm_segment)
+            filters.append(Customer.rfm_segment == rfm_segment)
             
         if vip_tier:
-            base_query = base_query.filter(Customer.vip_tier == vip_tier.upper())
+            filters.append(Customer.vip_tier == vip_tier.upper())
 
         if priority_level:
-            base_query = base_query.filter(Customer.priority_level == priority_level.upper())
+            filters.append(Customer.priority_level == priority_level.upper())
 
         if search:
-            base_query = base_query.filter(
+            filters.append(
                 or_(
                     Customer.ma_crm_cms.ilike(f"%{search}%"),
                     Customer.ten_kh.ilike(f"%{search}%")
@@ -81,13 +79,13 @@ class CustomerService:
             # Lấy list ma_bc từ scope_ids để filter
             scope_nodes = db.query(HierarchyNode.code).filter(HierarchyNode.id.in_(scope_ids)).all()
             scope_codes = [n.code for n in scope_nodes]
-            base_query = base_query.filter(Customer.ma_bc_phu_trach.in_(scope_codes))
+            filters.append(Customer.ma_bc_phu_trach.in_(scope_codes))
 
-        # 5. Total Count (Lấy từ bảng Customer - Rất nhanh)
+        # 4. Total Count (Deterministic - Must match results)
+        base_query = db.query(Customer).filter(*filters)
         total = base_query.count()
 
-        # 6. Metrics Subquery - CHỈ tính cho tháng hiện tại (Dynamic Metrics)
-        # Các trạng thái Lifecycle bền vững (SSOT) đã được Engine lưu vào bảng Customer
+        # 5. Metrics Subquery - CHỈ tính cho tháng hiện tại (Dynamic Metrics)
         metrics_sub = db.query(
             Transaction.ma_kh.label("ma_kh"),
             func.sum(Transaction.doanh_thu).label("dynamic_revenue"),
@@ -98,9 +96,7 @@ class CustomerService:
             Transaction.ma_kh.isnot(None)
         ).group_by(Transaction.ma_kh).subquery()
 
-        # 7. Final Query Assembly
-        # Ta join Customer với metrics_sub để lấy số liệu động
-        # Quan trọng: Phải giữ lại các filter từ base_query
+        # 6. Final Query Assembly (Reuse same filters)
         final_query = db.query(
             Customer,
             func.coalesce(metrics_sub.c.dynamic_revenue, 0).label("dynamic_revenue"),
@@ -109,34 +105,29 @@ class CustomerService:
             NhanSu.full_name.label("assigned_staff_name")
         ).select_from(Customer)\
          .outerjoin(metrics_sub, Customer.ma_crm_cms == metrics_sub.c.ma_kh)\
-         .outerjoin(NhanSu, Customer.assigned_staff_id == NhanSu.id)
+         .outerjoin(NhanSu, Customer.assigned_staff_id == NhanSu.id)\
+         .filter(*filters)
 
-        # Re-apply all filters from base_query to final_query
-        # Thay vì tạo query mới, ta lấy các criteria từ base_query
-        # Tuy nhiên trong SQLAlchemy cách sạch nhất là reuse logic filter
-        if lifecycle_status:
-            status_val = lifecycle_status.lower()
-            if status_val == 'recovered': status_val = 'rebuy'
-            final_query = final_query.filter(func.lower(Customer.lifecycle_state) == status_val)
-            
-        if rfm_segment:
-            final_query = final_query.filter(Customer.rfm_segment == rfm_segment)
-            
-        if search:
-            final_query = final_query.filter(
-                or_(
-                    Customer.ma_crm_cms.ilike(f"%{search}%"),
-                    Customer.ten_kh.ilike(f"%{search}%")
-                )
-            )
+        # 7. Sorting
+        sort_map = {
+            "revenue": text("dynamic_revenue"),
+            "dynamic_revenue": text("dynamic_revenue"),
+            "transaction_count": text("transaction_count"),
+            "ma_crm_cms": Customer.ma_crm_cms,
+            "ten_kh": Customer.ten_kh
+        }
+        
+        sort_field = sort_map.get(sort_by, text("dynamic_revenue"))
+        
+        if order == "asc":
+            final_query = final_query.order_by(asc(sort_field))
+        else:
+            final_query = final_query.order_by(desc(sort_field))
 
-        if scope_ids is not None:
-            # Vì Customer không có point_id (Integer), ta dùng ma_bc_phu_trach (String) 
-            # hoặc filter thông qua Transaction scope (Tuy nhiên Customer driver nên dùng ma_bc_phu_trach)
-            # Lấy list ma_bc từ scope_ids
-            scope_nodes = db.query(HierarchyNode.code).filter(HierarchyNode.id.in_(scope_ids)).all()
-            scope_codes = [n.code for n in scope_nodes]
-            final_query = final_query.filter(Customer.ma_bc_phu_trach.in_(scope_codes))
+        # 8. Execution (Deterministic Pagination)
+        results = final_query.offset(offset).limit(limit).all()
+
+        return results, total
 
         # 8. Sorting
         sort_map = {
