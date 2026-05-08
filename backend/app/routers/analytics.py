@@ -36,6 +36,36 @@ router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 from ..services.hierarchy_service import HierarchyService
 from ..services.summary_service import SummaryService
 
+def get_governed_comparison_periods(db, start_date, end_date, comparison_type="mom"):
+    """
+    [GOVERNANCE] Centralized Like-for-Like date calculation.
+    Enforces max_data_date capping for ALL widgets to ensure SSOT MoM alignment.
+    """
+    max_data_date_raw = db.query(func.max(Transaction.ngay_chap_nhan)).scalar()
+    max_data_date = parse_db_date(max_data_date_raw)
+    
+    if not start_date or not end_date:
+        if not max_data_date:
+            return None, None, None, None, None
+        curr_start = max_data_date.replace(day=1, hour=0, minute=0, second=0)
+        curr_end = max_data_date
+    else:
+        curr_start = datetime.strptime(start_date, "%Y-%m-%d")
+        curr_end = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+        # CRITICAL SSOT: Cap to max data date to ensure Like-for-Like (e.g. 8 days vs 8 days)
+        if max_data_date and curr_end > max_data_date:
+            curr_end = max_data_date
+
+    if comparison_type == "yoy":
+        prev_start = curr_start - dateutil.relativedelta.relativedelta(years=1)
+        prev_end = curr_end - dateutil.relativedelta.relativedelta(years=1)
+    else:
+        # Standard MoM date shift
+        prev_start = curr_start - dateutil.relativedelta.relativedelta(months=1)
+        prev_end = curr_end - dateutil.relativedelta.relativedelta(months=1)
+        
+    return curr_start, curr_end, prev_start, prev_end, max_data_date
+
 @router.post("/refresh-summary")
 async def trigger_summary_refresh(
     db: Session = Depends(get_db),
@@ -175,24 +205,14 @@ async def get_dashboard_stats(
         include_all=True
     )
     
-    # 5. Tính toán tăng trưởng (MoM hoặc YoY)
-    if not start_date or not end_date:
-        curr_start = max_data_date.replace(day=1)
-        curr_end = max_data_date
+    # 5. Tính toán tăng trưởng (MoM hoặc YoY) - GOVERNED SSOT
+    curr_start, curr_end, prev_start, prev_end, max_data_date = get_governed_comparison_periods(
+        db, start_date, end_date, comparison_type
+    )
+    
+    if not curr_start:
+        rev_growth = 0
     else:
-        curr_start = datetime.strptime(start_date, "%Y-%m-%d")
-        curr_end = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
-        # Logic: Cap curr_end to max_data_date to ensure like-for-like comparison
-        if max_data_date and curr_end > max_data_date:
-            curr_end = max_data_date
-
-    if comparison_type == "yoy":
-        prev_start = curr_start - dateutil.relativedelta.relativedelta(years=1)
-        prev_end = curr_end - dateutil.relativedelta.relativedelta(years=1)
-    else:
-        # Chuẩn hóa Like-for-Like MoM
-        prev_start = curr_start - dateutil.relativedelta.relativedelta(months=1)
-        prev_end = curr_end - dateutil.relativedelta.relativedelta(months=1)
 
     latest_val = db.query(func.sum(Transaction.doanh_thu)).filter(
         Transaction.ngay_chap_nhan.between(curr_start, curr_end)
@@ -986,26 +1006,13 @@ async def get_heatmap_units(
 ):
     """Trả về dữ liệu doanh thu phân bổ theo Cấp bậc quản lý (Cluster -> Ward -> Point)"""
     
-    # 1. Xác định mốc thời gian
-    max_data_date_raw = db.query(func.max(Transaction.ngay_chap_nhan)).scalar()
-    max_data_date = parse_db_date(max_data_date_raw)
+    # 1. Xác định mốc thời gian (GOVERNED SSOT)
+    curr_start, curr_end, prev_start, prev_end, max_data_date = get_governed_comparison_periods(
+        db, start_date, end_date, comparison_type
+    )
     
-    if not start_date or not end_date:
-        if not max_data_date: return []
-        curr_start = max_data_date.replace(day=1)
-        curr_end = max_data_date
-    else:
-        curr_start = datetime.strptime(start_date, "%Y-%m-%d")
-        curr_end = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
-
-    # Xác định kỳ so sánh chuẩn "Like-for-Like" (Cùng kỳ ngày tháng năm)
-    if comparison_type == "yoy":
-        prev_start = curr_start - dateutil.relativedelta.relativedelta(years=1)
-        prev_end = curr_end - dateutil.relativedelta.relativedelta(years=1)
-    else:
-        # MoM: So sánh cùng số ngày ở tháng trước (Ví dụ: 1-23/04 so với 1-23/03)
-        prev_start = curr_start - dateutil.relativedelta.relativedelta(months=1)
-        prev_end = curr_end - dateutil.relativedelta.relativedelta(months=1)
+    if not curr_start:
+        return []
     
     # 2. Xác định danh sách các nhóm dựa trên drill-down level (Elite RBAC 3.0)
     # Get nodes that the user is allowed to see
@@ -1038,7 +1045,24 @@ async def get_heatmap_units(
     if not sub_groups:
         return []
         
+    # [SSOT] Calculate TOTAL scope revenue to identify "Orphan Revenue"
+    total_c_val_q = db.query(func.sum(Transaction.doanh_thu)).filter(
+        Transaction.ngay_chap_nhan.between(curr_start, curr_end)
+    )
+    total_p_val_q = db.query(func.sum(Transaction.doanh_thu)).filter(
+        Transaction.ngay_chap_nhan.between(prev_start, prev_end)
+    )
+    
+    if user_scope_ids is not None:
+        total_c_val_q = total_c_val_q.filter(Transaction.point_id.in_(user_scope_ids))
+        total_p_val_q = total_p_val_q.filter(Transaction.point_id.in_(user_scope_ids))
+        
+    total_c_val = total_c_val_q.scalar() or 0
+    total_p_val = total_p_val_q.scalar() or 0
+
     results = []
+    sum_c_val = 0
+    sum_p_val = 0
     for group in sub_groups:
         # Lấy tất cả descendant IDs của group này
         group_desc_ids = HierarchyService.get_descendant_ids(db, group.code)
@@ -1072,6 +1096,23 @@ async def get_heatmap_units(
             "revenue": float(c_val),
             "previous_revenue": float(p_val),
             "growth": round(float(growth), 1)
+        })
+        sum_c_val += c_val
+        sum_p_val += p_val
+    
+    # [SSOT] Handle Orphan Revenue (Transactions with point_id not in hierarchy loop)
+    orphan_c_val = total_c_val - sum_c_val
+    orphan_p_val = total_p_val - sum_p_val
+    
+    if orphan_c_val > 0 or orphan_p_val > 0:
+        orphan_growth = ((orphan_c_val - orphan_p_val) / orphan_p_val * 100) if orphan_p_val > 0 else (100 if orphan_c_val > 0 else 0)
+        results.append({
+            "don_vi": "Đơn vị khác / Chưa phân loại",
+            "ma_don_vi": "ORPHAN",
+            "type": "OTHER",
+            "revenue": float(max(0, orphan_c_val)),
+            "previous_revenue": float(max(0, orphan_p_val)),
+            "growth": round(float(orphan_growth), 1)
         })
     
     if not results: return []
