@@ -13,6 +13,7 @@ from ..services.scoping_service import ScopingService
 from ..routers.auth import get_current_user
 from ..models import User
 from ..services.potential_service import PotentialService
+from ..core.kpi_governance import KPIRegistry
 
 def parse_db_date(db_val):
     """Cấp cứu cho SQLite: Chuyển đổi mọi giá trị trả về từ func.max() sang datetime an toàn"""
@@ -259,6 +260,12 @@ async def get_dashboard_stats(
             "month": current_month_str,
             "scope_ids": scope_point_ids,
             "is_admin": ScopingService.is_admin(current_user)
+        },
+        "governance": {
+            "kpi_authority": {
+                "tong_doanh_thu": KPIRegistry.get_kpi("REVENUE").authority if KPIRegistry.get_kpi("REVENUE") else "GOVERNED",
+                "revenue_growth": KPIRegistry.get_kpi("REVENUE_GROWTH").authority if KPIRegistry.get_kpi("REVENUE_GROWTH") else "DERIVED"
+            }
         }
     }
     

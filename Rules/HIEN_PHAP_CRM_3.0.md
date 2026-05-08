@@ -204,6 +204,29 @@ Mọi thông tin về Lifecycle, Growth, VIP Tier, KPI và Priority đều phả
 
 ---
 
+# XIII. KPI CONSTITUTION LAYER (Governance Foundation)
+Quy chuẩn quản trị và thẩm quyền của các chỉ số hiệu năng (KPI) trong hệ thống:
+
+### 1. PHÂN CẤP THẨM QUYỀN KPI
+- **GOVERNED KPI (Chỉ số Gốc)**: Định nghĩa trực tiếp từ Transaction Truth. Tuyệt đối không thể ghi đè (e.g., Doanh thu, Sản lượng, Số lượng đơn hàng).
+- **SSOT KPI (Chỉ số Tổng hợp)**: Chỉ số từ Summary Layer đã qua chuẩn hóa. Là nguồn tin cậy duy nhất cho báo cáo định kỳ (e.g., Số lượng KH Diamond, Tỷ lệ Churn, Tỷ trọng vùng).
+- **DERIVED KPI (Chỉ số Phái sinh)**: Tính toán từ các chỉ số Gốc/Tổng hợp (e.g., Revenue per Customer, Growth Rate, ROI).
+- **DISPLAY-ONLY KPI**: Chỉ số phục vụ hiển thị nhanh trên Dashboard, không có giá trị pháp lý trong điều hành chiến lược (e.g., Target completion % dự tính).
+
+### 2. NGUYÊN TẮC QUẢN TRỊ KPI
+- **Centralized Definition**: Mọi KPI phải có mã định danh (Code) và nguồn dữ liệu (Source) duy nhất.
+- **Summary-First**: Dashboard chỉ được phép đọc các KPI tổng hợp từ Summary Layer để đảm bảo tốc độ và tính nhất quán.
+- **Auditability**: Mọi thay đổi trong công thức tính toán KPI (nếu có) phải được cập nhật trong Hiến pháp và ghi log phiên bản.
+
+### 3. RANH GIỚI VẬN HÀNH (Governance Boundaries)
+- Chỉ **GOVERNED KPI** và **SSOT KPI** mới có quyền:
+    - Kích hoạt **Critical Alert** (Cảnh báo đỏ).
+    - Kích hoạt **Escalation Engine** (Leo thang quản lý).
+    - Xuất hiện trên **Executive Dashboard** (Màn hình lãnh đạo).
+    - Được dùng làm căn cứ tính **Operational Scoring** (Điểm thi đua).
+
+---
+
 ## 🏛️ PHỤ LỤC: PHÂN CẤP & PHÂN QUYỀN TRUY CẬP
 1.  **Cấu trúc 5 cấp**: Tỉnh -> Trung tâm -> Cụm -> Phường/Xã -> Điểm.
 2.  **Cơ chế "Nhìn xuống"**: Cấp trên thấy dữ liệu tất cả cấp dưới.
