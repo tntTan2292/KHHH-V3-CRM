@@ -5,6 +5,7 @@ from ..database import get_db
 from ..services.executive_health_service import ExecutiveHealthService
 from ..services.operational_risk_service import OperationalRiskService
 from ..services.executive_situation_service import ExecutiveSituationService
+from ..services.executive_trend_service import ExecutiveTrendService
 from ..auth.auth_service import get_current_user
 from ..models import User
 from datetime import datetime
@@ -103,3 +104,32 @@ async def get_executive_situation(
         return situation_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Executive Situation Room Error: {str(e)}")
+
+@router.get("/trends")
+async def get_executive_trends(
+    node_id: Optional[int] = None,
+    period_key: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    GOVERNANCE: Endpoint for Executive Trend Intelligence.
+    Provides foresight into operational momentum and anomalies.
+    """
+    target_node_id = node_id or current_user.scope_node_id
+    
+    if not target_node_id:
+        from ..models import HierarchyNode
+        root_node = db.query(HierarchyNode).filter(HierarchyNode.parent_id == None).first()
+        if root_node:
+            target_node_id = root_node.id
+        else:
+            raise HTTPException(status_code=400, detail="No hierarchy context found.")
+
+    target_period = period_key or datetime.now().strftime('%Y-%m')
+
+    try:
+        trend_data = ExecutiveTrendService.analyze_trend(db, 'HIERARCHY_NODE', str(target_node_id), target_period)
+        return trend_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Executive Trend Engine Error: {str(e)}")
