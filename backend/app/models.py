@@ -111,7 +111,7 @@ class Customer(Base):
     tong_doanh_thu = Column(Float, default=0.0)
     rfm_segment = Column(String(100), default="Thường")
     is_churn = Column(Integer, default=0) # 0: Đang hoạt động, 1: Rời bỏ (Không phát sinh DT)
-    lifecycle_state = Column(String(50), index=True, default="NEW")
+    lifecycle_state = Column(String(50), index=True, default="UNKNOWN")
     growth_tag = Column(String(100), nullable=True)
     vip_tier = Column(String(50), index=True, default="BRONZE")
     priority_score = Column(Integer, default=0)
