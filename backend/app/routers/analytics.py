@@ -226,7 +226,7 @@ async def get_dashboard_stats(
     
     latest_val = latest_val.scalar() or 0
     prev_val = prev_val_q.scalar() or 0
-
+    
     rev_growth = 0
     if prev_val > 0:
         rev_growth = ((latest_val - prev_val) / prev_val) * 100
@@ -245,7 +245,7 @@ async def get_dashboard_stats(
             latest_date_str = str(latest_date)
 
     response_data = {
-        "tong_doanh_thu": tong_dt,
+        "tong_doanh_thu": latest_val,
         "tong_kh": tong_kh,
         "kh_moi": kh_moi,
         "kh_roi_bo": kh_roi_bo,
@@ -520,9 +520,11 @@ async def get_top_movers(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # 1. Xác định dải ngày
-    max_data_date = parse_db_date(db.query(func.max(Transaction.ngay_chap_nhan)).scalar())
-    
+    # 1. Tính toán dải ngày (MoM hoặc YoY) - GOVERNED SSOT
+    curr_start, curr_end, prev_start, prev_end, max_data_date = get_governed_comparison_periods(
+        db, start_date, end_date, comparison_type
+    )
+
     # Xác định phạm vi dữ liệu hiệu lực (Elite RBAC 3.0)
     scope_ids = ScopingService.get_effective_scope_ids(db, current_user, node_code)
     if scope_ids is not None and not scope_ids:
@@ -531,19 +533,6 @@ async def get_top_movers(
             "movers": {"gainers": [], "losers": []},
             "period": {"current": {"start": "", "end": ""}, "previous": {"start": "", "end": ""}}
         }
-    
-    if not start_date or not end_date:
-        if not max_data_date:
-            return {
-                "summary": {"revenue": {"current": 0, "previous": 0}, "volume": {"current": 0, "previous": 0}, "services": []},
-                "movers": {"gainers": [], "losers": []},
-                "period": {"current": {"start": "", "end": ""}, "previous": {"start": "", "end": ""}}
-            }
-        curr_start = max_data_date.replace(day=1)
-        curr_end = max_data_date
-    else:
-        curr_start = datetime.strptime(start_date, "%Y-%m-%d")
-        curr_end = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
 
     # [GOVERNANCE] Summary-First Boundary Check
     # Top Movers is a heavy operation. We ONLY allow it if the month has been summarized.
@@ -557,21 +546,6 @@ async def get_top_movers(
             "period": {"current": {"start": "", "end": ""}, "previous": {"start": "", "end": ""}},
             "governance_alert": "Data pending summary. Please run maintenance."
         }
-
-    comparison_end = curr_end
-    if max_data_date and curr_end > max_data_date:
-        comparison_end = max_data_date
-    
-    # Chuẩn hóa về date để tránh lệch giây/phút khi tính toán relativedelta và so sánh query
-    comparison_end_date = comparison_end.date() if hasattr(comparison_end, 'date') else comparison_end
-
-    # Tính toán cùng kỳ (MoM hoặc YoY) dựa trên mốc so sánh thực tế
-    if comparison_type == "yoy":
-        prev_start = curr_start - dateutil.relativedelta.relativedelta(years=1)
-        prev_end = comparison_end_date - dateutil.relativedelta.relativedelta(years=1)
-    else: # Mặc định là mom
-        prev_start = curr_start - dateutil.relativedelta.relativedelta(months=1)
-        prev_end = comparison_end_date - dateutil.relativedelta.relativedelta(months=1)
 
     # 2 & 3. Query Doanh thu kỳ hiện tại và kỳ trước song song
     async def get_period_data(start, end, ids):
@@ -720,7 +694,7 @@ async def get_top_movers(
             "losers": losers
         },
         "period": {
-            "current": {"start": curr_start.strftime("%d/%m/%Y"), "end": comparison_end.strftime("%d/%m/%Y")},
+            "current": {"start": curr_start.strftime("%d/%m/%Y"), "end": curr_end.strftime("%d/%m/%Y")},
             "previous": {"start": prev_start.strftime("%d/%m/%Y"), "end": prev_end.strftime("%d/%m/%Y")},
             "type": comparison_type
         }
@@ -1062,7 +1036,7 @@ async def get_heatmap_units(
         
     total_c_val = total_q_c.scalar() or 0
     total_p_val = total_q_p.scalar() or 0
-
+    
     for group in sub_groups:
         # Lấy tất cả descendant IDs của group này
         group_desc_ids = HierarchyService.get_descendant_ids(db, group.code)
