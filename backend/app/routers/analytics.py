@@ -149,19 +149,11 @@ async def get_dashboard_stats(
         
         tong_dt = sum(r[1] for r in summary_res)
     else:
-        # Fallback về logic cũ (Raw Query) nhưng log lại để audit performance
-        logger.warning(f"Performance Alert: Dashboard fallback to Raw Query for range {start_date} to {end_date}")
-        # GOVERNANCE: We NO LONGER overwrite lifecycle_stats from legacy filtered logic.
-        # Lifecycle distribution stays decoupled as per SSOT mandate.
-        
-        query = db.query(func.sum(Transaction.doanh_thu))
-        if scope_point_ids is not None: 
-            query = query.filter(Transaction.point_id.in_(scope_point_ids))
-        if start_date:
-            query = query.filter(Transaction.ngay_chap_nhan >= start_date)
-        if end_date:
-            query = query.filter(Transaction.ngay_chap_nhan <= f"{end_date} 23:59:59")
-        tong_dt = query.scalar() or 0.0
+        # [GOVERNANCE] Enforce Summary-First: Refuse to scan millions of raw transactions for Dashboard KPIs.
+        # This forces the system to run the SummaryEngine before data is visible.
+        logger.warning(f"Governance Warning: Dashboard blocked raw scan for month {month_str}. Data must be summarized first.")
+        tong_dt = 0.0
+        # Optional: Trigger summary refresh logic here or return 425 Too Early
     
     # 4. KPIs Lấy trực tiếp từ Lifecycle Engine (Sử dụng Slugs)
     kh_moi = lifecycle_stats.get("new", 0)
@@ -534,8 +526,19 @@ async def get_top_movers(
         curr_start = datetime.strptime(start_date, "%Y-%m-%d")
         curr_end = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
 
-    # LOGIC QUAN TRỌNG: Nếu người dùng chọn ngày kết thúc vượt quá ngày có dữ liệu (ví dụ chọn hết tháng mà mới có nửa tháng)
-    # Ta sẽ dùng ngày có dữ liệu thực tế nhất để tính toán "Cùng kỳ"
+    # [GOVERNANCE] Summary-First Boundary Check
+    # Top Movers is a heavy operation. We ONLY allow it if the month has been summarized.
+    month_str = curr_start.strftime("%Y-%m")
+    summary_exists = db.query(MonthlyAnalyticsSummary).filter(MonthlyAnalyticsSummary.year_month == month_str).first() is not None
+    if not summary_exists:
+        logger.error(f"Governance Block: Top Movers refused for un-summarized month {month_str}")
+        return {
+            "summary": {"revenue": {"current": 0, "previous": 0}, "volume": {"current": 0, "previous": 0}, "services": []},
+            "movers": {"gainers": [], "losers": []},
+            "period": {"current": {"start": "", "end": ""}, "previous": {"start": "", "end": ""}},
+            "governance_alert": "Data pending summary. Please run maintenance."
+        }
+
     comparison_end = curr_end
     if max_data_date and curr_end > max_data_date:
         comparison_end = max_data_date
