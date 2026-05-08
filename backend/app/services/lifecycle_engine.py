@@ -42,10 +42,10 @@ class LifecycleEngine:
                     SUM(CASE WHEN strftime('%Y-%m', t.ngay_chap_nhan) = '{m_1}' THEN t.doanh_thu ELSE 0 END) as prev_rev,
                     COUNT(t.id) as total_orders_hist,
                     SUM(t.doanh_thu) as total_rev_hist,
-                    COALESCE(hn.id, t.point_id) as point_id
+                    COALESCE(c.point_id, hn.id, t.point_id) as point_id
                 FROM transactions t
                 LEFT JOIN customers c ON t.ma_kh = c.ma_crm_cms
-                LEFT JOIN hierarchy_nodes hn ON c.ma_bc_phu_trach = hn.code
+                LEFT JOIN hierarchy_nodes hn ON (c.point_id IS NULL AND c.ma_bc_phu_trach = hn.code)
                 WHERE t.ma_kh IS NOT NULL AND t.ma_kh != ''
                 {p_filter}
                 GROUP BY t.ma_kh

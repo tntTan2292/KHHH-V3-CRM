@@ -82,10 +82,22 @@ class ScopingService:
         if hasattr(model, 'scope_node_id'):
             return query.filter(model.scope_node_id.in_(scope_ids))
 
-        # Đặc thù cho bảng Customer
+        # Đặc thù cho bảng Customer (Nhất quán quyền sở hữu)
         if model == Customer:
+            # Ưu tiên dùng point_id nếu đã được backfill
+            # Fallback dùng ma_bc_phu_trach nếu point_id rỗng
             nodes = db.query(HierarchyNode.code).filter(HierarchyNode.id.in_(scope_ids)).all()
             codes = [n[0] for n in nodes if n[0]]
-            return query.filter(Customer.ma_bc_phu_trach.in_(codes))
+            
+            from sqlalchemy import or_, and_
+            return query.filter(
+                or_(
+                    Customer.point_id.in_(scope_ids),
+                    and_(
+                        Customer.point_id == None,
+                        Customer.ma_bc_phu_trach.in_(codes)
+                    )
+                )
+            )
 
         return query

@@ -118,6 +118,7 @@ class Customer(Base):
     priority_level = Column(String(20), index=True, default="LOW")
 
     ma_bc_phu_trach = Column(String(50), nullable=True, index=True) 
+    point_id = Column(Integer, ForeignKey("hierarchy_nodes.id"), nullable=True, index=True)
     assigned_staff_id = Column(Integer, ForeignKey("nhan_su.id"), nullable=True) # Nhân viên được giao CSKH
     
     # Enrichment fields
@@ -133,6 +134,7 @@ class Customer(Base):
     
     # Relationships
     assigned_staff = relationship("NhanSu")
+    point = relationship("HierarchyNode")
 
 class Transaction(Base):
     __tablename__ = "transactions"

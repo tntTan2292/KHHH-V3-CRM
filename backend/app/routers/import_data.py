@@ -141,8 +141,8 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None):
         # ... (giữ nguyên logic đồng bộ KH, RFM...)
         import_status["message"] = "Đồng bộ Khách hàng & RFM..."
         db.execute(text("""
-            INSERT INTO customers (ma_crm_cms, ten_kh, loai_kh, nhom_kh, is_churn, tong_doanh_thu)
-            SELECT t.ma_kh, t.ten_nguoi_gui, 'Ngoài danh mục KHHH', 'Khách hàng mới', 0, 0
+            INSERT INTO customers (ma_crm_cms, ten_kh, loai_kh, nhom_kh, is_churn, tong_doanh_thu, point_id, ma_bc_phu_trach)
+            SELECT t.ma_kh, t.ten_nguoi_gui, 'Ngoài danh mục KHHH', 'Khách hàng mới', 0, 0, t.point_id, t.ma_dv_chap_nhan
             FROM transactions t
             LEFT JOIN customers c ON t.ma_kh = c.ma_crm_cms
             WHERE c.ma_crm_cms IS NULL AND t.ma_kh IS NOT NULL AND t.ma_kh NOT IN ('', 'nan', 'NAN', 'None')
