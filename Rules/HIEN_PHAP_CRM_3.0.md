@@ -81,7 +81,57 @@ Hệ thống tự động phân tầng khách hàng dựa trên Ranking doanh th
 
 ---
 
-# V. PRIORITY ENGINE (Hybrid Scoring Model)
+# V. LEAD TIER ENGINE (Dynamic Prospect Ranking)
+Lead Tier Engine là hệ thống xếp hạng động dành riêng cho khách hàng tiềm năng, giúp chuẩn hóa việc quản lý, theo dõi và chuyển đổi Lead.
+
+### 1. ĐỊNH NGHĨA LEAD
+CRM V3.0 chuẩn hóa 02 loại khách hàng tiềm năng:
+- **Transaction Leads**: Khách hàng đã có giao dịch thực tế nhưng chưa được cấp mã định danh chính thức. Dữ liệu được trích xuất tự động từ Transaction Database.
+- **Manual Prospect Leads**: Khách hàng chưa có giao dịch, được tạo ra từ hoạt động khai thác thị trường/bán mới. Dữ liệu được quản lý bởi TTKD và cấu trúc hierarchy sales.
+
+### 2. LEAD TIER ENGINE PRINCIPLES
+- **Dynamic Ranking**: Lead Tier được tính toán tự động dựa trên Ranking, Momentum (tốc độ tăng trưởng), Lead Risk (nguy cơ mất dấu), Lead Aging (độ trễ xử lý) và Conversion Readiness (mức độ sẵn sàng chuyển đổi).
+- **No Manual Entry**: Lead Tier **KHÔNG được nhập tay**. Hệ thống tự động xếp hạng dựa trên Hybrid Ranking Model.
+- **Hybrid Ranking Model**: Sử dụng rolling transaction window, momentum growth và stability scoring. Tuyệt đối không sử dụng các ngưỡng doanh thu cố định (fixed hard-coded thresholds).
+
+### 3. LEAD OWNERSHIP GOVERNANCE
+- **Transaction Leads**: Ownership mặc định theo **Bưu cục chấp nhận cuối cùng** (Transaction Truth Ownership).
+- **Manual Prospect Leads**: Ownership thuộc về nhân viên được giao xử lý trực tiếp (B1/B2). 
+- **Hierarchy Mapping**: Mọi Lead phải được mapping ownership chính xác theo Hierarchy Tree hiện tại.
+
+### 4. TTKD vs TTVH LAYER
+- **TTVH (Trung tâm Vận hành)**: Quản lý khách hàng hiện hữu, duy trì sản lượng, retention và giám sát vận hành.
+- **TTKD (Trung tâm Kinh doanh)**: Quản lý khách hàng tiềm năng, phát triển Lead và Sales Acquisition. Mặc định Lead Governance thuộc về layer TTKD.
+
+### 5. LOCAL & PROVINCIAL RANKING
+Hệ thống hỗ trợ đa tầng xếp hạng:
+- **Provincial Ranking**: Top Lead toàn Bưu điện TP.
+- **Local Ranking**: Top Lead theo Khu vực, Bưu cục và địa bàn quản lý.
+
+### 6. LEAD CONVERSION & ATTRIBUTION GOVERNANCE
+- **Conversion Lock**: Khi một Manual Prospect Lead được tạo mã khách hàng chính thức, hệ thống thực hiện khóa Attribution ban đầu.
+- **Confirmation Mechanism**: Chờ transaction thực tế xác nhận. Nếu transaction phát sinh đúng Ownership Hierarchy -> Tự động xác nhận (Auto-confirm).
+- **Conflict Handling**: Nếu transaction phát sinh ở đơn vị khác -> Bắt buộc kích hoạt **Escalation Governance** để xử lý tranh chấp.
+
+### 7. LEAD AGING & RISK GOVERNANCE
+- Hệ thống theo dõi Lead Aging để đưa ra các mức cảnh báo (Configurable):
+    - **30 ngày**: WATCHLIST.
+    - **60 ngày**: HIGH RISK.
+    - **90 ngày**: Tự động hạ bậc xếp hạng (Tier Degradation).
+    - **180 ngày**: STALE LEAD (Lead nguội).
+- Mọi ngưỡng thời gian phải được cấu hình linh hoạt, không được hard-code.
+
+### 8. ESCALATION & PRIMARY OWNER MODEL
+- **Escalation Case**: CRM không tự động xử lý tranh chấp Attribution. Các trường hợp sai lệch Ownership/Hierarchy phải được đẩy lên cấp quản lý (Trưởng đại diện/Giám đốc) để quyết định tỷ lệ phân chia doanh thu hoặc xác định chủ sở hữu cuối cùng.
+- **Primary Owner Model**: Manual Prospect Lead hỗ trợ 01 Primary Owner và nhiều Collaborators nhằm rõ ràng KPI chính nhưng vẫn khuyến khích teamwork.
+
+### 9. ARCHITECTURE & SSOT ALIGNMENT
+- Lead Tier Engine không được phép bypass Transaction Truth hoặc hard-code ownership/hierarchy.
+- Transaction Database vẫn là **Single Source of Truth** cuối cùng. Dashboard chỉ hiển thị kết quả đã được Engine tính toán và chuẩn hóa (Governed Outputs).
+
+---
+
+# VI. PRIORITY ENGINE (Hybrid Scoring Model)
 Hệ thống ưu tiên xử lý dựa trên sự kết hợp giữa các chỉ số tĩnh và động:
 - **Fixed Score**: VIP Tier, Lifecycle Stage.
 - **Dynamic Weight**: Risk aging (mức độ nghiêm trọng của nguy cơ), Growth rate (tốc độ tăng trưởng), B2 aging (độ trễ thương thảo).
@@ -95,7 +145,7 @@ Hệ thống ưu tiên xử lý dựa trên sự kết hợp giữa các chỉ s
 
 ---
 
-# VI. NOTIFICATION ENGINE (Hybrid Alert System)
+# VII. NOTIFICATION ENGINE (Hybrid Alert System)
 Hệ thống cảnh báo đa tầng:
 - **🔵 INFO**: Thông tin thống kê định kỳ.
 - **🟡 WARNING**: Hiển thị trên Dashboard để lưu ý.
@@ -110,14 +160,14 @@ Hệ thống cảnh báo đa tầng:
 
 ---
 
-# VII. ACTION ENGINE
+# VIII. ACTION ENGINE
 CRM không chỉ đưa ra con số, mà phải đề xuất hướng xử lý chiến lược:
 - **Action != Task**: Action là chiến lược (Ví dụ: "Chiến dịch khôi phục VIP"), Task là công việc cụ thể (Ví dụ: "Gọi điện cho anh A lúc 9h").
 - **Các Action chuẩn**: Gọi khách, Chăm sóc VIP, Kiểm tra chất lượng dịch vụ, Upsell, Recovery (Khôi phục).
 
 ---
 
-# VIII. ESCALATION ENGINE (Cơ chế leo thang)
+# IX. ESCALATION ENGINE (Cơ chế leo thang)
 Xác định cấp độ quản lý cần can thiệp dựa trên độ nghiêm trọng:
 - **Phân cấp**: Nhân viên -> Giám đốc BCVH -> Trưởng đại diện Cụm -> Lãnh đạo BĐTP.
 - **Trình đọc Escalation**: Tổng hợp đồng thời VIP Tier, Priority, Risk và Lifecycle.
@@ -125,7 +175,7 @@ Xác định cấp độ quản lý cần can thiệp dựa trên độ nghiêm 
 
 ---
 
-# IX. TASK ORCHESTRATOR
+# X. TASK ORCHESTRATOR
 Điều phối công việc thông minh:
 - **Workflow**: CRM gợi ý nhiệm vụ -> Lãnh đạo duyệt/điều chỉnh -> Giao nhân viên.
 - **Quy tắc**: KHÔNG giao việc lung tung. Task phải tuân thủ Ownership và Scope quản lý của từng cấp.
@@ -136,14 +186,14 @@ Xác định cấp độ quản lý cần can thiệp dựa trên độ nghiêm 
 
 ---
 
-# X. EXECUTIVE DASHBOARD
+# XI. EXECUTIVE DASHBOARD
 Giao diện điều hành chia làm 2 lớp tách biệt:
 1.  **Executive Layer (Lớp điều hành)**: Tập trung vào Critical Center, VIP Risk, Escalation và các Task nóng cần xử lý ngay.
 2.  **Analytics Layer (Lớp phân tích)**: Tập trung vào xu hướng MoM, YoY, Revenue Mix, cấu trúc Lifecycle và biểu đồ tăng trưởng.
 
 ---
 
-# XI. SSOT (SINGLE SOURCE OF TRUTH) SUMMARY
+# XII. SSOT (SINGLE SOURCE OF TRUTH) SUMMARY
 **Transaction Database là nguồn dữ liệu chuẩn duy nhất và cuối cùng**. 
 Mọi thông tin về Lifecycle, Growth, VIP Tier, KPI và Priority đều phải được truy xuất và chứng thực từ đây. Tuyệt đối không chấp nhận các báo cáo thủ công hoặc dữ liệu ảo nhằm ghi đè lên "Sự thật giao dịch" (Transaction Truth).
 
@@ -169,4 +219,4 @@ Mọi thông tin về Lifecycle, Growth, VIP Tier, KPI và Priority đều phả
 5.  **SSOT COMPLIANCE**: AI phải bảo vệ SSOT, không được để logic code làm sai lệch các nguyên tắc trong Hiến pháp.
 
 ---
-*Cập nhật lần cuối: 06/05/2026 - Tái cấu trúc SSOT chuẩn hóa 11 Section.*
+*Cập nhật lần cuối: 08/05/2026 - Tích hợp LEAD TIER ENGINE và Chuẩn hóa 12 Section.*
