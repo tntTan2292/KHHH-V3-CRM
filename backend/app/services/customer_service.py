@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, and_, func, desc, asc, text, case, literal
+from sqlalchemy import or_, and_, func, desc, asc, text, case, literal, exists
 from datetime import datetime, timedelta
 import dateutil.relativedelta
 from ..models import User, NhanSu, HierarchyNode, Customer, Transaction
@@ -57,6 +57,9 @@ class CustomerService:
             status_val = lifecycle_status.lower()
             if status_val == 'recovered': status_val = 'rebuy'
             filters.append(func.lower(Customer.lifecycle_state) == status_val)
+            # [GOVERNANCE] Chỉ hiển thị những KH đã tham gia vào Lifecycle (có phát sinh đơn hàng)
+            # để khớp tuyệt đối với số liệu trên các thẻ KPI Dashboard (Single Source of Truth)
+            filters.append(exists().where(Transaction.ma_kh == Customer.ma_crm_cms))
             
         if rfm_segment:
             filters.append(Customer.rfm_segment == rfm_segment)
