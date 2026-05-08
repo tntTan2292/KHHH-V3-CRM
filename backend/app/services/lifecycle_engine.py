@@ -34,24 +34,26 @@ class LifecycleEngine:
             sql = """
             WITH customer_base AS (
                 SELECT 
-                    ma_kh,
-                    MIN(ngay_chap_nhan) as first_order_date,
-                    MAX(ngay_chap_nhan) as latest_order_date,
-                    MAX(CASE WHEN strftime('%Y-%m', ngay_chap_nhan) < '{m}' THEN ngay_chap_nhan ELSE NULL END) as last_order_before,
-                    SUM(CASE WHEN strftime('%Y-%m', ngay_chap_nhan) = '{m}' THEN doanh_thu ELSE 0 END) as curr_rev,
-                    SUM(CASE WHEN strftime('%Y-%m', ngay_chap_nhan) = '{m_1}' THEN doanh_thu ELSE 0 END) as prev_rev,
-                    COUNT(id) as total_orders_hist,
-                    SUM(doanh_thu) as total_rev_hist,
-                    point_id
-                FROM transactions
-                WHERE ma_kh IS NOT NULL AND ma_kh != ''
+                    t.ma_kh,
+                    MIN(t.ngay_chap_nhan) as first_order_date,
+                    MAX(t.ngay_chap_nhan) as latest_order_date,
+                    MAX(CASE WHEN strftime('%Y-%m', t.ngay_chap_nhan) < '{m}' THEN t.ngay_chap_nhan ELSE NULL END) as last_order_before,
+                    SUM(CASE WHEN strftime('%Y-%m', t.ngay_chap_nhan) = '{m}' THEN t.doanh_thu ELSE 0 END) as curr_rev,
+                    SUM(CASE WHEN strftime('%Y-%m', t.ngay_chap_nhan) = '{m_1}' THEN t.doanh_thu ELSE 0 END) as prev_rev,
+                    COUNT(t.id) as total_orders_hist,
+                    SUM(t.doanh_thu) as total_rev_hist,
+                    COALESCE(hn.id, t.point_id) as point_id
+                FROM transactions t
+                LEFT JOIN customers c ON t.ma_kh = c.ma_crm_cms
+                LEFT JOIN hierarchy_nodes hn ON c.ma_bc_phu_trach = hn.code
+                WHERE t.ma_kh IS NOT NULL AND t.ma_kh != ''
                 {p_filter}
-                GROUP BY ma_kh, point_id
+                GROUP BY t.ma_kh
             )
             SELECT * FROM customer_base
             WHERE curr_rev > 0 OR latest_order_date IS NOT NULL
             """.format(m=month_str, m_1=t_minus_1_month, 
-                       p_filter=f"AND point_id = {point_id}" if point_id else "")
+                       p_filter=f"AND COALESCE(hn.id, t.point_id) = {point_id}" if point_id else "")
             
             df = pd.read_sql_query(sql, conn)
             if df.empty: return []
