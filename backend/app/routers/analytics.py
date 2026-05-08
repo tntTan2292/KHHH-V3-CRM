@@ -208,9 +208,11 @@ async def get_dashboard_stats(
         db, start_date, end_date, comparison_type
     )
     
-    if not curr_start:
-        rev_growth = 0
-    else:
+    rev_growth = 0
+    latest_val = db.query(func.sum(Transaction.doanh_thu)).filter(Transaction.id == -1) # Default empty query
+    prev_val_q = db.query(func.sum(Transaction.doanh_thu)).filter(Transaction.id == -1) # Default empty query
+
+    if curr_start:
         latest_val = db.query(func.sum(Transaction.doanh_thu)).filter(
             Transaction.ngay_chap_nhan.between(curr_start, curr_end)
         )
@@ -1039,10 +1041,28 @@ async def get_heatmap_units(
         if not sub_groups:
             sub_groups = [parent_node]
     
-    if not sub_groups:
-        return []
-        
     results = []
+    sum_c_val = 0
+    sum_p_val = 0
+    
+    # 3. Tính toán TỔNG của phạm vi đang soi để tìm Orphan (Transactions không gán đúng hierarchy)
+    # [SSOT] Phải dùng cùng một user_scope_ids để đảm bảo tính nhất quán
+    total_q_c = db.query(func.sum(Transaction.doanh_thu)).filter(
+        Transaction.ngay_chap_nhan >= curr_start,
+        Transaction.ngay_chap_nhan <= curr_end
+    )
+    total_q_p = db.query(func.sum(Transaction.doanh_thu)).filter(
+        Transaction.ngay_chap_nhan >= prev_start,
+        Transaction.ngay_chap_nhan <= prev_end
+    )
+    
+    if user_scope_ids is not None:
+        total_q_c = total_q_c.filter(Transaction.point_id.in_(user_scope_ids))
+        total_q_p = total_q_p.filter(Transaction.point_id.in_(user_scope_ids))
+        
+    total_c_val = total_q_c.scalar() or 0
+    total_p_val = total_q_p.scalar() or 0
+
     for group in sub_groups:
         # Lấy tất cả descendant IDs của group này
         group_desc_ids = HierarchyService.get_descendant_ids(db, group.code)
