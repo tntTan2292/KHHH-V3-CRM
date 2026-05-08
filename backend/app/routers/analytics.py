@@ -14,6 +14,7 @@ from ..routers.auth import get_current_user
 from ..models import User
 from ..services.potential_service import PotentialService
 from ..core.kpi_governance import KPIRegistry
+from ..services.kpi_scoring_service import KPIScoringService
 
 def parse_db_date(db_val):
     """Cấp cứu cho SQLite: Chuyển đổi mọi giá trị trả về từ func.max() sang datetime an toàn"""
@@ -262,9 +263,28 @@ async def get_dashboard_stats(
             "is_admin": ScopingService.is_admin(current_user)
         },
         "governance": {
-            "kpi_authority": {
-                "tong_doanh_thu": KPIRegistry.get_kpi("REVENUE").authority if KPIRegistry.get_kpi("REVENUE") else "GOVERNED",
-                "revenue_growth": KPIRegistry.get_kpi("REVENUE_GROWTH").authority if KPIRegistry.get_kpi("REVENUE_GROWTH") else "DERIVED"
+            "metrics": {
+                "tong_doanh_thu": {
+                    "code": "REVENUE",
+                    "authority": KPIRegistry.get_kpi("REVENUE").authority if KPIRegistry.get_kpi("REVENUE") else "GOVERNED",
+                    "score": KPIScoringService.calculate_normalized_score("REVENUE", latest_val),
+                    "status": KPIScoringService.get_performance_status("REVENUE", KPIScoringService.calculate_normalized_score("REVENUE", latest_val)),
+                    "unit": KPIRegistry.get_kpi("REVENUE").unit if KPIRegistry.get_kpi("REVENUE") else "VND"
+                },
+                "revenue_growth": {
+                    "code": "REVENUE_GROWTH",
+                    "authority": KPIRegistry.get_kpi("REVENUE_GROWTH").authority if KPIRegistry.get_kpi("REVENUE_GROWTH") else "DERIVED",
+                    "score": KPIScoringService.calculate_normalized_score("REVENUE_GROWTH", rev_growth),
+                    "status": KPIScoringService.get_performance_status("REVENUE_GROWTH", KPIScoringService.calculate_normalized_score("REVENUE_GROWTH", rev_growth)),
+                    "unit": "%"
+                },
+                "kh_roi_bo": {
+                    "code": "CHURN_CUSTOMERS",
+                    "authority": KPIRegistry.get_kpi("CHURN_CUSTOMERS").authority if KPIRegistry.get_kpi("CHURN_CUSTOMERS") else "SSOT",
+                    "score": KPIScoringService.calculate_normalized_score("CHURN_CUSTOMERS", kh_roi_bo),
+                    "status": KPIScoringService.get_performance_status("CHURN_CUSTOMERS", KPIScoringService.calculate_normalized_score("CHURN_CUSTOMERS", kh_roi_bo)),
+                    "unit": "KH"
+                }
             }
         }
     }
