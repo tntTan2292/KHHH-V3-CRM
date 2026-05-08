@@ -98,8 +98,11 @@ def cache_response(ttl_hours: int = 24):
                 return cached_val
             
             # 2. If not in cache, execute original function
-            # logger.info(f"Cache MISS for {func.__name__}")
-            result = await func(*args, **kwargs)
+            import inspect
+            if inspect.iscoroutinefunction(func):
+                result = await func(*args, **kwargs)
+            else:
+                result = func(*args, **kwargs)
             
             # 3. Save result to cache
             CacheService.set(key, result)

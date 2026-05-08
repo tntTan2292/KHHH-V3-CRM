@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/customers", tags=["customers"])
 
 @router.get("/filters")
 @cache_response(ttl_hours=24)
-def get_filter_options(db: Session = Depends(get_db)):
+async def get_filter_options(db: Session = Depends(get_db)):
     nhom_khs = [r[0] for r in db.query(Customer.nhom_kh).distinct().all() if r[0]]
     rfm_segments = [r[0] for r in db.query(Customer.rfm_segment).distinct().all() if r[0]]
     vip_tiers = ["DIAMOND", "PLATINUM", "GOLD", "SILVER", "BRONZE", "NORMAL"]
