@@ -1,10 +1,14 @@
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
-def style_excel_sheet(worksheet, df, title="BÁO CÁO HỆ THỐNG CRM"):
+def style_excel_sheet(worksheet, df, title="BÁO CÁO HỆ THỐNG CRM", fast_mode=False):
     if df.empty or len(df.columns) < 1:
         return
     
+    if fast_mode:
+        print(f"[EXCEL_DEBUG] Fast mode enabled. Skipping styling/autosize/freeze.")
+        return
+
     # VNPost Colors
     header_fill = PatternFill(start_color='0054A6', end_color='0054A6', fill_type='solid')
     header_font = Font(color='FFFFFF', bold=True, size=12)

@@ -440,6 +440,27 @@ export default function Customers() {
     }
   };
 
+  const handleExportMinimal = async () => {
+    try {
+      toast.info("Đang test đường truyền (Minimal 10 rows)...");
+      const response = await api.get('/api/export/excel-minimal', {
+        responseType: 'blob',
+        timeout: 30000
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'MINIMAL_TEST.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success("Test đường truyền thành công!");
+    } catch (err) {
+      console.error("MINIMAL EXPORT ERROR:", err);
+      toast.error(`Lỗi test đường truyền: ${err.message}`);
+    }
+  };
+
   const handleRowClick = async (crmCode) => {
     if (crmCode === 'VÃNG LAI') return;
     setSelectedCustomer(crmCode);
@@ -892,6 +913,13 @@ export default function Customers() {
           <button onClick={handleExportExcel} className="flex items-center gap-2 px-4 py-2 bg-vnpost-orange text-white rounded-lg hover:bg-[#E88900] transition-all font-bold text-sm shadow-md active:scale-95">
             <DownloadX size={18} />
             <span>Xuất Excel</span>
+          </button>
+          <button 
+            onClick={handleExportMinimal} 
+            className="flex items-center gap-2 px-2 py-2 bg-gray-100 text-gray-400 rounded-lg hover:bg-gray-200 transition-all font-bold text-[10px] uppercase border border-gray-200 active:scale-95"
+            title="Debug: Xuất 10 dòng (Không style) để test Network"
+          >
+            Minimal
           </button>
         </div>
       </div>

@@ -1,3 +1,4 @@
+from typing import Optional
 import io
 import pandas as pd
 from fastapi import APIRouter, Depends, Query, HTTPException, Response
@@ -74,18 +75,15 @@ def export_customers_excel(
             point_map = {p.code: p.name for p in point_nodes}
         print(f"[EXPORT_DEBUG] {time.time()-start_time:.2f}s - Point Mapping Done. Mem: {get_mem()}")
 
-        # 3. Data Formatting (Pandas list)
-        print(f"[EXPORT_DEBUG] {time.time()-start_time:.2f}s - Starting Data Formatting...")
+        # 3. Data Formatting
         data = []
         for idx, row in enumerate(items):
             c = getattr(row, 'Customer', None)
             if c is None and len(row) > 0: c = row[0]
             if not c: continue
-            
             status_raw = str(getattr(c, 'lifecycle_state', "ACTIVE") or "ACTIVE").lower()
             status_map = {"rebuy": "recovered", "reactivated": "recovered", "active": "active", "new": "new", "at_risk": "at_risk", "churned": "churned"}
             status_final = status_map.get(status_raw, status_raw)
-
             data.append({
                 "STT": idx + 1,
                 "Mã CRM/CMS": getattr(c, 'ma_crm_cms', "N/A"),
@@ -95,61 +93,87 @@ def export_customers_excel(
                 "Phân khúc RFM": getattr(c, 'rfm_segment', "Thường") or "Thường",
                 "Doanh thu (Kỳ báo cáo)": float(getattr(row, 'dynamic_revenue', 0) or 0),
                 "Sản lượng (Kỳ báo cáo)": int(getattr(row, 'transaction_count', 0) or 0),
-                "Tốc độ tăng trưởng (%)": 0.0,
-                "Điểm Sức khỏe (0-100)": 100,
                 "Bưu cục Quản lý": point_map.get(getattr(c, 'ma_bc_phu_trach', None), "N/A"),
-                "Nhân sự phụ trách": getattr(row, 'assigned_staff_name', "Chưa giao") or "Chưa giao",
-                "Số điện thoại": getattr(c, 'dien_thoai', "") or "",
-                "Địa chỉ": getattr(c, 'dia_chi', "") or "",
-                "Người liên hệ": getattr(c, 'nguoi_lien_he', "") or "",
-                "Số hợp đồng": getattr(c, 'so_hop_dong', "") or "",
-                "Thời hạn hợp đồng": getattr(c, 'thoi_han_hop_dong', "") or "",
-                "Ngày kết thúc HĐ": getattr(c, 'thoi_han_ket_thuc', "") or "",
-                "Cước đặc thù": getattr(c, 'cuoc_dac_thu', "") or "",
-                "Đơn vị (Tên BC/VHX)": getattr(c, 'ten_bc_vhx', "") or ""
+                "Nhân sự phụ trách": getattr(row, 'assigned_staff_name', "Chưa giao") or "Chưa giao"
             })
-        print(f"[EXPORT_DEBUG] {time.time()-start_time:.2f}s - Data Formatting Done. Creating DataFrame... - Mem: {get_mem()}")
-            
-        if not data:
-            df = pd.DataFrame([{"Thông báo": "Không có dữ liệu phù hợp với bộ lọc"}])
-        else:
-            df = pd.DataFrame(data)
+        df = pd.DataFrame(data) if data else pd.DataFrame([{"Thông báo": "Không có dữ liệu"}])
         
-        # 4. XLSX Generation (Memory intense)
-        print(f"[EXPORT_DEBUG] {time.time()-start_time:.2f}s - Starting XLSX Generation (OpenPyXL)...")
+        # 4. XLSX Generation
+        print(f"[EXPORT_DEBUG] {time.time()-start_time:.2f}s - Starting XLSX Generation...")
         buffer = io.BytesIO()
         with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
             df.to_excel(writer, index=False, sheet_name="KhachHangHienHuu")
             worksheet = writer.sheets["KhachHangHienHuu"]
-            style_excel_sheet(worksheet, df, title=f"DANH SÁCH KHÁCH HÀNG HIỆN HỮU ({lifecycle_status or 'TẤT CẢ'})")
+            style_excel_sheet(worksheet, df, title=f"DANH SÁCH KHÁCH HÀNG ({lifecycle_status or 'TẤT CẢ'})")
         buffer.seek(0)
-        file_size = len(buffer.getvalue())
-        print(f"[EXPORT_DEBUG] {time.time()-start_time:.2f}s - XLSX Generation Done. Size: {file_size/1024:.1f} KB - Mem: {get_mem()}")
+        file_content = buffer.getvalue()
+        file_size = len(file_content)
+        print(f"[EXPORT_DEBUG] {time.time()-start_time:.2f}s - XLSX DONE. FILE_SIZE_BYTES: {file_size}")
         
         # 5. Response Return
         safe_lifecycle = remove_accents(str(lifecycle_status)) if lifecycle_status else "All"
-        safe_rfm = remove_accents(str(rfm_segment)) if rfm_segment else "All"
-        filename = f"BaoCao_KH_HienHuu_{safe_lifecycle}_{safe_rfm}.xlsx"
+        filename = f"BaoCao_KH_HienHuu_{safe_lifecycle}.xlsx"
         headers = {
             'Content-Disposition': f'attachment; filename="{filename}"',
-            'Access-Control-Expose-Headers': 'Content-Disposition'
+            'Content-Length': str(file_size),
+            'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Access-Control-Expose-Headers': 'Content-Disposition, Content-Length'
         }
-        print(f"[EXPORT_DEBUG] {time.time()-start_time:.2f}s - Returning Response...")
-        return Response(
-            content=buffer.getvalue(),
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers=headers
-        )
+        
+        print(f"[EXPORT_DEBUG] {time.time()-start_time:.2f}s - RESPONSE_HEADERS_START")
+        for k, v in headers.items():
+            print(f"[EXPORT_DEBUG] Header -> {k}: {v}")
+        
+        resp = Response(content=file_content, media_type=headers['Content-Type'], headers=headers)
+        print(f"[EXPORT_DEBUG] {time.time()-start_time:.2f}s - RESPONSE_HEADERS_SENT")
+        return resp
+
     except Exception as e:
         import traceback
         error_msg = traceback.format_exc()
         print(f"[EXPORT_DEBUG] {time.time()-start_time:.2f}s - ERROR: {str(e)}")
         print(error_msg)
-        with open("backend/export_error.log", "w", encoding="utf-8") as f:
-            f.write(error_msg)
-        raise HTTPException(status_code=500, detail=f"Lỗi hệ thống khi xuất Excel: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
-        print(f"[EXPORT_DEBUG] {time.time()-start_time:.2f}s - END export_customers_excel - Final Mem: {get_mem()}")
+        print(f"[EXPORT_DEBUG] {time.time()-start_time:.2f}s - END export_customers_excel")
+
+@router.get("/excel-minimal")
+def export_customers_minimal(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Endpoint cực nhẹ để test đường truyền (Chỉ 10 dòng, không style)"""
+    import time
+    start_time = time.time()
+    print(f"[EXPORT_DEBUG_MINIMAL] {time.strftime('%Y-%m-%d %H:%M:%S')} - START")
+    
+    try:
+        # Lấy 10 dòng đầu tiên bất kỳ
+        items, _ = CustomerService.get_customers_data(db=db, current_user=current_user, include_all=True)
+        items = items[:10]
+        
+        data = [{"STT": i+1, "Mã CRM": getattr(getattr(row, 'Customer', row[0]), 'ma_crm_cms', "N/A")} for i, row in enumerate(items)]
+        df = pd.DataFrame(data)
+        
+        buffer = io.BytesIO()
+        df.to_excel(buffer, index=False) # Không dùng writer phứctał
+        buffer.seek(0)
+        file_content = buffer.getvalue()
+        file_size = len(file_content)
+        
+        headers = {
+            'Content-Disposition': 'attachment; filename="MINIMAL_TEST.xlsx"',
+            'Content-Length': str(file_size),
+            'Access-Control-Expose-Headers': 'Content-Disposition, Content-Length'
+        }
+        print(f"[EXPORT_DEBUG_MINIMAL] {time.time()-start_time:.2f}s - XLSX DONE. SIZE: {file_size}")
+        print(f"[EXPORT_DEBUG_MINIMAL] RESPONSE_HEADERS_START")
+        resp = Response(content=file_content, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers=headers)
+        print(f"[EXPORT_DEBUG_MINIMAL] {time.time()-start_time:.2f}s - RESPONSE_HEADERS_SENT")
+        return resp
+    except Exception as e:
+        print(f"[EXPORT_DEBUG_MINIMAL] ERROR: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/potential")
 async def export_potential_excel(
