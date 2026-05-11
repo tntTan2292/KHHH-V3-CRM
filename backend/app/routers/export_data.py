@@ -82,14 +82,24 @@ def export_customers_excel(
             if c is None and len(row) > 0: c = row[0]
             if not c: continue
             status_raw = str(getattr(c, 'lifecycle_state', "ACTIVE") or "ACTIVE").lower()
-            status_map = {"rebuy": "recovered", "reactivated": "recovered", "active": "active", "new": "new", "at_risk": "at_risk", "churned": "churned"}
-            status_final = status_map.get(status_raw, status_raw)
+            # Canonical mapping (SSOT đồng bộ Dashboard lifecycle cards)
+            status_normalize = {"rebuy": "recovered", "reactivated": "recovered", "active": "active", "new": "new", "at_risk": "at_risk", "churned": "churned"}
+            status_key = status_normalize.get(status_raw, status_raw)
+            # Nhãn tiếng Việt khớp 1:1 với Dashboard CRM V3
+            lifecycle_label_map = {
+                "new": "Khách hàng mới",
+                "active": "Khách hàng hiện hữu",
+                "recovered": "Khách hàng phục hồi",
+                "at_risk": "Khách hàng nguy cơ",
+                "churned": "Khách hàng mất",
+            }
+            lifecycle_label = lifecycle_label_map.get(status_key, status_key)
             data.append({
                 "STT": idx + 1,
                 "Mã CRM/CMS": getattr(c, 'ma_crm_cms', "N/A"),
                 "Tên Khách hàng": getattr(c, 'ten_kh', None) or getattr(c, 'ma_crm_cms', "N/A"),
                 "Loại Khách hàng": getattr(c, 'loai_kh', "N/A") or "N/A",
-                "Trạng thái Vòng đời": status_final,
+                "Vòng đời khách hàng": lifecycle_label,
                 "Phân khúc RFM": getattr(c, 'rfm_segment', "Thường") or "Thường",
                 "Doanh thu (Kỳ báo cáo)": float(getattr(row, 'dynamic_revenue', 0) or 0),
                 "Sản lượng (Kỳ báo cáo)": int(getattr(row, 'transaction_count', 0) or 0),
