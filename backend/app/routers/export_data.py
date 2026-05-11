@@ -41,40 +41,52 @@ async def export_customers_excel(
         include_all=True # Lấy toàn bộ không phân trang
     )
 
-    # Lấy thông tin Bưu cục để map tên
-    point_ids = list(set(row.point_id for row in items if row.point_id))
+    # Lấy thông tin Bưu cục để map tên (Governance: Use ma_bc_phu_trach as canonical link)
+    point_codes = list(set(row.Customer.ma_bc_phu_trach for row in items if row.Customer and row.Customer.ma_bc_phu_trach))
     point_map = {}
-    if point_ids:
-        point_nodes = db.query(HierarchyNode.id, HierarchyNode.name).filter(HierarchyNode.id.in_(point_ids)).all()
-        point_map = {p.id: p.name for p in point_nodes}
+    if point_codes:
+        point_nodes = db.query(HierarchyNode.code, HierarchyNode.name).filter(HierarchyNode.code.in_(point_codes)).all()
+        point_map = {p.code: p.name for p in point_nodes}
 
     data = []
     for idx, row in enumerate(items):
         c = row.Customer # Đối tượng Customer model
+        if not c: continue
         
-        # Mapping dữ liệu đầy đủ như trong Modal Chi tiết của WEB
+        # Mapping dữ liệu đầy đủ như trong Modal Chi tiết của WEB (Elite 3.0 Canonical Status)
+        status_raw = (c.lifecycle_state or "ACTIVE").lower()
+        status_map = {
+            "rebuy": "recovered",
+            "reactivated": "recovered",
+            "active": "active",
+            "new": "new",
+            "at_risk": "at_risk",
+            "churned": "churned"
+        }
+        status_final = status_map.get(status_raw, status_raw)
+
         data.append({
             "STT": idx + 1,
-            "Mã CRM/CMS": row.ma_crm_cms,
-            "Tên Khách hàng": c.ten_kh if c else row.ma_crm_cms,
-            "Loại Khách hàng": c.loai_kh if c else "N/A",
-            "Trạng thái Vòng đời": row.status_type,
-            "Phân khúc RFM": c.rfm_segment if c else "Thường",
+            "Mã CRM/CMS": c.ma_crm_cms,
+            "Tên Khách hàng": c.ten_kh or c.ma_crm_cms,
+            "Loại Khách hàng": c.loai_kh or "N/A",
+            "Trạng thái Vòng đời": status_final,
+            "Phân khúc RFM": c.rfm_segment or "Thường",
             "Doanh thu (Kỳ báo cáo)": row.dynamic_revenue,
             "Sản lượng (Kỳ báo cáo)": row.transaction_count,
-            "Tốc độ tăng trưởng (%)": round(row.growth_velocity or 0, 1),
-            "Điểm Sức khỏe (0-100)": int(row.health_score or 0),
-            "Bưu cục Quản lý": point_map.get(row.point_id, "N/A"),
+            "Tốc độ tăng trưởng (%)": 0.0, # Removed dynamic calculation for performance, matching customers.py
+            "Điểm Sức khỏe (0-100)": 100, # Fallback value, matching customers.py
+            "Bưu cục Quản lý": point_map.get(c.ma_bc_phu_trach, "N/A"),
             "Nhân sự phụ trách": row.assigned_staff_name or "Chưa giao",
             # Các trường Chi tiết bổ sung (Data Completeness)
-            "Số điện thoại": c.dien_thoai if c else "",
-            "Địa chỉ": c.dia_chi if c else "",
-            "Người liên hệ": c.nguoi_lien_he if c else "",
-            "Số hợp đồng": c.so_hop_dong if c else "",
-            "Thời hạn hợp đồng": c.thoi_han_hop_dong if c else "",
-            "Ngày kết thúc HĐ": c.thoi_han_ket_thuc if c else "",
-            "Cước đặc thù": c.cuoc_dac_thu if c else "",
-            "Đơn vị (Tên BC/VHX)": c.ten_bc_vhx if c else ""
+            "Số điện thoại": c.dien_thoai or "",
+            "Địa chỉ": c.dia_chi or "",
+            "Người liên hệ": c.nguoi_lien_he or "",
+            "Số hợp đồng": c.so_hop_dong or "",
+            "Thời hạn hợp đồng": c.thoi_han_hop_dong or "",
+            "Ngày kết thúc HĐ": c.thoi_han_ket_thuc or "",
+            "Cước đặc thù": c.cuoc_dac_thu or "",
+            "Đơn vị (Tên BC/VHX)": c.ten_bc_vhx or ""
         })
         
     df = pd.DataFrame(data)

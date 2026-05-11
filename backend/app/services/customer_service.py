@@ -128,27 +128,9 @@ class CustomerService:
             final_query = final_query.order_by(desc(sort_field))
 
         # 8. Execution (Deterministic Pagination)
-        results = final_query.offset(offset).limit(limit).all()
-
-        return results, total
-
-        # 8. Sorting
-        sort_map = {
-            "revenue": text("dynamic_revenue"),
-            "dynamic_revenue": text("dynamic_revenue"),
-            "transaction_count": text("transaction_count"),
-            "ma_crm_cms": Customer.ma_crm_cms,
-            "ten_kh": Customer.ten_kh
-        }
-        
-        sort_field = sort_map.get(sort_by, text("dynamic_revenue"))
-        
-        if order == "asc":
-            final_query = final_query.order_by(asc(sort_field))
+        if include_all:
+            results = final_query.all()
         else:
-            final_query = final_query.order_by(desc(sort_field))
-
-        # 9. Execution (Deterministic Pagination)
-        results = final_query.offset(offset).limit(limit).all()
+            results = final_query.offset(offset).limit(limit).all()
 
         return results, total
