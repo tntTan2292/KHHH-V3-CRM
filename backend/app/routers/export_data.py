@@ -1,6 +1,6 @@
 import io
 import pandas as pd
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, Response
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from ..database import get_db
@@ -125,12 +125,20 @@ async def export_customers_excel(
         safe_rfm = remove_accents(str(rfm_segment)) if rfm_segment else "All"
         filename = f"BaoCao_KH_HienHuu_{safe_lifecycle}_{safe_rfm}.xlsx"
         headers = {
-            'Content-Disposition': f'attachment; filename="{filename}"'
+            'Content-Disposition': f'attachment; filename="{filename}"',
+            'Access-Control-Expose-Headers': 'Content-Disposition'
         }
-        return StreamingResponse(buffer, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers=headers)
+        return Response(
+            content=buffer.getvalue(),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers=headers
+        )
     except Exception as e:
         import traceback
-        traceback.print_exc()
+        error_msg = traceback.format_exc()
+        print(error_msg)
+        with open("backend/export_error.log", "w", encoding="utf-8") as f:
+            f.write(error_msg)
         raise HTTPException(status_code=500, detail=f"Lỗi hệ thống khi xuất Excel: {str(e)}")
 
 @router.get("/potential")
