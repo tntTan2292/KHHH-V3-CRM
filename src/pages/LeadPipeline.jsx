@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { saveNavigationContext, getNavigationContext, syncUrlWithContext, getContextFromUrl } from '../utils/navigationMemory';
 import api from '../utils/api';
 import { 
   Users, Target, Zap, TrendingUp, TrendingDown, 
@@ -25,8 +27,23 @@ export default function LeadPipeline() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
   });
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedNode, setSelectedNode] = useState(null);
   const [isTreeOpen, setIsTreeOpen] = useState(false);
+
+  // RF3A: Load context
+  useEffect(() => {
+    const urlContext = getContextFromUrl(searchParams);
+    if (urlContext) {
+      setSelectedNode(urlContext);
+    } else {
+      const savedContext = getNavigationContext();
+      if (savedContext && savedContext.key) {
+        setSelectedNode(savedContext);
+        syncUrlWithContext(savedContext, searchParams, setSearchParams);
+      }
+    }
+  }, []);
   const [selectedLead, setSelectedLead] = useState(null);
 
   const fetchLeads = async () => {
@@ -165,7 +182,12 @@ export default function LeadPipeline() {
                     <h3 className="text-xs font-black text-gray-400 uppercase">Chọn đơn vị</h3>
                     <button onClick={() => setIsTreeOpen(false)} className="p-1 hover:bg-gray-100 rounded-full"><X size={16}/></button>
                  </div>
-                 <TreeExplorer onNodeSelect={(node) => { setSelectedNode(node); setIsTreeOpen(false); }} />
+                 <TreeExplorer onSelect={(node) => { 
+                   setSelectedNode(node); 
+                   setIsTreeOpen(false); 
+                   saveNavigationContext(node);
+                   syncUrlWithContext(node, searchParams, setSearchParams);
+                 }} selectedNode={selectedNode} />
               </div>
             )}
           </div>

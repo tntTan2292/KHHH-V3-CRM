@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { saveNavigationContext, getNavigationContext, syncUrlWithContext, getContextFromUrl } from '../utils/navigationMemory';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { Target, Calendar, CheckCircle2, XCircle, Clock, AlertCircle, Search, User, Filter, MoreVertical, Edit3, Send, PlayCircle, MapPin, X, RefreshCw, ChevronUp, ChevronDown, History } from 'lucide-react';
@@ -10,8 +12,23 @@ export default function ActionCenter() {
   const { user } = useAuth();
   const isLeader = user?.role !== 'STAFF';
   
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedNode, setSelectedNode] = useState(null);
   const [isTreeOpen, setIsTreeOpen] = useState(false);
+
+  // RF3A: Load context
+  useEffect(() => {
+    const urlContext = getContextFromUrl(searchParams);
+    if (urlContext) {
+      setSelectedNode(urlContext);
+    } else {
+      const savedContext = getNavigationContext();
+      if (savedContext && savedContext.key) {
+        setSelectedNode(savedContext);
+        syncUrlWithContext(savedContext, searchParams, setSearchParams);
+      }
+    }
+  }, []);
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     d.setMonth(d.getMonth() - 1); // Mặc định 1 tháng qua
@@ -60,7 +77,12 @@ export default function ActionCenter() {
                     <h3 className="text-[10px] font-black text-gray-400 uppercase">Chọn đơn vị quản lý</h3>
                     <button onClick={() => setIsTreeOpen(false)} className="p-1 hover:bg-gray-100 rounded-full"><X size={16}/></button>
                  </div>
-                 <TreeExplorer onNodeSelect={(node) => { setSelectedNode(node); setIsTreeOpen(false); }} />
+                 <TreeExplorer onSelect={(node) => { 
+                   setSelectedNode(node); 
+                   setIsTreeOpen(false); 
+                   saveNavigationContext(node);
+                   syncUrlWithContext(node, searchParams, setSearchParams);
+                 }} selectedNode={selectedNode} />
               </div>
             )}
           </div>
@@ -120,7 +142,7 @@ function LeaderDashboard({ filters }) {
 
   const fetchStaff = async () => {
     try {
-      const res = await api.get('/api/users/staff'); // Cần đảm bảo endpoint này tồn tại hoặc dùng /api/nhan-su
+      const res = await api.get('/api/users/staff');
       setStaffList(res.data || []);
     } catch (err) {
       console.error(err);

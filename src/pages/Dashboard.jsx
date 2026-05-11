@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import api from '../utils/api';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import { saveNavigationContext, getNavigationContext, syncUrlWithContext, getContextFromUrl } from '../utils/navigationMemory';
 import { toast } from 'react-toastify';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
@@ -58,7 +59,7 @@ const CustomTooltip = ({ active, payload, label, unit }) => {
   return null;
 };
 
-const AIAssistantInsights = ({ summary }) => {
+const AIAssistantInsights = ({ summary, stats, churnPrediction, heatmapData }) => {
   if (!summary || !summary.revenue || !summary.volume) return null;
   const { revenue, volume, services = [] } = summary;
   
@@ -120,15 +121,40 @@ const AIAssistantInsights = ({ summary }) => {
             </h4>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-3 p-6 bg-white/40 rounded-2xl border border-white/50 shadow-sm">
-              <div className="flex items-center gap-2 text-[14px] font-black text-gray-500 uppercase border-b border-gray-200/50 pb-2 mb-2">
-                <BarChart3 size={14} /> Tóm tắt nhanh
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* [FIX-03] Actionable Operational Intelligence */}
+            <div className="space-y-2 p-4 bg-white/50 rounded-2xl border border-white/60 shadow-sm">
+              <div className="flex items-center gap-2 text-[10px] font-black text-gray-500 uppercase border-b border-gray-200/40 pb-2 mb-2">
+                <Target size={12} className="text-vnpost-blue" /> Trọng điểm vận hành
               </div>
-              <ul className="space-y-1.5 text-[13px] font-bold text-gray-700 leading-snug">
-                <li className="flex items-start gap-2"><span className={`mt-0.5 ${revGrowth >= 0 ? "text-emerald-500" : "text-red-500"}`}>{revGrowth >= 0 ? "+" : "-"}</span><span>Doanh thu {revGrowth >= 0 ? "tang" : "giam"} <b>{Math.abs(revGrowth).toFixed(1)}%</b> so ky truoc</span></li>
-                {mainDriver && mainDriver.revChange > 0 && (<li className="flex items-start gap-2"><span className="mt-0.5 text-vnpost-blue">*</span><span>Dong luc: <b className="text-vnpost-blue">{mainDriver.service}</b> (+{mainDriver.revChange.toFixed(1)}%)</span></li>)}
-                {erosionServices.length > 0 && (<li className="flex items-start gap-2"><span className="mt-0.5 text-amber-500">!</span><span>Xoi mon gia: <b>{erosionServices.map(s => s.service).join(", ")}</b></span></li>)}
+              <ul className="space-y-1.5 text-[12px] font-bold text-gray-800 leading-tight">
+                <li className="flex items-start gap-2">
+                  <span className={`mt-0.5 ${revGrowth >= 0 ? "text-emerald-500" : "text-red-500"}`}>{revGrowth >= 0 ? "▲" : "▼"}</span>
+                  <span>Doanh thu {revGrowth >= 0 ? "tăng" : "giảm"} <b>{Math.abs(revGrowth).toFixed(1)}%</b> — {revGrowth < 0 ? "Ưu tiên rà soát cụm yếu" : "Đà tăng trưởng ổn định"}</span>
+                </li>
+                {mainDriver && mainDriver.revChange > 0 && (
+                  <li className="flex items-start gap-2">
+                    <span className="mt-0.5 text-vnpost-blue">●</span>
+                    <span>Động lực chính: <b className="text-vnpost-blue">{mainDriver.service}</b> (+{mainDriver.revChange.toFixed(1)}%)</span>
+                  </li>
+                )}
+                {erosionServices.length > 0 && (
+                  <li className="flex items-start gap-2">
+                    <span className="mt-0.5 text-amber-500">⚠</span>
+                    <span>Cảnh báo xói mòn: <b>{erosionServices.map(s => s.service).join(", ")}</b></span>
+                  </li>
+                )}
+              </ul>
+            </div>
+            {/* [FIX-05] Executive Mini Widget Integrated */}
+            <div className="space-y-2 p-4 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 shadow-sm">
+              <div className="flex items-center gap-2 text-[10px] font-black text-indigo-700 uppercase border-b border-indigo-200/40 pb-2 mb-2">
+                <Sparkles size={12} /> Điều hành Nhanh
+              </div>
+              <ul className="space-y-1.5 text-[12px] font-bold text-gray-800 leading-tight">
+                <li className="flex items-center gap-2"><span className="text-red-500">●</span><span><b>{churnPrediction?.filter(p => p.risk_level?.includes("CAO")).length || churnPrediction?.length || 0}</b> KH nguy cơ cao cần xử lý</span></li>
+                <li className="flex items-center gap-2"><span className="text-amber-500">●</span><span><b>{heatmapData?.filter(h => Number(h.growth) < -10).length || 0}</b> địa bàn tăng trưởng âm mạnh</span></li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">●</span><span>Tệp KH hiện hữu: <b>{(stats?.lifecycle?.active || 0).toLocaleString()}</b> KH active</span></li>
               </ul>
             </div>
           </div>
@@ -361,7 +387,28 @@ function Dashboard() {
     }
   }, [user, navStack]);
 
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // --- PERSISTENCE & NAVIGATION MEMORY (RF3A) ---
+  useEffect(() => {
+    const urlContext = getContextFromUrl(searchParams);
+    if (urlContext) {
+      setSelectedNode(urlContext);
+      setNavStack([{ key: "", title: user?.scope || "Toàn tỉnh" }, urlContext]);
+    } else {
+      const savedContext = getNavigationContext();
+      if (savedContext && savedContext.key) {
+        setSelectedNode(savedContext);
+        setNavStack([{ key: "", title: user?.scope || "Toàn tỉnh" }, savedContext]);
+        syncUrlWithContext(savedContext, searchParams, setSearchParams);
+      }
+    }
+  }, [user]);
+
   const handleNodeSelect = (node) => {
+    saveNavigationContext(node);
+    syncUrlWithContext(node, searchParams, setSearchParams);
+    
     if (!node) {
       setSelectedNode(null);
       setNavStack([{ key: "", title: user?.scope || "Toàn tỉnh" }]);
@@ -373,6 +420,8 @@ function Dashboard() {
 
   const handleDrillDown = (node) => {
     const newNode = { key: node.ma_don_vi, title: node.don_vi, type: node.type };
+    saveNavigationContext(newNode);
+    syncUrlWithContext(newNode, searchParams, setSearchParams);
     setSelectedNode(newNode);
     setNavStack(prev => [...prev, newNode]);
   };
@@ -383,7 +432,10 @@ function Dashboard() {
       newStack.pop();
       setNavStack(newStack);
       const parent = newStack[newStack.length - 1];
-      setSelectedNode(parent.key === "" ? null : parent);
+      const newNode = parent.key === "" ? null : parent;
+      setSelectedNode(newNode);
+      saveNavigationContext(newNode);
+      syncUrlWithContext(newNode, searchParams, setSearchParams);
     }
   };
 
@@ -851,11 +903,11 @@ function Dashboard() {
                               <tbody>
                                 {data.sort((a, b) => b.revenue - a.revenue).map((item, idx) => {
                                   const q = getQuadrant(item.revenue, item.growth);
-                                  // RF2B B3 - Severity highlight
+                                  // [FIX-02] Higher contrast severity highlight
                                   const _isWeak = q.label.includes("YEU") || q.label.includes("YẾU");
                                   const _isRisk = item.growth < -10;
                                   return (
-                                    <tr key={idx} className={`group hover:bg-white transition-all border-b border-gray-50/50 ${_isWeak ? "border-l-2 border-l-red-400 bg-red-50/20" : _isRisk ? "border-l-2 border-l-amber-400 bg-amber-50/10" : ""}`}>
+                                    <tr key={idx} className={`group hover:bg-white transition-all border-b border-gray-50/50 ${_isWeak ? "border-l-4 border-l-red-600 bg-red-50/40" : _isRisk ? "border-l-4 border-l-amber-500 bg-amber-50/20" : ""}`}>
                                       <td className="p-4">
                                         <div className="flex flex-col">
                                           <span className="text-[17px] font-black text-gray-800 group-hover:text-vnpost-blue transition-colors uppercase tracking-tight">{item.don_vi}</span>
@@ -1036,7 +1088,7 @@ function Dashboard() {
                   return null;
                 })()}
               </div>
-              <AIAssistantInsights summary={moversData.summary} />
+              <AIAssistantInsights summary={moversData.summary} stats={stats} churnPrediction={churnPrediction} heatmapData={heatmapData} />
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Revenue Comparison */}
@@ -1355,17 +1407,7 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* RF2B D7 - Executive Health Mini Widget */}
-        {(churnPrediction?.length > 0 || heatmapData?.length > 0) && (
-          <div className="mt-4 p-4 bg-gray-50 border border-gray-100 rounded-2xl shadow-sm">
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5"><Sparkles size={11} className="text-indigo-400" /> Tom tat Dieu hanh Nhanh</p>
-            <ul className="space-y-1.5 text-[12px] font-bold text-gray-700">
-              {churnPrediction?.length > 0 && (<li className="flex items-center gap-2"><span className="text-red-500">*</span><span><b>{churnPrediction.filter(p => p.risk_level?.includes("CAO")).length || churnPrediction.length}</b> KH nguy co cao can theo doi</span></li>)}
-              {heatmapData?.filter(h => Number(h.growth) < -10).length > 0 && (<li className="flex items-center gap-2"><span className="text-amber-500">*</span><span><b>{heatmapData.filter(h => Number(h.growth) < -10).length}</b> dia ban tang truong am manh</span></li>)}
-              {stats.lifecycle?.active > 0 && (<li className="flex items-center gap-2"><span className="text-emerald-500">*</span><span>Tep KH on dinh - <b>{(stats.lifecycle.active || 0).toLocaleString()}</b> KH active</span></li>)}
-            </ul>
-          </div>
-        )}
+
 
         {/* Global Footer Stats */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
@@ -1410,14 +1452,14 @@ function Dashboard() {
               <div className="relative z-10">
                  <div className="flex items-center gap-2 flex-wrap">
                    <span className="text-[10px] font-black uppercase tracking-widest bg-white/20 px-3 py-1 rounded-full">{selectedCustomer.rank || selectedCustomer.segment || 'Customer'}</span>
-                   {/* RF2B-A2: Lifecycle badge */}
-                   {selectedCustomer.risk_level && (<span className="text-[10px] font-black uppercase bg-red-500/80 text-white px-3 py-1 rounded-full">{selectedCustomer.risk_level.includes("CAO") ? "NGUY CO CAO" : "THEO DOI"}</span>)}
-                   {selectedCustomer.score && !selectedCustomer.risk_level && (<span className="text-[10px] font-black uppercase bg-emerald-500/80 text-white px-3 py-1 rounded-full">KH ACTIVE</span>)}
+                   {/* [FIX-07] Enhanced Lifecycle badge */}
+                   {selectedCustomer.risk_level && (<span className="text-[11px] font-black uppercase bg-red-600 text-white px-4 py-1.5 rounded-full shadow-lg border-2 border-white/20 animate-pulse">{selectedCustomer.risk_level.includes("CAO") ? "⚠️ NGUY CƠ CAO" : "🔔 THEO DÕI"}</span>)}
+                   {selectedCustomer.score && !selectedCustomer.risk_level && (<span className="text-[11px] font-black uppercase bg-emerald-600 text-white px-4 py-1.5 rounded-full shadow-lg border-2 border-white/20">✅ KH ACTIVE</span>)}
                  </div>
                  <h2 className="text-3xl font-black mt-2 uppercase">{selectedCustomer.ten_kh}</h2>
                  <p className="text-blue-200 font-bold mt-1 tracking-widest">{selectedCustomer.ma_kh || selectedCustomer.ma_crm_cms}</p>
                  {/* RF2B-A2: Goi y tiep can */}
-                 {selectedCustomer.risk_level ? (<p className="text-[11px] mt-2 bg-white/10 px-3 py-1.5 rounded-xl text-red-100 font-bold inline-block">Goi y: Uu tien giu chan - {selectedCustomer.risk_level.includes("CAO") ? "trong 24h" : "tuan nay"}</p>) : selectedCustomer.score ? (<p className="text-[11px] mt-2 bg-white/10 px-3 py-1.5 rounded-xl text-blue-100 font-bold inline-block">Goi y: Uu tien upsell EMS</p>) : null}
+                 {selectedCustomer.risk_level ? (<p className="text-[11px] mt-2 bg-white/10 px-3 py-1.5 rounded-xl text-red-100 font-bold inline-block">Gợi ý: Ưu tiên giữ chân - {selectedCustomer.risk_level.includes("CAO") ? "trong 24h" : "tuần này"}</p>) : selectedCustomer.score ? (<p className="text-[11px] mt-2 bg-white/10 px-3 py-1.5 rounded-xl text-blue-100 font-bold inline-block">Gợi ý: Ưu tiên upsell EMS</p>) : null}
               </div>
             </div>
             

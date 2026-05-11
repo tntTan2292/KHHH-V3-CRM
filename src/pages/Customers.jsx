@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { saveNavigationContext, getNavigationContext, syncUrlWithContext, getContextFromUrl } from '../utils/navigationMemory';
 import api from '../utils/api';
 import { Search, Filter, Download, Download as DownloadX, TableProperties, AlertCircle, X, ChevronRight, ChevronLeft, Calendar, TrendingUp, ArrowUpDown, ChevronUp, ChevronDown, RefreshCw, CloudDownload, CheckCircle2, History, Star, Users, Briefcase, Zap, LogOut, UserPlus, Award, Activity, MapPin, ArrowUpRight, Save, AlertTriangle, Phone, FileText, Edit, Check, UploadCloud, Send, Settings, MessageCircle } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -82,8 +84,22 @@ export default function Customers() {
     return { type: 'Giao Lead', color: 'from-emerald-500 to-teal-700', text: 'GIAO LEAD MỚI', subtitle: 'Tiếp cận khách hàng tiềm năng' };
   };
 
+  const [searchParams, setSearchParams] = useSearchParams();
+
   useEffect(() => {
     const initApp = async () => {
+      // RF3A: Load context
+      const urlContext = getContextFromUrl(searchParams);
+      if (urlContext) {
+        setSelectedNode(urlContext);
+      } else {
+        const savedContext = getNavigationContext();
+        if (savedContext && savedContext.key) {
+          setSelectedNode(savedContext);
+          syncUrlWithContext(savedContext, searchParams, setSearchParams);
+        }
+      }
+
       await fetchOptions();
       await fetchCoverage();
     };
@@ -1000,9 +1016,21 @@ export default function Customers() {
                         <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Chọn Cụm / Bưu cục / Điểm</span>
                         <button onClick={() => setIsTreeOpen(false)} className="text-[10px] font-black text-vnpost-blue uppercase hover:underline">Đóng</button>
                       </div>
-                      <TreeExplorer onSelect={(node) => { setSelectedNode(node); setPage(1); setIsTreeOpen(false); }} selectedNode={selectedNode} />
+                      <TreeExplorer onSelect={(node) => { 
+                        setSelectedNode(node); 
+                        setPage(1); 
+                        setIsTreeOpen(false); 
+                        saveNavigationContext(node);
+                        syncUrlWithContext(node, searchParams, setSearchParams);
+                      }} selectedNode={selectedNode} />
                       <div className="mt-4 pt-4 border-t border-gray-100">
-                          <button onClick={() => { setSelectedNode(null); setPage(1); setIsTreeOpen(false); }} className="w-full py-2 bg-vnpost-blue/5 text-vnpost-blue rounded-lg text-[10px] font-black uppercase hover:bg-vnpost-blue hover:text-white transition-all">Đặt lại Bưu điện thành phố Huế</button>
+                          <button onClick={() => { 
+                            setSelectedNode(null); 
+                            setPage(1); 
+                            setIsTreeOpen(false); 
+                            saveNavigationContext(null);
+                            syncUrlWithContext(null, searchParams, setSearchParams);
+                          }} className="w-full py-2 bg-vnpost-blue/5 text-vnpost-blue rounded-lg text-[10px] font-black uppercase hover:bg-vnpost-blue hover:text-white transition-all">Đặt lại Bưu điện thành phố Huế</button>
                       </div>
                     </div>
                   </>
