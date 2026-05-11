@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import api from '../utils/api';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { saveNavigationContext, getNavigationContext, syncUrlWithContext, getContextFromUrl } from '../utils/navigationMemory';
 import { toast } from 'react-toastify';
 import {
@@ -387,6 +387,7 @@ function Dashboard() {
     }
   }, [user, navStack]);
 
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // --- PERSISTENCE & NAVIGATION MEMORY (RF3A) ---
@@ -909,8 +910,28 @@ function Dashboard() {
                                   return (
                                     <tr key={idx} className={`group hover:bg-white transition-all border-b border-gray-50/50 ${_isWeak ? "border-l-4 border-l-red-600 bg-red-50/40" : _isRisk ? "border-l-4 border-l-amber-500 bg-amber-50/20" : ""}`}>
                                       <td className="p-4">
-                                        <div className="flex flex-col">
-                                          <span className="text-[17px] font-black text-gray-800 group-hover:text-vnpost-blue transition-colors uppercase tracking-tight">{item.don_vi}</span>
+                                        <div 
+                                          className="flex flex-col cursor-pointer hover:opacity-80 transition-all group/item"
+                                          onClick={() => {
+                                            const q = getQuadrant(item.revenue, item.growth);
+                                            const _isWeak = q.label.includes("YEU") || q.label.includes("YẾU");
+                                            const _isRisk = item.growth < -10;
+                                            
+                                            const node = { key: item.ma_don_vi, title: item.don_vi, type: item.type };
+                                            saveNavigationContext(node);
+                                            
+                                            let url = `/customers?node_code=${item.ma_don_vi}&node_type=${item.type || ''}&node_title=${encodeURIComponent(item.don_vi)}`;
+                                            if (_isWeak || _isRisk) {
+                                              url += `&lifecycle_status=at_risk`;
+                                            }
+                                            navigate(url);
+                                          }}
+                                          title="Mở danh sách khách hàng của địa bàn này"
+                                        >
+                                          <span className="text-[17px] font-black text-gray-800 group-hover:text-vnpost-blue transition-colors uppercase tracking-tight flex items-center gap-2">
+                                            {item.don_vi}
+                                            <ArrowUpRight size={14} className="opacity-0 group-hover/item:opacity-100 transition-all text-vnpost-blue" />
+                                          </span>
                                           <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tighter">ID: {item.ma_don_vi}</span>
                                         </div>
                                       </td>

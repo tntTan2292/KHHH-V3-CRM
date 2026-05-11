@@ -90,9 +90,16 @@ export default function Customers() {
     const initApp = async () => {
       // RF3A: Load context
       const urlContext = getContextFromUrl(searchParams);
+      const urlLifecycle = searchParams.get('lifecycle_status');
+      
       if (urlContext) {
         setSelectedNode(urlContext);
-      } else {
+      }
+      if (urlLifecycle) {
+        setFilters(prev => ({ ...prev, lifecycle_status: urlLifecycle }));
+      }
+      
+      if (!urlContext && !urlLifecycle) {
         const savedContext = getNavigationContext();
         if (savedContext && savedContext.key) {
           setSelectedNode(savedContext);
