@@ -48,6 +48,7 @@ const PotentialTransactionModal = ({ isOpen, onClose, customerName, startDate, e
   const handleExport = async () => {
     const { ten_kh, dia_chi_full, ma_bc } = typeof customerName === 'object' ? customerName : { ten_kh: customerName, dia_chi_full: null, ma_bc: null };
     try {
+      toast.info("Đang chuẩn bị dữ liệu giao dịch...");
       const res = await api.get('/api/export/potential/transactions', {
         params: {
           ten_kh: ten_kh,
@@ -57,17 +58,35 @@ const PotentialTransactionModal = ({ isOpen, onClose, customerName, startDate, e
           end_date: endDate || undefined,
           node_code: nodeCode || undefined
         },
-        responseType: 'blob'
+        responseType: 'blob',
+        timeout: 120000 // 2 minutes
       });
-      const url = window.URL.createObjectURL(new Blob([res.data]));
+
+      if (res.data.type === 'application/json') {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const errorData = JSON.parse(reader.result);
+          toast.error(`Lỗi: ${errorData.detail || 'Không xác định'}`);
+        };
+        reader.readAsText(res.data);
+        return;
+      }
+
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', `LichSu_TiemNang_${ten_kh.replace(/\s+/g, '_')}.xlsx`);
       document.body.appendChild(link);
       link.click();
-      link.remove();
+      
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }, 100);
+
       toast.success("Xuất Excel thành công!");
     } catch (err) {
+      console.error("EXPORT ERROR:", err);
       toast.error("Lỗi khi xuất Excel");
     }
   };

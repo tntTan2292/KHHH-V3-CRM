@@ -229,24 +229,50 @@ const PotentialCustomers_V3 = () => {
 
   const handleExportExcel = async () => {
     try {
+      toast.info("Đang chuẩn bị dữ liệu tiềm năng...");
       const { page: _page, page_size: _pageSize, ...params } = buildPotentialParams();
 
       const response = await api.get('/api/export/potential', {
         params,
         responseType: 'blob',
-        timeout: 300000, // Tăng timeout lên 5 phút cho tác vụ nặng
+        timeout: 300000,
       });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+
+      if (response.data.type === 'application/json') {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const errorData = JSON.parse(reader.result);
+          toast.error(`Lỗi từ máy chủ: ${errorData.detail || 'Không xác định'}`);
+        };
+        reader.readAsText(response.data);
+        return;
+      }
+
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
       const link = document.createElement('a');
       link.href = url;
-      const filename = `Export_KH_TiemNang_${rfmSegment || 'All'}.xlsx`;
+      
+      let filename = `Export_KH_TiemNang_${rfmSegment || 'All'}.xlsx`;
+      const contentDisposition = response.headers['content-disposition'];
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1];
+        }
+      }
+
       link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
-      link.remove();
+      
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }, 100);
+
       toast.success("Đã xuất dữ liệu tiềm năng thành công!");
     } catch (err) {
-      console.error(err);
+      console.error("EXPORT ERROR:", err);
       const errorMsg = err.response?.data?.detail || err.message || "Lỗi không xác định";
       toast.error(`Lỗi khi xuất dữ liệu Excel: ${errorMsg}`);
     }

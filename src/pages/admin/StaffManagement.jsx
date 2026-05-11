@@ -147,18 +147,37 @@ export default function StaffManagement() {
 
   const handleExport = async () => {
     try {
-      const response = await axios.get(`${API_URL}/admin/personnel/export-excel`, {
+      toast.info("Đang xuất danh sách nhân sự...");
+      const response = await api.get('/api/admin/personnel/export-excel', {
         responseType: 'blob',
-        timeout: 60000, // Chờ tối đa 1 phút do server có thể đang bận đồng bộ dữ liệu
+        timeout: 60000, 
       });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+
+      if (response.data.type === 'application/json') {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const errorData = JSON.parse(reader.result);
+          toast.error(`Lỗi: ${errorData.detail || 'Không xác định'}`);
+        };
+        reader.readAsText(response.data);
+        return;
+      }
+
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', 'NhanSu_Mapping_V3.xlsx');
       document.body.appendChild(link);
       link.click();
+      
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }, 100);
+
       toast.success("Đã xuất file Excel thành công");
     } catch (err) {
+      console.error("EXPORT ERROR:", err);
       toast.error("Lỗi khi xuất file Excel");
     }
   };
@@ -172,7 +191,7 @@ export default function StaffManagement() {
 
     setLoading(true);
     try {
-      const res = await axios.post(`${API_URL}/admin/personnel/import-excel`, formData, {
+      const res = await api.post('/api/admin/personnel/import-excel', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       toast.success(res.data.message);

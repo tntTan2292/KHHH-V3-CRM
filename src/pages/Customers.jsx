@@ -368,6 +368,7 @@ export default function Customers() {
 
   const handleExportExcel = async () => {
     try {
+      toast.info("Đang chuẩn bị dữ liệu Excel...");
       const params = {
         search: filters.search || undefined,
         rfm_segment: filters.rfm_segment || undefined,
@@ -382,19 +383,46 @@ export default function Customers() {
       const response = await api.get('/api/export/excel', {
         params,
         responseType: 'blob',
+        timeout: 300000 // 5 minutes
       });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+
+      if (response.data.type === 'application/json') {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const errorData = JSON.parse(reader.result);
+          toast.error(`Lỗi từ máy chủ: ${errorData.detail || 'Không xác định'}`);
+        };
+        reader.readAsText(response.data);
+        return;
+      }
+
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
       const link = document.createElement('a');
       link.href = url;
-      const filename = `Export_KH_HienHuu_${filters.lifecycle_status || 'All'}.xlsx`;
+      
+      let filename = `Export_KH_HienHuu_${filters.lifecycle_status || 'All'}.xlsx`;
+      const contentDisposition = response.headers['content-disposition'];
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1];
+        }
+      }
+
       link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
-      link.remove();
+      
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }, 100);
+
       toast.success("Đã xuất dữ liệu thành công!");
     } catch (err) {
-      console.error(err);
-      toast.error("Lỗi khi xuất dữ liệu Excel");
+      console.error("EXPORT ERROR:", err);
+      const message = err.response?.data?.detail || err.message || "Lỗi không xác định";
+      toast.error(`Lỗi khi xuất dữ liệu Excel: ${message}`);
     }
   };
 

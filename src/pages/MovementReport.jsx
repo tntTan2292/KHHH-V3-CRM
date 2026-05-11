@@ -127,6 +127,7 @@ export default function MovementReport() {
       return;
     }
     try {
+      toast.info("Đang chuẩn bị báo cáo biến động...");
       const response = await api.get('/api/reports/movement/export', {
         params: {
           start_a: filters.start_a,
@@ -138,22 +139,37 @@ export default function MovementReport() {
           nhom_kh: filters.nhom_kh || undefined,
           view_mode: viewMode
         },
-        responseType: 'blob'
+        responseType: 'blob',
+        timeout: 300000
       });
       
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      if (response.data.type === 'application/json') {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const errorData = JSON.parse(reader.result);
+          toast.error(`Lỗi: ${errorData.detail || 'Không xác định'}`);
+        };
+        reader.readAsText(response.data);
+        return;
+      }
+
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
       const link = document.createElement('a');
       link.href = url;
       const prefix = viewMode === 'aggregate' ? 'TongHop' : 'ChiTiet';
       
-      // Sanitize dates for filename (remove slashes)
       const safeStart = filters.start_a.replace(/\//g, '-');
       const safeEnd = filters.end_a.replace(/\//g, '-');
       
       link.setAttribute('download', `${prefix}_BienDong_${safeStart}_${safeEnd}.xlsx`);
       document.body.appendChild(link);
       link.click();
-      link.remove();
+
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }, 100);
+
       toast.success("Đã xuất báo cáo thành công");
     } catch (err) {
       console.error("EXPORT ERROR:", err);
