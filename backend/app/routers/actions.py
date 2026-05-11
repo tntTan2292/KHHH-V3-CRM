@@ -157,9 +157,9 @@ async def get_tasks(
             staff_ids = [s.id for s in db.query(NhanSu.id).filter(NhanSu.point_id.in_(scope_ids)).all()]
             query = query.filter(ActionTask.staff_id.in_(staff_ids))
     
-    if start_date:
+    if start_date and start_date.strip():
         query = query.filter(ActionTask.created_at >= start_date)
-    if end_date:
+    if end_date and end_date.strip():
         query = query.filter(ActionTask.created_at <= f"{end_date} 23:59:59")
     
     if status:
@@ -354,9 +354,9 @@ async def get_action_summary(
             staff_ids = [s.id for s in db.query(NhanSu.id).filter(NhanSu.point_id.in_(scope_ids)).all()]
             query = query.filter(ActionTask.staff_id.in_(staff_ids))
         
-    if start_date:
+    if start_date and start_date.strip():
         query = query.filter(ActionTask.created_at >= start_date)
-    if end_date:
+    if end_date and end_date.strip():
         query = query.filter(ActionTask.created_at <= end_date)
     
     if loai_doi_tuong:

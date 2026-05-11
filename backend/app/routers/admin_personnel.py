@@ -90,6 +90,24 @@ async def get_staff(
     staff = query.all()
     return [serialize_staff_row(db, s) for s in staff]
 
+@users_router.get("/staff", response_model=List[dict])
+async def get_users_staff(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Lấy danh sách nhân sự trong phạm vi (Dùng cho giao việc, không cần quyền quản lý)"""
+    query = db.query(NhanSu)
+    query = ScopingService.apply_scope_filter(query, NhanSu, db, current_user)
+    staff = query.all()
+    
+    return [{
+        "id": s.id,
+        "hr_id": s.hr_id,
+        "full_name": s.full_name,
+        "chuc_vu": s.chuc_vu,
+        "username_app": s.username_app
+    } for s in staff]
+
 @users_router.get("/by-node", response_model=List[dict])
 async def get_users_by_node(
     node_id: int = Query(..., description="Hierarchy node ID"),

@@ -209,6 +209,27 @@ async def get_dashboard_stats(
     curr_start, curr_end, prev_start, prev_end, max_data_date = get_governed_comparison_periods(
         db, start_date, end_date, comparison_type
     )
+
+    # [FIX-07] Lifecycle Delta calculation (Current vs Previous)
+    lifecycle_delta = {k: 0 for k in lifecycle_stats.keys()}
+    if prev_start:
+        prev_month_str = prev_start.strftime("%Y-%m")
+        prev_summary_res = db.query(
+            MonthlyAnalyticsSummary.lifecycle_stage,
+            func.sum(MonthlyAnalyticsSummary.total_customers).label("customers")
+        ).filter(
+            MonthlyAnalyticsSummary.year_month == prev_month_str,
+            MonthlyAnalyticsSummary.ma_dv == 'ALL'
+        )
+        if scope_point_ids is not None:
+            prev_summary_res = prev_summary_res.filter(MonthlyAnalyticsSummary.point_id.in_(scope_point_ids))
+        
+        for stage, cust in prev_summary_res.group_by(MonthlyAnalyticsSummary.lifecycle_stage).all():
+            if not stage: continue
+            raw_key = stage.lower()
+            target_key = stage_map.get(raw_key, raw_key)
+            if target_key in lifecycle_delta:
+                lifecycle_delta[target_key] = lifecycle_stats[target_key] - int(cust or 0)
     
     rev_growth = 0
     latest_val = db.query(func.sum(Transaction.doanh_thu)).filter(Transaction.id == -1) # Default empty query
@@ -255,6 +276,7 @@ async def get_dashboard_stats(
         "revenue_growth": round(rev_growth, 2),
         "latest_date": latest_date_str,
         "lifecycle": lifecycle_stats,
+        "lifecycle_delta": lifecycle_delta,
         "growth": growth_stats,
         "potential_ranks": potential_ranks,
         "debug_info": {
