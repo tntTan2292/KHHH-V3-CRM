@@ -26,87 +26,92 @@ async def export_customers_excel(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Sử dụng chung Service với UI để đảm bảo khớp dữ liệu (Elite RBAC 3.0)
-    items, total = CustomerService.get_customers_data(
-        db=db,
-        current_user=current_user,
-        search=search,
-        lifecycle_status=lifecycle_status,
-        rfm_segment=rfm_segment,
-        start_date=start_date,
-        end_date=end_date,
-        sort_by=sort_by,
-        order=order,
-        node_code=node_code,
-        include_all=True # Lấy toàn bộ không phân trang
-    )
+    try:
+        # Sử dụng chung Service với UI để đảm bảo khớp dữ liệu (Elite RBAC 3.0)
+        items, total = CustomerService.get_customers_data(
+            db=db,
+            current_user=current_user,
+            search=search,
+            lifecycle_status=lifecycle_status,
+            rfm_segment=rfm_segment,
+            start_date=start_date,
+            end_date=end_date,
+            sort_by=sort_by,
+            order=order,
+            node_code=node_code,
+            include_all=True # Lấy toàn bộ không phân trang
+        )
 
-    # Lấy thông tin Bưu cục để map tên (Governance: Use ma_bc_phu_trach as canonical link)
-    point_codes = list(set(row.Customer.ma_bc_phu_trach for row in items if row.Customer and row.Customer.ma_bc_phu_trach))
-    point_map = {}
-    if point_codes:
-        point_nodes = db.query(HierarchyNode.code, HierarchyNode.name).filter(HierarchyNode.code.in_(point_codes)).all()
-        point_map = {p.code: p.name for p in point_nodes}
+        # Lấy thông tin Bưu cục để map tên (Governance: Use ma_bc_phu_trach as canonical link)
+        point_codes = list(set(row.Customer.ma_bc_phu_trach for row in items if row.Customer and row.Customer.ma_bc_phu_trach))
+        point_map = {}
+        if point_codes:
+            point_nodes = db.query(HierarchyNode.code, HierarchyNode.name).filter(HierarchyNode.code.in_(point_codes)).all()
+            point_map = {p.code: p.name for p in point_nodes}
 
-    data = []
-    for idx, row in enumerate(items):
-        c = row.Customer # Đối tượng Customer model
-        if not c: continue
+        data = []
+        for idx, row in enumerate(items):
+            c = row.Customer # Đối tượng Customer model
+            if not c: continue
+            
+            # Mapping dữ liệu đầy đủ như trong Modal Chi tiết của WEB (Elite 3.0 Canonical Status)
+            status_raw = (c.lifecycle_state or "ACTIVE").lower()
+            status_map = {
+                "rebuy": "recovered",
+                "reactivated": "recovered",
+                "active": "active",
+                "new": "new",
+                "at_risk": "at_risk",
+                "churned": "churned"
+            }
+            status_final = status_map.get(status_raw, status_raw)
+
+            data.append({
+                "STT": idx + 1,
+                "Mã CRM/CMS": c.ma_crm_cms,
+                "Tên Khách hàng": c.ten_kh or c.ma_crm_cms,
+                "Loại Khách hàng": c.loai_kh or "N/A",
+                "Trạng thái Vòng đời": status_final,
+                "Phân khúc RFM": c.rfm_segment or "Thường",
+                "Doanh thu (Kỳ báo cáo)": row.dynamic_revenue,
+                "Sản lượng (Kỳ báo cáo)": row.transaction_count,
+                "Tốc độ tăng trưởng (%)": 0.0, # Removed dynamic calculation for performance, matching customers.py
+                "Điểm Sức khỏe (0-100)": 100, # Fallback value, matching customers.py
+                "Bưu cục Quản lý": point_map.get(c.ma_bc_phu_trach, "N/A"),
+                "Nhân sự phụ trách": row.assigned_staff_name or "Chưa giao",
+                # Các trường Chi tiết bổ sung (Data Completeness)
+                "Số điện thoại": c.dien_thoai or "",
+                "Địa chỉ": c.dia_chi or "",
+                "Người liên hệ": c.nguoi_lien_he or "",
+                "Số hợp đồng": c.so_hop_dong or "",
+                "Thời hạn hợp đồng": c.thoi_han_hop_dong or "",
+                "Ngày kết thúc HĐ": c.thoi_han_ket_thuc or "",
+                "Cước đặc thù": c.cuoc_dac_thu or "",
+                "Đơn vị (Tên BC/VHX)": c.ten_bc_vhx or ""
+            })
+            
+        df = pd.DataFrame(data)
         
-        # Mapping dữ liệu đầy đủ như trong Modal Chi tiết của WEB (Elite 3.0 Canonical Status)
-        status_raw = (c.lifecycle_state or "ACTIVE").lower()
-        status_map = {
-            "rebuy": "recovered",
-            "reactivated": "recovered",
-            "active": "active",
-            "new": "new",
-            "at_risk": "at_risk",
-            "churned": "churned"
+        # Ghi vào bộ nhớ đệm
+        buffer = io.BytesIO()
+        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name="KhachHangHienHuu")
+            worksheet = writer.sheets["KhachHangHienHuu"]
+            style_excel_sheet(worksheet, df, title=f"DANH SÁCH KHÁCH HÀNG HIỆN HỮU ({lifecycle_status or 'TẤT CẢ'})")
+            
+        buffer.seek(0)
+        
+        safe_lifecycle = remove_accents(lifecycle_status) if lifecycle_status else "All"
+        safe_rfm = remove_accents(rfm_segment) if rfm_segment else "All"
+        filename = f"BaoCao_KH_HienHuu_{safe_lifecycle}_{safe_rfm}.xlsx"
+        headers = {
+            'Content-Disposition': f'attachment; filename="{filename}"'
         }
-        status_final = status_map.get(status_raw, status_raw)
-
-        data.append({
-            "STT": idx + 1,
-            "Mã CRM/CMS": c.ma_crm_cms,
-            "Tên Khách hàng": c.ten_kh or c.ma_crm_cms,
-            "Loại Khách hàng": c.loai_kh or "N/A",
-            "Trạng thái Vòng đời": status_final,
-            "Phân khúc RFM": c.rfm_segment or "Thường",
-            "Doanh thu (Kỳ báo cáo)": row.dynamic_revenue,
-            "Sản lượng (Kỳ báo cáo)": row.transaction_count,
-            "Tốc độ tăng trưởng (%)": 0.0, # Removed dynamic calculation for performance, matching customers.py
-            "Điểm Sức khỏe (0-100)": 100, # Fallback value, matching customers.py
-            "Bưu cục Quản lý": point_map.get(c.ma_bc_phu_trach, "N/A"),
-            "Nhân sự phụ trách": row.assigned_staff_name or "Chưa giao",
-            # Các trường Chi tiết bổ sung (Data Completeness)
-            "Số điện thoại": c.dien_thoai or "",
-            "Địa chỉ": c.dia_chi or "",
-            "Người liên hệ": c.nguoi_lien_he or "",
-            "Số hợp đồng": c.so_hop_dong or "",
-            "Thời hạn hợp đồng": c.thoi_han_hop_dong or "",
-            "Ngày kết thúc HĐ": c.thoi_han_ket_thuc or "",
-            "Cước đặc thù": c.cuoc_dac_thu or "",
-            "Đơn vị (Tên BC/VHX)": c.ten_bc_vhx or ""
-        })
-        
-    df = pd.DataFrame(data)
-    
-    # Ghi vào bộ nhớ đệm
-    buffer = io.BytesIO()
-    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name="KhachHangHienHuu")
-        worksheet = writer.sheets["KhachHangHienHuu"]
-        style_excel_sheet(worksheet, df, title=f"DANH SÁCH KHÁCH HÀNG HIỆN HỮU ({lifecycle_status or 'TẤT CẢ'})")
-        
-    buffer.seek(0)
-    
-    safe_lifecycle = remove_accents(lifecycle_status) if lifecycle_status else "All"
-    safe_rfm = remove_accents(rfm_segment) if rfm_segment else "All"
-    filename = f"BaoCao_KH_HienHuu_{safe_lifecycle}_{safe_rfm}.xlsx"
-    headers = {
-        'Content-Disposition': f'attachment; filename="{filename}"'
-    }
-    return StreamingResponse(buffer, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers=headers)
+        return StreamingResponse(buffer, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers=headers)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Lỗi hệ thống khi xuất Excel: {str(e)}")
 
 @router.get("/potential")
 async def export_potential_excel(
