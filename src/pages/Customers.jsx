@@ -950,6 +950,61 @@ export default function Customers() {
           </button>
         </div>
       </div>
+      {/* RF3D: Customer Context Awareness Banner */}
+      {(selectedNode || filters.lifecycle_status || filters.rfm_segment || (startDate && endDate)) && (
+        <div className="bg-white/70 backdrop-blur-md rounded-3xl p-4 border border-white/60 shadow-sm flex flex-wrap items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500 mb-6">
+          <div className="bg-vnpost-blue/10 p-2 rounded-xl text-vnpost-blue">
+            <Filter size={18} />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">Đang soi theo:</span>
+            
+            {selectedNode && (
+              <div className="flex items-center gap-1.5 bg-vnpost-blue text-white px-3 py-1.5 rounded-full text-[10px] font-black uppercase shadow-sm border border-vnpost-blue/20">
+                <MapPin size={12} /> {selectedNode.title}
+                <button onClick={() => { setSelectedNode(null); saveNavigationContext(null); syncUrlWithContext(null, searchParams, setSearchParams); }} className="hover:text-vnpost-orange transition-colors"><X size={12} /></button>
+              </div>
+            )}
+
+            {filters.lifecycle_status && (
+              <div className="flex items-center gap-1.5 bg-indigo-600 text-white px-3 py-1.5 rounded-full text-[10px] font-black uppercase shadow-sm border border-indigo-700/20">
+                <Users size={12} /> {lifecycleConfig.find(l => l.value === filters.lifecycle_status)?.label || filters.lifecycle_status}
+                <button onClick={() => setFilters(prev => ({ ...prev, lifecycle_status: '' }))} className="hover:text-vnpost-orange transition-colors"><X size={12} /></button>
+              </div>
+            )}
+
+            {filters.rfm_segment && (
+              <div className="flex items-center gap-1.5 bg-amber-500 text-white px-3 py-1.5 rounded-full text-[10px] font-black uppercase shadow-sm border border-amber-600/20">
+                <Award size={12} /> {filters.rfm_segment}
+                <button onClick={() => setFilters(prev => ({ ...prev, rfm_segment: '' }))} className="hover:text-vnpost-orange transition-colors"><X size={12} /></button>
+              </div>
+            )}
+
+            {startDate && endDate && (
+              <div className="flex items-center gap-1.5 bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full text-[10px] font-black uppercase border border-gray-200">
+                <Calendar size={12} /> {new Date(startDate).toLocaleDateString('vi-VN')} - {new Date(endDate).toLocaleDateString('vi-VN')}
+              </div>
+            )}
+          </div>
+          
+          <button 
+            onClick={() => {
+              setFilters({ search: '', rfm_segment: '', lifecycle_status: '' });
+              setSelectedNode(null);
+              saveNavigationContext(null);
+              syncUrlWithContext(null, searchParams, setSearchParams);
+              if (coverage.latest_month) {
+                setStartDate(coverage.latest_month.start);
+                setEndDate(coverage.latest_month.end);
+                setSelectedMonth(coverage.latest_month.value);
+              }
+            }}
+            className="ml-auto text-[10px] font-black text-vnpost-orange hover:underline uppercase tracking-widest flex items-center gap-1"
+          >
+            <RefreshCw size={12} /> Xoá tất cả bộ lọc
+          </button>
+        </div>
+      )}
 
       {/* Lifecycle Filter Bar - PREMIUM 3D DASHBOARD STYLE */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">

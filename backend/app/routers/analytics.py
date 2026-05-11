@@ -119,44 +119,15 @@ async def get_dashboard_stats(
     
     # [GOVERNANCE] Lifecycle is a Historical State Machine. 
     # Dashboard summary should always reflect the CURRENT state distribution.
-    lifecycle_stats = {
-        "active": 0,
-        "new": 0,
-        "recovered": 0,
-        "at_risk": 0,
-        "churned": 0
-    }
-    growth_stats = {"GROWTH": 0, "STABLE": 0, "DECLINING": 0}
-
-    # Fetch Lifecycle from CURRENT month summary (SSOT)
-    curr_summary_res = db.query(
-        MonthlyAnalyticsSummary.lifecycle_stage,
-        func.sum(MonthlyAnalyticsSummary.total_customers).label("customers")
-    ).filter(
-        MonthlyAnalyticsSummary.year_month == current_month_str,
-        MonthlyAnalyticsSummary.ma_dv == 'ALL' 
+    # Fetch Lifecycle from Unified SSOT Service
+    lifecycle_stats = LifecycleService.get_customer_lifecycle_stats(
+        db, 
+        month_str=current_month_str, 
+        scope_point_ids=scope_point_ids
     )
-    if scope_point_ids is not None:
-        curr_summary_res = curr_summary_res.filter(MonthlyAnalyticsSummary.point_id.in_(scope_point_ids))
-    
-    # Terminology mapping (Backend SSOT -> Frontend View)
-    stage_map = {
-        "active": "active",
-        "new": "new",
-        "rebuy": "recovered",
-        "reactivated": "recovered",
-        "at_risk": "at_risk",
-        "churned": "churned"
-    }
-
-    for stage, cust in curr_summary_res.group_by(MonthlyAnalyticsSummary.lifecycle_stage).all():
-        if not stage: continue
-        raw_key = stage.lower()
-        target_key = stage_map.get(raw_key, raw_key)
-        if target_key in lifecycle_stats:
-            lifecycle_stats[target_key] = int(cust or 0)
 
     # Fetch Revenue and Growth from FILTERED month summary
+    growth_stats = {"GROWTH": 0, "STABLE": 0, "DECLINING": 0}
     summary_exists = db.query(MonthlyAnalyticsSummary).filter(MonthlyAnalyticsSummary.year_month == month_str).first() is not None
 
     if summary_exists:
@@ -210,26 +181,18 @@ async def get_dashboard_stats(
         db, start_date, end_date, comparison_type
     )
 
-    # [FIX-07] Lifecycle Delta calculation (Current vs Previous)
-    lifecycle_delta = {k: 0 for k in lifecycle_stats.keys()}
+    # [FIX-07] Lifecycle Delta calculation (Current vs Previous) - Unified SSOT
+    lifecycle_delta = {k: 0 for k in lifecycle_stats.keys() if k != 'total'}
     if prev_start:
         prev_month_str = prev_start.strftime("%Y-%m")
-        prev_summary_res = db.query(
-            MonthlyAnalyticsSummary.lifecycle_stage,
-            func.sum(MonthlyAnalyticsSummary.total_customers).label("customers")
-        ).filter(
-            MonthlyAnalyticsSummary.year_month == prev_month_str,
-            MonthlyAnalyticsSummary.ma_dv == 'ALL'
+        prev_lifecycle_stats = LifecycleService.get_customer_lifecycle_stats(
+            db, 
+            month_str=prev_month_str, 
+            scope_point_ids=scope_point_ids
         )
-        if scope_point_ids is not None:
-            prev_summary_res = prev_summary_res.filter(MonthlyAnalyticsSummary.point_id.in_(scope_point_ids))
         
-        for stage, cust in prev_summary_res.group_by(MonthlyAnalyticsSummary.lifecycle_stage).all():
-            if not stage: continue
-            raw_key = stage.lower()
-            target_key = stage_map.get(raw_key, raw_key)
-            if target_key in lifecycle_delta:
-                lifecycle_delta[target_key] = lifecycle_stats[target_key] - int(cust or 0)
+        for k in lifecycle_delta.keys():
+            lifecycle_delta[k] = lifecycle_stats.get(k, 0) - prev_lifecycle_stats.get(k, 0)
     
     rev_growth = 0
     latest_val = db.query(func.sum(Transaction.doanh_thu)).filter(Transaction.id == -1) # Default empty query

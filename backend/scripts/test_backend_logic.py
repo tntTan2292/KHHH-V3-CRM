@@ -25,8 +25,8 @@ def test():
     start_date = "2026-04-01"
     end_date = "2026-04-30"
     
-    print(f"Calling LifecycleService for {start_date} to {end_date}...")
-    stats = LifecycleService.get_customer_lifecycle_stats(db, None, start_date, end_date, ids)
+    print(f"Calling LifecycleService for {start_date[:7]}...")
+    stats = LifecycleService.get_customer_lifecycle_stats(db, month_str=start_date[:7], scope_point_ids=ids)
     
     print("\nLIFECYCLE RESULTS:")
     for status, count in stats.items():
