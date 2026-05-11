@@ -43,7 +43,18 @@ async def export_customers_excel(
         )
 
         # Lấy thông tin Bưu cục để map tên (Governance: Use ma_bc_phu_trach as canonical link)
-        point_codes = list(set(row.Customer.ma_bc_phu_trach for row in items if row.Customer and row.Customer.ma_bc_phu_trach))
+        point_codes = []
+        for row in items:
+            # Ultra-defensive extraction
+            c_obj = getattr(row, 'Customer', None)
+            if c_obj is None and len(row) > 0:
+                c_obj = row[0]
+            
+            p_code = getattr(c_obj, 'ma_bc_phu_trach', None)
+            if p_code:
+                point_codes.append(p_code)
+                
+        point_codes = list(set(point_codes))
         point_map = {}
         if point_codes:
             point_nodes = db.query(HierarchyNode.code, HierarchyNode.name).filter(HierarchyNode.code.in_(point_codes)).all()
@@ -51,11 +62,16 @@ async def export_customers_excel(
 
         data = []
         for idx, row in enumerate(items):
-            c = row.Customer # Đối tượng Customer model
+            # Ultra-defensive Customer object access
+            c = getattr(row, 'Customer', None)
+            if c is None and len(row) > 0:
+                c = row[0]
+            
             if not c: continue
             
             # Mapping dữ liệu đầy đủ như trong Modal Chi tiết của WEB (Elite 3.0 Canonical Status)
-            status_raw = (c.lifecycle_state or "ACTIVE").lower()
+            # Defensive null-safe mapping for lifecycle_state
+            status_raw = str(getattr(c, 'lifecycle_state', "ACTIVE") or "ACTIVE").lower()
             status_map = {
                 "rebuy": "recovered",
                 "reactivated": "recovered",
@@ -66,31 +82,35 @@ async def export_customers_excel(
             }
             status_final = status_map.get(status_raw, status_raw)
 
+            # Defensive null-safe mapping for other fields
             data.append({
                 "STT": idx + 1,
-                "Mã CRM/CMS": c.ma_crm_cms,
-                "Tên Khách hàng": c.ten_kh or c.ma_crm_cms,
-                "Loại Khách hàng": c.loai_kh or "N/A",
+                "Mã CRM/CMS": getattr(c, 'ma_crm_cms', "N/A"),
+                "Tên Khách hàng": getattr(c, 'ten_kh', None) or getattr(c, 'ma_crm_cms', "N/A"),
+                "Loại Khách hàng": getattr(c, 'loai_kh', "N/A") or "N/A",
                 "Trạng thái Vòng đời": status_final,
-                "Phân khúc RFM": c.rfm_segment or "Thường",
-                "Doanh thu (Kỳ báo cáo)": row.dynamic_revenue,
-                "Sản lượng (Kỳ báo cáo)": row.transaction_count,
-                "Tốc độ tăng trưởng (%)": 0.0, # Removed dynamic calculation for performance, matching customers.py
-                "Điểm Sức khỏe (0-100)": 100, # Fallback value, matching customers.py
-                "Bưu cục Quản lý": point_map.get(c.ma_bc_phu_trach, "N/A"),
-                "Nhân sự phụ trách": row.assigned_staff_name or "Chưa giao",
+                "Phân khúc RFM": getattr(c, 'rfm_segment', "Thường") or "Thường",
+                "Doanh thu (Kỳ báo cáo)": float(getattr(row, 'dynamic_revenue', 0) or 0),
+                "Sản lượng (Kỳ báo cáo)": int(getattr(row, 'transaction_count', 0) or 0),
+                "Tốc độ tăng trưởng (%)": 0.0,
+                "Điểm Sức khỏe (0-100)": 100,
+                "Bưu cục Quản lý": point_map.get(getattr(c, 'ma_bc_phu_trach', None), "N/A"),
+                "Nhân sự phụ trách": getattr(row, 'assigned_staff_name', "Chưa giao") or "Chưa giao",
                 # Các trường Chi tiết bổ sung (Data Completeness)
-                "Số điện thoại": c.dien_thoai or "",
-                "Địa chỉ": c.dia_chi or "",
-                "Người liên hệ": c.nguoi_lien_he or "",
-                "Số hợp đồng": c.so_hop_dong or "",
-                "Thời hạn hợp đồng": c.thoi_han_hop_dong or "",
-                "Ngày kết thúc HĐ": c.thoi_han_ket_thuc or "",
-                "Cước đặc thù": c.cuoc_dac_thu or "",
-                "Đơn vị (Tên BC/VHX)": c.ten_bc_vhx or ""
+                "Số điện thoại": getattr(c, 'dien_thoai', "") or "",
+                "Địa chỉ": getattr(c, 'dia_chi', "") or "",
+                "Người liên hệ": getattr(c, 'nguoi_lien_he', "") or "",
+                "Số hợp đồng": getattr(c, 'so_hop_dong', "") or "",
+                "Thời hạn hợp đồng": getattr(c, 'thoi_han_hop_dong', "") or "",
+                "Ngày kết thúc HĐ": getattr(c, 'thoi_han_ket_thuc', "") or "",
+                "Cước đặc thù": getattr(c, 'cuoc_dac_thu', "") or "",
+                "Đơn vị (Tên BC/VHX)": getattr(c, 'ten_bc_vhx', "") or ""
             })
             
-        df = pd.DataFrame(data)
+        if not data:
+            df = pd.DataFrame([{"Thông báo": "Không có dữ liệu phù hợp với bộ lọc"}])
+        else:
+            df = pd.DataFrame(data)
         
         # Ghi vào bộ nhớ đệm
         buffer = io.BytesIO()
@@ -101,8 +121,8 @@ async def export_customers_excel(
             
         buffer.seek(0)
         
-        safe_lifecycle = remove_accents(lifecycle_status) if lifecycle_status else "All"
-        safe_rfm = remove_accents(rfm_segment) if rfm_segment else "All"
+        safe_lifecycle = remove_accents(str(lifecycle_status)) if lifecycle_status else "All"
+        safe_rfm = remove_accents(str(rfm_segment)) if rfm_segment else "All"
         filename = f"BaoCao_KH_HienHuu_{safe_lifecycle}_{safe_rfm}.xlsx"
         headers = {
             'Content-Disposition': f'attachment; filename="{filename}"'
