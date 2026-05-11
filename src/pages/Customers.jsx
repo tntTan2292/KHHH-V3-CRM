@@ -420,8 +420,22 @@ export default function Customers() {
 
       toast.success("Đã xuất dữ liệu thành công!");
     } catch (err) {
-      console.error("EXPORT ERROR:", err);
-      const message = err.response?.data?.detail || err.message || "Lỗi không xác định";
+      console.error("=== EXPORT PIPELINE CRITICAL ERROR ===");
+      console.error("Error Code:", err.code);
+      console.error("Error Message:", err.message);
+      console.error("Status:", err.response?.status);
+      console.error("Response Data Type:", err.response?.data?.type);
+      console.error("Full Error Object:", err);
+      
+      let message = "Lỗi không xác định";
+      if (err.code === 'ECONNABORTED') {
+        message = "Yêu cầu bị quá tải (Timeout) - Vui lòng thử lại sau.";
+      } else if (err.message === 'Network Error') {
+        message = "Lỗi kết nối mạng hoặc Server đã ngắt kết nối đột ngột.";
+      } else {
+        message = err.response?.data?.detail || err.message || message;
+      }
+      
       toast.error(`Lỗi khi xuất dữ liệu Excel: ${message}`);
     }
   };

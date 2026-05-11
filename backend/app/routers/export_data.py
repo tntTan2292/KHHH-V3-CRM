@@ -14,20 +14,35 @@ from ..services.province_matcher import remove_accents
 router = APIRouter(prefix="/api/export", tags=["export"])
 
 @router.get("/excel")
-async def export_customers_excel(
-    search: str = None,
-    lifecycle_status: str = None,
-    rfm_segment: str = None,
-    start_date: str = None,
-    end_date: str = None,
-    sort_by: str = "revenue",
+def export_customers_excel(
+    search: Optional[str] = None,
+    lifecycle_status: Optional[str] = None,
+    rfm_segment: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    sort_by: str = "dynamic_revenue",
     order: str = "desc",
-    node_code: str = None,
+    node_code: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    import time
+    import os
     try:
-        # Sử dụng chung Service với UI để đảm bảo khớp dữ liệu (Elite RBAC 3.0)
+        import psutil
+        process = psutil.Process(os.getpid())
+    except ImportError:
+        process = None
+
+    start_time = time.time()
+    def get_mem():
+        return f"{process.memory_info().rss / 1024 / 1024:.1f} MB" if process else "N/A"
+
+    print(f"[EXPORT_DEBUG] {time.strftime('%Y-%m-%d %H:%M:%S')} - START export_customers_excel - User: {current_user.username} - Initial Mem: {get_mem()}")
+    
+    try:
+        # 1. Querying
+        print(f"[EXPORT_DEBUG] {time.time()-start_time:.2f}s - Starting DB Query...")
         items, total = CustomerService.get_customers_data(
             db=db,
             current_user=current_user,
@@ -39,50 +54,38 @@ async def export_customers_excel(
             sort_by=sort_by,
             order=order,
             node_code=node_code,
-            include_all=True # Lấy toàn bộ không phân trang
+            include_all=True
         )
+        print(f"[EXPORT_DEBUG] {time.time()-start_time:.2f}s - DB Query Done. Total rows: {len(items)} - Mem: {get_mem()}")
 
-        # Lấy thông tin Bưu cục để map tên (Governance: Use ma_bc_phu_trach as canonical link)
+        # 2. Hierarchy Mapping
+        print(f"[EXPORT_DEBUG] {time.time()-start_time:.2f}s - Starting Point Mapping...")
         point_codes = []
         for row in items:
-            # Ultra-defensive extraction
             c_obj = getattr(row, 'Customer', None)
-            if c_obj is None and len(row) > 0:
-                c_obj = row[0]
-            
+            if c_obj is None and len(row) > 0: c_obj = row[0]
             p_code = getattr(c_obj, 'ma_bc_phu_trach', None)
-            if p_code:
-                point_codes.append(p_code)
-                
+            if p_code: point_codes.append(p_code)
+        
         point_codes = list(set(point_codes))
         point_map = {}
         if point_codes:
             point_nodes = db.query(HierarchyNode.code, HierarchyNode.name).filter(HierarchyNode.code.in_(point_codes)).all()
             point_map = {p.code: p.name for p in point_nodes}
+        print(f"[EXPORT_DEBUG] {time.time()-start_time:.2f}s - Point Mapping Done. Mem: {get_mem()}")
 
+        # 3. Data Formatting (Pandas list)
+        print(f"[EXPORT_DEBUG] {time.time()-start_time:.2f}s - Starting Data Formatting...")
         data = []
         for idx, row in enumerate(items):
-            # Ultra-defensive Customer object access
             c = getattr(row, 'Customer', None)
-            if c is None and len(row) > 0:
-                c = row[0]
-            
+            if c is None and len(row) > 0: c = row[0]
             if not c: continue
             
-            # Mapping dữ liệu đầy đủ như trong Modal Chi tiết của WEB (Elite 3.0 Canonical Status)
-            # Defensive null-safe mapping for lifecycle_state
             status_raw = str(getattr(c, 'lifecycle_state', "ACTIVE") or "ACTIVE").lower()
-            status_map = {
-                "rebuy": "recovered",
-                "reactivated": "recovered",
-                "active": "active",
-                "new": "new",
-                "at_risk": "at_risk",
-                "churned": "churned"
-            }
+            status_map = {"rebuy": "recovered", "reactivated": "recovered", "active": "active", "new": "new", "at_risk": "at_risk", "churned": "churned"}
             status_final = status_map.get(status_raw, status_raw)
 
-            # Defensive null-safe mapping for other fields
             data.append({
                 "STT": idx + 1,
                 "Mã CRM/CMS": getattr(c, 'ma_crm_cms', "N/A"),
@@ -96,7 +99,6 @@ async def export_customers_excel(
                 "Điểm Sức khỏe (0-100)": 100,
                 "Bưu cục Quản lý": point_map.get(getattr(c, 'ma_bc_phu_trach', None), "N/A"),
                 "Nhân sự phụ trách": getattr(row, 'assigned_staff_name', "Chưa giao") or "Chưa giao",
-                # Các trường Chi tiết bổ sung (Data Completeness)
                 "Số điện thoại": getattr(c, 'dien_thoai', "") or "",
                 "Địa chỉ": getattr(c, 'dia_chi', "") or "",
                 "Người liên hệ": getattr(c, 'nguoi_lien_he', "") or "",
@@ -106,21 +108,25 @@ async def export_customers_excel(
                 "Cước đặc thù": getattr(c, 'cuoc_dac_thu', "") or "",
                 "Đơn vị (Tên BC/VHX)": getattr(c, 'ten_bc_vhx', "") or ""
             })
+        print(f"[EXPORT_DEBUG] {time.time()-start_time:.2f}s - Data Formatting Done. Creating DataFrame... - Mem: {get_mem()}")
             
         if not data:
             df = pd.DataFrame([{"Thông báo": "Không có dữ liệu phù hợp với bộ lọc"}])
         else:
             df = pd.DataFrame(data)
         
-        # Ghi vào bộ nhớ đệm
+        # 4. XLSX Generation (Memory intense)
+        print(f"[EXPORT_DEBUG] {time.time()-start_time:.2f}s - Starting XLSX Generation (OpenPyXL)...")
         buffer = io.BytesIO()
         with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
             df.to_excel(writer, index=False, sheet_name="KhachHangHienHuu")
             worksheet = writer.sheets["KhachHangHienHuu"]
             style_excel_sheet(worksheet, df, title=f"DANH SÁCH KHÁCH HÀNG HIỆN HỮU ({lifecycle_status or 'TẤT CẢ'})")
-            
         buffer.seek(0)
+        file_size = len(buffer.getvalue())
+        print(f"[EXPORT_DEBUG] {time.time()-start_time:.2f}s - XLSX Generation Done. Size: {file_size/1024:.1f} KB - Mem: {get_mem()}")
         
+        # 5. Response Return
         safe_lifecycle = remove_accents(str(lifecycle_status)) if lifecycle_status else "All"
         safe_rfm = remove_accents(str(rfm_segment)) if rfm_segment else "All"
         filename = f"BaoCao_KH_HienHuu_{safe_lifecycle}_{safe_rfm}.xlsx"
@@ -128,6 +134,7 @@ async def export_customers_excel(
             'Content-Disposition': f'attachment; filename="{filename}"',
             'Access-Control-Expose-Headers': 'Content-Disposition'
         }
+        print(f"[EXPORT_DEBUG] {time.time()-start_time:.2f}s - Returning Response...")
         return Response(
             content=buffer.getvalue(),
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -136,10 +143,13 @@ async def export_customers_excel(
     except Exception as e:
         import traceback
         error_msg = traceback.format_exc()
+        print(f"[EXPORT_DEBUG] {time.time()-start_time:.2f}s - ERROR: {str(e)}")
         print(error_msg)
         with open("backend/export_error.log", "w", encoding="utf-8") as f:
             f.write(error_msg)
         raise HTTPException(status_code=500, detail=f"Lỗi hệ thống khi xuất Excel: {str(e)}")
+    finally:
+        print(f"[EXPORT_DEBUG] {time.time()-start_time:.2f}s - END export_customers_excel - Final Mem: {get_mem()}")
 
 @router.get("/potential")
 async def export_potential_excel(
