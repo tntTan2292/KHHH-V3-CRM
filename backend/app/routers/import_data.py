@@ -14,6 +14,7 @@ from ..services.potential_service import PotentialService, normalize_name
 from ..services.sftp_service import SFTPManager
 from ..services.rfm import compute_rfm
 from ..core.cache import CacheService
+from ..services.summary_service import SummaryService
 
 logger = logging.getLogger(__name__)
 
@@ -163,6 +164,10 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None):
             c.rfm_segment = rfm_map.get(c.ma_crm_cms, "Thường")
         db.commit()
 
+        # 4. [GOVERNANCE] Tự động cập nhật Summary & Sync Lifecycle (SSOT)
+        import_status["message"] = "Đang tổng hợp dữ liệu KPI & Lifecycle..."
+        SummaryService.refresh_summary_incremental()
+        
         import_status = {
             "running": False,
             "message": f"✅ Hoàn thành! Đã nạp {total_transactions} giao dịch mới.",
@@ -258,6 +263,9 @@ async def sync_worker(db_in: Session, folders: list):
             "message": f"✅ Thành công! Đã nạp {total} giao dịch mới của tháng 04 vào SQLite.", 
             "done": True, "error": None
         }
+        # Tự động cập nhật Summary sau khi sync SFTP thành công
+        SummaryService.refresh_summary_incremental()
+        
         # Tự động xóa cache sau khi đồng bộ dữ liệu mới thành công
         CacheService.clear()
         logger.info("Sync completed - Cache cleared to ensure data freshness.")
