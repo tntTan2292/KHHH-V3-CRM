@@ -123,14 +123,13 @@ const AIAssistantInsights = ({ summary }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-3 p-6 bg-white/40 rounded-2xl border border-white/50 shadow-sm">
               <div className="flex items-center gap-2 text-[14px] font-black text-gray-500 uppercase border-b border-gray-200/50 pb-2 mb-2">
-                <BarChart3 size={16} /> Insight Analyst
+                <BarChart3 size={14} /> Tóm tắt nhanh
               </div>
-              <p className="text-[18px] font-bold leading-relaxed">
-                {revGrowth > 0 ? `Hệ thống ghi nhận mức tăng trưởng doanh thu +${revGrowth.toFixed(1)}%. ` : `Doanh thu sụt giảm ${Math.abs(revGrowth).toFixed(1)}% dù sản lượng có biến động. `}
-                {mainDriver && mainDriver.revChange > 0 && (
-                  <>Động lực chính đến từ <span className="text-vnpost-blue font-black underline decoration-2">{mainDriver.service}</span> (+{mainDriver.revChange.toFixed(1)}%).</>
-                )}
-              </p>
+              <ul className="space-y-1.5 text-[13px] font-bold text-gray-700 leading-snug">
+                <li className="flex items-start gap-2"><span className={`mt-0.5 ${revGrowth >= 0 ? "text-emerald-500" : "text-red-500"}`}>{revGrowth >= 0 ? "+" : "-"}</span><span>Doanh thu {revGrowth >= 0 ? "tang" : "giam"} <b>{Math.abs(revGrowth).toFixed(1)}%</b> so ky truoc</span></li>
+                {mainDriver && mainDriver.revChange > 0 && (<li className="flex items-start gap-2"><span className="mt-0.5 text-vnpost-blue">*</span><span>Dong luc: <b className="text-vnpost-blue">{mainDriver.service}</b> (+{mainDriver.revChange.toFixed(1)}%)</span></li>)}
+                {erosionServices.length > 0 && (<li className="flex items-start gap-2"><span className="mt-0.5 text-amber-500">!</span><span>Xoi mon gia: <b>{erosionServices.map(s => s.service).join(", ")}</b></span></li>)}
+              </ul>
             </div>
           </div>
         </div>
@@ -544,6 +543,15 @@ function Dashboard() {
                   <ArrowUpRight size={14} className={`transition-transform duration-300 ${isTreeOpen ? 'rotate-180 opacity-100' : 'rotate-90 opacity-40'}`} />
                 </button>
 
+               {/* RF2B-A1: Filter Context Hint */}
+               {selectedNode && (
+                 <p className="mt-1.5 text-[10px] text-gray-400 font-bold px-1 flex items-center gap-1">
+                   <MapPin size={10} className="text-vnpost-blue/50" />
+                   {selectedNode.title}
+                   {selectedNode.type === "cum" ? " — Cum dia ban dang soi" : selectedNode.type === "buu_cuc" ? " — Buu cuc truc thuoc" : " — Diem giao dich"}
+                 </p>
+               )}
+
                {isTreeOpen && (
                  <>
                   {/* Backdrop to close when click outside */}
@@ -602,9 +610,15 @@ function Dashboard() {
                 </>
               ) : (
                 <>
-                  <div className="card p-4 border-l-4 border-l-vnpost-blue bg-gradient-to-br from-vnpost-blue/5 to-transparent flex justify-between items-end">
-                    <div><p className="text-vnpost-blue text-[10px] font-black uppercase mb-1 tracking-wider">Hiện hữu</p><h3 className="text-2xl font-black">{(stats.lifecycle?.["active"] || 0).toLocaleString()}</h3></div>
+                  {/* RF2B C5 - Lifecycle card tooltip */}
+                  <div className="card p-4 border-l-4 border-l-vnpost-blue bg-gradient-to-br from-vnpost-blue/5 to-transparent flex justify-between items-end relative group/lctip">
+                    <div><p className="text-vnpost-blue text-[10px] font-black uppercase mb-1 tracking-wider">Hien huu</p><h3 className="text-2xl font-black">{(stats.lifecycle?.["active"] || 0).toLocaleString()}</h3></div>
                     <Users size={20} className="text-vnpost-blue/30" />
+                    {summaryData?.stats?.lifecycle_delta?.active !== undefined && (
+                      <div className="absolute -top-8 right-2 bg-gray-800 text-white text-[10px] font-bold px-2 py-1 rounded-lg opacity-0 group-hover/lctip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                        {summaryData.stats.lifecycle_delta.active >= 0 ? "+" : ""}{summaryData.stats.lifecycle_delta.active} so ky truoc
+                      </div>
+                    )}
                   </div>
                   <div className="card p-4 border-l-4 border-l-indigo-500 bg-gradient-to-br from-indigo-500/5 to-transparent flex justify-between items-end">
                     <div><p className="text-indigo-600 text-[10px] font-black uppercase mb-1 tracking-wider">Khách mới</p><h3 className="text-2xl font-black">{(stats.lifecycle?.["new"] || 0).toLocaleString()}</h3></div>
@@ -757,7 +771,7 @@ function Dashboard() {
           
           <div className="card p-6 overflow-hidden relative z-20 min-w-0">
              <h3 className="text-lg font-bold text-gray-800 mb-6 flex justify-between items-center border-b border-gray-50 pb-4">
-               <span className="flex items-center gap-2"><Target size={20} className="text-vnpost-orange" /> Bảng Quản trị Hiệu quả & Tăng trưởng Địa bàn ({comparisonType.toUpperCase()})</span>
+               <span className="flex items-center gap-2"><Target size={20} className="text-vnpost-orange" /> Bảng Quản trị Hiệu quả & Tăng trưởng Địa bàn ({comparisonType.toUpperCase()})</span> {selectedNode && <span className="text-[10px] font-bold text-gray-400 ml-2 normal-case tracking-normal">(Đang xem: {selectedNode.title})</span>}
                <span className="text-[10px] font-black bg-vnpost-orange/10 text-vnpost-orange px-3 py-1 rounded-full uppercase tracking-widest">PHÂN LOẠI CHIẾN LƯỢC 4 NHÓM</span>
              </h3>
               <div className="flex-1 w-full relative">
@@ -837,8 +851,11 @@ function Dashboard() {
                               <tbody>
                                 {data.sort((a, b) => b.revenue - a.revenue).map((item, idx) => {
                                   const q = getQuadrant(item.revenue, item.growth);
+                                  // RF2B B3 - Severity highlight
+                                  const _isWeak = q.label.includes("YEU") || q.label.includes("YẾU");
+                                  const _isRisk = item.growth < -10;
                                   return (
-                                    <tr key={idx} className="group hover:bg-white transition-all border-b border-gray-50/50">
+                                    <tr key={idx} className={`group hover:bg-white transition-all border-b border-gray-50/50 ${_isWeak ? "border-l-2 border-l-red-400 bg-red-50/20" : _isRisk ? "border-l-2 border-l-amber-400 bg-amber-50/10" : ""}`}>
                                       <td className="p-4">
                                         <div className="flex flex-col">
                                           <span className="text-[17px] font-black text-gray-800 group-hover:text-vnpost-blue transition-colors uppercase tracking-tight">{item.don_vi}</span>
@@ -1338,6 +1355,18 @@ function Dashboard() {
           </div>
         </div>
 
+        {/* RF2B D7 - Executive Health Mini Widget */}
+        {(churnPrediction?.length > 0 || heatmapData?.length > 0) && (
+          <div className="mt-4 p-4 bg-gray-50 border border-gray-100 rounded-2xl shadow-sm">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5"><Sparkles size={11} className="text-indigo-400" /> Tom tat Dieu hanh Nhanh</p>
+            <ul className="space-y-1.5 text-[12px] font-bold text-gray-700">
+              {churnPrediction?.length > 0 && (<li className="flex items-center gap-2"><span className="text-red-500">*</span><span><b>{churnPrediction.filter(p => p.risk_level?.includes("CAO")).length || churnPrediction.length}</b> KH nguy co cao can theo doi</span></li>)}
+              {heatmapData?.filter(h => Number(h.growth) < -10).length > 0 && (<li className="flex items-center gap-2"><span className="text-amber-500">*</span><span><b>{heatmapData.filter(h => Number(h.growth) < -10).length}</b> dia ban tang truong am manh</span></li>)}
+              {stats.lifecycle?.active > 0 && (<li className="flex items-center gap-2"><span className="text-emerald-500">*</span><span>Tep KH on dinh - <b>{(stats.lifecycle.active || 0).toLocaleString()}</b> KH active</span></li>)}
+            </ul>
+          </div>
+        )}
+
         {/* Global Footer Stats */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
            <div className="card p-6 bg-vnpost-blue text-white shadow-vnpost-blue/20">
@@ -1379,9 +1408,16 @@ function Dashboard() {
               <div className="absolute top-0 right-0 p-8 opacity-10"><Users size={120} /></div>
               <button onClick={() => setSelectedCustomer(null)} className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full transition-colors"><X size={24} /></button>
               <div className="relative z-10">
-                 <span className="text-[10px] font-black uppercase tracking-widest bg-white/20 px-3 py-1 rounded-full">{selectedCustomer.rank || selectedCustomer.segment || 'Customer'}</span>
+                 <div className="flex items-center gap-2 flex-wrap">
+                   <span className="text-[10px] font-black uppercase tracking-widest bg-white/20 px-3 py-1 rounded-full">{selectedCustomer.rank || selectedCustomer.segment || 'Customer'}</span>
+                   {/* RF2B-A2: Lifecycle badge */}
+                   {selectedCustomer.risk_level && (<span className="text-[10px] font-black uppercase bg-red-500/80 text-white px-3 py-1 rounded-full">{selectedCustomer.risk_level.includes("CAO") ? "NGUY CO CAO" : "THEO DOI"}</span>)}
+                   {selectedCustomer.score && !selectedCustomer.risk_level && (<span className="text-[10px] font-black uppercase bg-emerald-500/80 text-white px-3 py-1 rounded-full">KH ACTIVE</span>)}
+                 </div>
                  <h2 className="text-3xl font-black mt-2 uppercase">{selectedCustomer.ten_kh}</h2>
                  <p className="text-blue-200 font-bold mt-1 tracking-widest">{selectedCustomer.ma_kh || selectedCustomer.ma_crm_cms}</p>
+                 {/* RF2B-A2: Goi y tiep can */}
+                 {selectedCustomer.risk_level ? (<p className="text-[11px] mt-2 bg-white/10 px-3 py-1.5 rounded-xl text-red-100 font-bold inline-block">Goi y: Uu tien giu chan - {selectedCustomer.risk_level.includes("CAO") ? "trong 24h" : "tuan nay"}</p>) : selectedCustomer.score ? (<p className="text-[11px] mt-2 bg-white/10 px-3 py-1.5 rounded-xl text-blue-100 font-bold inline-block">Goi y: Uu tien upsell EMS</p>) : null}
               </div>
             </div>
             

@@ -204,6 +204,8 @@ function LeaderDashboard({ filters }) {
            <div>
              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Đã Hoàn Thành</p>
              <h3 className="text-2xl font-black text-gray-800">{summary?.completed || 0}</h3>
+             {/* RF2B C6 - Completion % */}
+             {summary?.total > 0 && (<p className="text-[10px] font-black text-emerald-600 mt-1">Tỉ lệ: {Math.round(((summary?.completed || 0) / summary.total) * 100)}%</p>)}
            </div>
         </div>
         <div className="card p-6 bg-white border border-gray-100 shadow-xl shadow-gray-200/40 rounded-3xl flex items-center gap-4">
