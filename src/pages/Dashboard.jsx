@@ -663,8 +663,16 @@ function Dashboard() {
                 </>
               ) : (
                 <>
-                  {/* RF2B C5 - Lifecycle card tooltip */}
-                  <div className="card p-4 border-l-4 border-l-vnpost-blue bg-gradient-to-br from-vnpost-blue/5 to-transparent flex justify-between items-end relative group/lctip">
+                  {/* RF3C: Lifecycle Drilldown */}
+                  <div 
+                    className="card p-4 border-l-4 border-l-vnpost-blue bg-gradient-to-br from-vnpost-blue/5 to-transparent flex justify-between items-end relative group/lctip cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+                    onClick={() => {
+                      const node = selectedNode;
+                      if (node) saveNavigationContext(node);
+                      navigate(`/customers?lifecycle_status=active${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
+                    }}
+                    title="Xem danh sách KH Hiện hữu"
+                  >
                     <div><p className="text-vnpost-blue text-[10px] font-black uppercase mb-1 tracking-wider">Hien huu</p><h3 className="text-2xl font-black">{(stats.lifecycle?.["active"] || 0).toLocaleString()}</h3></div>
                     <Users size={20} className="text-vnpost-blue/30" />
                     {summaryData?.stats?.lifecycle_delta?.active !== undefined && (
@@ -673,11 +681,27 @@ function Dashboard() {
                       </div>
                     )}
                   </div>
-                  <div className="card p-4 border-l-4 border-l-indigo-500 bg-gradient-to-br from-indigo-500/5 to-transparent flex justify-between items-end">
+                  <div 
+                    className="card p-4 border-l-4 border-l-indigo-500 bg-gradient-to-br from-indigo-500/5 to-transparent flex justify-between items-end cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+                    onClick={() => {
+                      const node = selectedNode;
+                      if (node) saveNavigationContext(node);
+                      navigate(`/customers?lifecycle_status=new${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
+                    }}
+                    title="Xem danh sách KH Mới"
+                  >
                     <div><p className="text-indigo-600 text-[10px] font-black uppercase mb-1 tracking-wider">Khách mới</p><h3 className="text-2xl font-black">{(stats.lifecycle?.["new"] || 0).toLocaleString()}</h3></div>
                     <Sparkles size={20} className="text-indigo-300" />
                   </div>
-                  <div className="card p-4 border-l-4 border-l-emerald-500 bg-gradient-to-br from-emerald-500/5 to-transparent flex justify-between items-end">
+                  <div 
+                    className="card p-4 border-l-4 border-l-emerald-500 bg-gradient-to-br from-emerald-500/5 to-transparent flex justify-between items-end cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+                    onClick={() => {
+                      const node = selectedNode;
+                      if (node) saveNavigationContext(node);
+                      navigate(`/customers?lifecycle_status=recovered${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
+                    }}
+                    title="Xem danh sách KH Tái bản"
+                  >
                     <div><p className="text-emerald-600 text-[10px] font-black uppercase mb-1 tracking-wider">Tái bản</p><h3 className="text-2xl font-black">{(stats.lifecycle?.["recovered"] || 0).toLocaleString()}</h3></div>
                     <ArrowUpRight size={20} className="text-green-300" />
                   </div>
@@ -692,11 +716,27 @@ function Dashboard() {
                 </>
               ) : (
                 <>
-                  <div className="card p-4 border-l-4 border-l-amber-500 bg-gradient-to-br from-amber-500/5 to-transparent flex justify-between items-end">
+                  <div 
+                    className="card p-4 border-l-4 border-l-amber-500 bg-gradient-to-br from-amber-500/5 to-transparent flex justify-between items-end cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+                    onClick={() => {
+                      const node = selectedNode;
+                      if (node) saveNavigationContext(node);
+                      navigate(`/customers?lifecycle_status=at_risk${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
+                    }}
+                    title="Xem danh sách KH Nguy cơ"
+                  >
                     <div><p className="text-amber-600 text-[10px] font-black uppercase mb-1 tracking-wider">Nguy cơ (At Risk)</p><h3 className="text-2xl font-black">{(stats.lifecycle?.["at_risk"] || 0).toLocaleString()}</h3></div>
                     <Info size={20} className="text-vnpost-orange/30" />
                   </div>
-                  <div className="card p-4 border-l-4 border-l-gray-400 bg-gradient-to-br from-gray-400/5 to-transparent flex justify-between items-end">
+                  <div 
+                    className="card p-4 border-l-4 border-l-gray-400 bg-gradient-to-br from-gray-400/5 to-transparent flex justify-between items-end cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+                    onClick={() => {
+                      const node = selectedNode;
+                      if (node) saveNavigationContext(node);
+                      navigate(`/customers?lifecycle_status=churned${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
+                    }}
+                    title="Xem danh sách KH Rời bỏ"
+                  >
                     <div><p className="text-gray-500 text-[10px] font-black uppercase mb-1 tracking-wider">Rời bỏ (Churn)</p><h3 className="text-2xl font-black">{(stats.lifecycle?.["churned"] || 0).toLocaleString()}</h3></div>
                     <UserMinus size={20} className="text-gray-300" />
                   </div>
@@ -711,7 +751,15 @@ function Dashboard() {
               )
             </h3>
             <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 transition-opacity duration-300 ${(!summaryData && !stats.potential_ranks?.["Kim Cương"]) ? 'opacity-50' : 'opacity-100'}`}>
-              <div className="card p-4 border-t-4 border-t-blue-600 bg-gradient-to-br from-blue-600/5 to-transparent relative overflow-hidden group">
+              <div 
+                className="card p-4 border-t-4 border-t-blue-600 bg-gradient-to-br from-blue-600/5 to-transparent relative overflow-hidden group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+                onClick={() => {
+                  const node = selectedNode;
+                  if (node) saveNavigationContext(node);
+                  navigate(`/customers?rfm_segment=Kim Cương${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
+                }}
+                title="Xem danh sách KH Kim Cương"
+              >
                 <div className="absolute -right-4 -top-4 text-blue-100 group-hover:scale-110 transition-transform opacity-30 group-hover:opacity-50">
                   <DollarSign size={80} />
                 </div>
@@ -719,7 +767,15 @@ function Dashboard() {
                 <h3 className="text-3xl font-black text-blue-800 relative z-10">{(stats.potential_ranks?.["Kim Cương"] || 0).toLocaleString()}</h3>
                 <p className="text-[9px] text-blue-500 font-bold mt-2 relative z-10 uppercase">&gt; 5M và &gt; 20 đơn/tháng</p>
               </div>
-              <div className="card p-4 border-t-4 border-t-vnpost-orange bg-gradient-to-br from-vnpost-orange/5 to-transparent relative overflow-hidden group">
+              <div 
+                className="card p-4 border-t-4 border-t-vnpost-orange bg-gradient-to-br from-vnpost-orange/5 to-transparent relative overflow-hidden group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+                onClick={() => {
+                  const node = selectedNode;
+                  if (node) saveNavigationContext(node);
+                  navigate(`/customers?rfm_segment=Vàng${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
+                }}
+                title="Xem danh sách KH Vàng"
+              >
                 <div className="absolute -right-4 -top-4 text-orange-100 group-hover:scale-110 transition-transform opacity-30 group-hover:opacity-50">
                   <DollarSign size={80} />
                 </div>
@@ -727,7 +783,15 @@ function Dashboard() {
                 <h3 className="text-3xl font-black text-vnpost-orange relative z-10">{(stats.potential_ranks?.["Vàng"] || 0).toLocaleString()}</h3>
                 <p className="text-[9px] text-vnpost-orange font-bold mt-2 relative z-10 uppercase">&gt; 1M và &gt; 10 đơn/tháng</p>
               </div>
-              <div className="card p-4 border-t-4 border-t-orange-800 bg-gradient-to-br from-orange-800/5 to-transparent relative overflow-hidden group">
+              <div 
+                className="card p-4 border-t-4 border-t-orange-800 bg-gradient-to-br from-orange-800/5 to-transparent relative overflow-hidden group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+                onClick={() => {
+                  const node = selectedNode;
+                  if (node) saveNavigationContext(node);
+                  navigate(`/customers?rfm_segment=Bạc${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
+                }}
+                title="Xem danh sách KH Bạc"
+              >
                 <div className="absolute -right-4 -top-4 text-orange-200 group-hover:scale-110 transition-transform opacity-30 group-hover:opacity-50">
                   <DollarSign size={80} />
                 </div>

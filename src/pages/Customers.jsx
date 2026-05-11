@@ -91,6 +91,7 @@ export default function Customers() {
       // RF3A: Load context
       const urlContext = getContextFromUrl(searchParams);
       const urlLifecycle = searchParams.get('lifecycle_status');
+      const urlRFM = searchParams.get('rfm_segment');
       
       if (urlContext) {
         setSelectedNode(urlContext);
@@ -98,8 +99,11 @@ export default function Customers() {
       if (urlLifecycle) {
         setFilters(prev => ({ ...prev, lifecycle_status: urlLifecycle }));
       }
+      if (urlRFM) {
+        setFilters(prev => ({ ...prev, rfm_segment: urlRFM }));
+      }
       
-      if (!urlContext && !urlLifecycle) {
+      if (!urlContext && !urlLifecycle && !urlRFM) {
         const savedContext = getNavigationContext();
         if (savedContext && savedContext.key) {
           setSelectedNode(savedContext);
