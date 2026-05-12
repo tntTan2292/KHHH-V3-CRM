@@ -52,18 +52,18 @@ class LifecycleService:
         logger.info(f"SSOT: Summary Rows found for {month_str}: {len(summary_rows)}")
         
         stage_map = {
-            # STATE Metrics (Population)
-            "active": "active",
-            "at_risk": "at_risk",
-            "new": "active",             # 90-day New population is considered 'Active' in broad terms
-            "recovered": "active",       # 90-day Recovered population is considered 'Active'
-            "churned": "churned_snapshot",
+            # STATE Metrics (Population - 90d probationary or mature)
+            "new": "new",                   # 90-day New Population
+            "recovered": "recovered",       # 90-day Recovered Population
+            "active": "active",             # Mature Active Population
+            "at_risk": "at_risk",           # Population at risk
+            "churned": "churned_snapshot",  # Total Churned Population (Snapshot)
             "churned_snapshot": "churned_snapshot",
             
-            # TRANSITION Metrics (KPI Cards)
-            "new_transition": "new",
-            "recovered_transition": "recovered", 
-            "churn_transition": "churned"
+            # TRANSITION Metrics (Flow/Event - Month-locked)
+            "new_transition": "discard",     # Already covered by 'new' state
+            "recovered_transition": "discard",# Already covered by 'recovered' state
+            "churn_transition": "churned"    # Churn event in month (KPI Card)
         }
         
         results = {
@@ -86,49 +86,73 @@ class LifecycleService:
             
             logger.info(f"SSOT: Partial or Latest range detected ({start_date} to {end_date}). Recalculating Transitions...")
                 
-            # Dynamic NEW: First transaction ever falls within [start_date, end_date]
+            # Constitutional NEW (Population): First transaction ever was within the last 90 days of e_dt
             new_count_query = db.query(func.count(Customer.id)).filter(
                 exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan.between(s_dt, e_dt))
+                    (Transaction.ngay_chap_nhan >= e_dt - timedelta(days=90)) &
+                    (Transaction.ngay_chap_nhan <= e_dt)
                 ),
                 ~exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan < s_dt)
+                    (Transaction.ngay_chap_nhan < e_dt - timedelta(days=90))
                 )
             )
             if scope_point_ids: new_count_query = new_count_query.filter(Customer.point_id.in_(scope_point_ids))
             results['new'] = new_count_query.scalar() or 0
 
-            # Dynamic RECOVERED: Transaction in period, but none in previous 30 days
+            # Constitutional RECOVERED (Population): Recovered within the last 90 days and still active
+            # For simplicity in dynamic query, we check for a gap > 30 days followed by activity within last 90 days
             recovered_query = db.query(func.count(Customer.id)).filter(
                 exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan.between(s_dt, e_dt))
+                    (Transaction.ngay_chap_nhan.between(e_dt - timedelta(days=90), e_dt))
                 ),
-                ~exists().where(
-                    (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan.between(s_dt - timedelta(days=30), s_dt - timedelta(seconds=1)))
-                ),
+                # There must have been a prior 30-day inactivity gap before the most recent active period
+                # (This is an approximation for real-time dynamic display)
                 exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan < s_dt - timedelta(days=30))
+                    (Transaction.ngay_chap_nhan < e_dt - timedelta(days=30))
+                ),
+                # But NOT NEW
+                exists().where(
+                    (Transaction.ma_kh == Customer.ma_crm_cms) &
+                    (Transaction.ngay_chap_nhan < e_dt - timedelta(days=90))
                 )
             )
             if scope_point_ids: recovered_query = recovered_query.filter(Customer.point_id.in_(scope_point_ids))
             results['recovered'] = recovered_query.scalar() or 0
 
-            # Dynamic CHURNED (Last transaction reached 90 days ago during this period)
+            # Constitutional CHURN (Transition Event in Period)
             churn_query = db.query(func.count(Customer.id)).filter(
-                exists().where((Transaction.ma_kh == Customer.ma_crm_cms) & (Transaction.ngay_chap_nhan <= e_dt)),
-                ~exists().where((Transaction.ma_kh == Customer.ma_crm_cms) & (Transaction.ngay_chap_nhan.between(e_dt - timedelta(days=90), e_dt)))
-            )
-            # Ensure they were not already churned at the start of the period to count "Transition"
-            churn_query = churn_query.filter(
-                exists().where((Transaction.ma_kh == Customer.ma_crm_cms) & (Transaction.ngay_chap_nhan.between(s_dt - timedelta(days=90), s_dt)))
+                # Reached 90 days inactivity exactly during [s_dt, e_dt]
+                ~exists().where(
+                    (Transaction.ma_kh == Customer.ma_crm_cms) & 
+                    (Transaction.ngay_chap_nhan.between(e_dt - timedelta(days=90), e_dt))
+                ),
+                exists().where(
+                    (Transaction.ma_kh == Customer.ma_crm_cms) & 
+                    (Transaction.ngay_chap_nhan.between(s_dt - timedelta(days=90), s_dt))
+                )
             )
             if scope_point_ids: churn_query = churn_query.filter(Customer.point_id.in_(scope_point_ids))
             results['churned'] = churn_query.scalar() or 0
+
+            # Constitutional ACTIVE (Mature Population): Active in last 30 days and first order > 90 days ago
+            active_mature_query = db.query(func.count(Customer.id)).filter(
+                # Active in last 30 days
+                exists().where(
+                    (Transaction.ma_kh == Customer.ma_crm_cms) &
+                    (Transaction.ngay_chap_nhan.between(e_dt - timedelta(days=30), e_dt))
+                ),
+                # Mature: First order was > 90 days ago
+                exists().where(
+                    (Transaction.ma_kh == Customer.ma_crm_cms) &
+                    (Transaction.ngay_chap_nhan < e_dt - timedelta(days=90))
+                )
+            )
+            if scope_point_ids: active_mature_query = active_mature_query.filter(Customer.point_id.in_(scope_point_ids))
+            results['active'] = active_mature_query.scalar() or 0
         
         results["total"] = results["active"] + results["at_risk"]
         return results

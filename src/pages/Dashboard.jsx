@@ -773,7 +773,7 @@ function Dashboard() {
                     <div className="flex justify-between items-start">
                       <div className="space-y-0.5">
                         <div className="flex items-center gap-1.5">
-                          <p className="text-vnpost-blue text-[9px] font-black uppercase tracking-widest">Hiện hữu</p>
+                          <p className="text-vnpost-blue text-[9px] font-black uppercase tracking-widest">Hiện hữu (Mature)</p>
                           <span className="text-[8px] opacity-40 font-bold uppercase">{selectedMonthLabel}</span>
                         </div>
                         <h3 className="text-xl font-black">{(stats?.lifecycle?.["active"] || 0).toLocaleString()}</h3>
@@ -813,7 +813,7 @@ function Dashboard() {
                     
                     <div className="flex items-center justify-between mt-1">
                       <div className="flex items-center gap-1 opacity-40 hover:opacity-100 transition-opacity">
-                         <span className="text-[9px] font-black text-indigo-400 uppercase">Σ Lũy kế:</span>
+                         <span className="text-[9px] font-black text-indigo-400 uppercase">Dân số 90 ngày:</span>
                          <span className="text-[10px] font-black text-indigo-600">{(stats?.lifecycle?.["new"] || 0).toLocaleString()}</span>
                       </div>
                     </div>
@@ -841,7 +841,7 @@ function Dashboard() {
 
                     <div className="flex items-center justify-between mt-1">
                       <div className="flex items-center gap-1 opacity-40 hover:opacity-100 transition-opacity">
-                         <span className="text-[9px] font-black text-emerald-400 uppercase">Σ Phục hồi:</span>
+                         <span className="text-[9px] font-black text-emerald-400 uppercase">Dân số 90 ngày:</span>
                          <span className="text-[10px] font-black text-emerald-600">{(stats?.lifecycle?.["recovered"] || 0).toLocaleString()}</span>
                       </div>
                     </div>
@@ -909,8 +909,8 @@ function Dashboard() {
 
                     <div className="flex items-center justify-between mt-1">
                       <div className="flex items-center gap-1 opacity-40 hover:opacity-100 transition-opacity">
-                         <span className="text-[9px] font-black text-rose-400 uppercase">Σ Toàn tệp:</span>
-                         <span className="text-[10px] font-black text-rose-600">{(stats?.lifecycle?.["churned_snapshot"] || 0).toLocaleString()}</span>
+                         <span className="text-[9px] font-black text-rose-400 uppercase">Rời bỏ trong kỳ:</span>
+                         <span className="text-[10px] font-black text-rose-600">{(stats?.lifecycle?.["churned"] || 0).toLocaleString()}</span>
                       </div>
                     </div>
                   </div>
