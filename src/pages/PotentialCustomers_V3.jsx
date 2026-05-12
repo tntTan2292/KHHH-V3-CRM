@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../utils/api';
 import { 
   Target, 
@@ -58,6 +58,10 @@ const PotentialCustomers_V3 = () => {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [historyTarget, setHistoryTarget] = useState(null);
   const [selectedStaffId, setSelectedStaffId] = useState("");
+  
+  // RF5B: Request Cancellation
+  const abortControllerRef = useRef(null);
+  
   const [assigning, setAssigning] = useState(false);
   const [assignContent, setAssignContent] = useState("");
   const [assignDeadline, setAssignDeadline] = useState("");
@@ -109,10 +113,18 @@ const PotentialCustomers_V3 = () => {
 
   const fetchPotentialData = async (currentPage = page, currentPageSize = pageSize) => {
     if (waitingForDefaultDate) return;
+
+    // RF5B: Cancel previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setLoading(true);
     try {
       const params = buildPotentialParams(currentPage, currentPageSize);
-      const res = await api.get('/api/potential', { params });
+      const res = await api.get('/api/potential', { params, signal: controller.signal });
       setData(res.data);
       if (res.data.applied_dates) {
         const ad = res.data.applied_dates;
@@ -602,7 +614,7 @@ const PotentialCustomers_V3 = () => {
                         <p className="text-[11px] text-gray-400 italic">Hiện không có khách hàng vãng lai nào khớp với tiêu chí phân hạng {rfmSegment}.</p>
                       </div>
                     </td></tr>
-                  ) : data.items?.map((item, index) => (
+                  ) : (data?.items || []).map((item, index) => (
                     <tr key={index} className="hover:bg-blue-50/30 transition-all group">
                       <td className="p-2 text-gray-300 font-black text-center text-[13px]">{(page - 1) * pageSize + index + 1}</td>
                       <td className="p-2 font-bold text-gray-800">
@@ -663,10 +675,10 @@ const PotentialCustomers_V3 = () => {
                            </button>
                         </div>
                       </td>
-                      <td className="p-2 text-center text-[13px] font-black text-gray-400 uppercase">{item.point_name || 'N/A'}</td>
-                      <td className="p-2 text-center font-black text-indigo-600 text-[13px]">{item.so_ngay_gui}</td>
-                      <td className="p-2 text-center font-black text-gray-800 text-[13px]">{item.tong_so_don.toLocaleString()}</td>
-                      <td className="p-2 text-right font-black text-vnpost-blue text-[13px]">{formatCurrency(item.tong_doanh_thu)}</td>
+                      <td className="p-2 text-center text-[13px] font-black text-gray-400 uppercase">{item?.point_name || 'N/A'}</td>
+                      <td className="p-2 text-center font-black text-indigo-600 text-[13px]">{item?.so_ngay_gui || 0}</td>
+                      <td className="p-2 text-center font-black text-gray-800 text-[13px]">{(Number(item?.tong_so_don) || 0).toLocaleString()}</td>
+                      <td className="p-2 text-right font-black text-vnpost-blue text-[13px]">{formatCurrency(Number(item?.tong_doanh_thu) || 0)}</td>
                       <td className="p-2 text-center">{getRankBadge(item.rfm_segment)}</td>
                       <td className="p-2 text-center">
                         <button 

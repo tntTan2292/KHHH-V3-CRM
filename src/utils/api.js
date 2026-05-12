@@ -10,6 +10,7 @@ const getBaseUrl = () => {
 
 const api = axios.create({
   baseURL: getBaseUrl(),
+  timeout: 60000, // 60s timeout mặc định cho các nghiệp vụ CRM nặng
 });
 
 // Thêm interceptor để đính kèm token vào mọi request
@@ -27,6 +28,32 @@ api.interceptors.request.use((config) => {
   
   return config;
 });
+
+// Thêm interceptor để xử lý lỗi phản hồi thống nhất
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Không hiện toast nếu là lỗi chủ động hủy (AbortError)
+    if (axios.isCancel(error)) {
+      console.log('Request cancelled:', error.message);
+      return Promise.reject(error);
+    }
+
+    const status = error.response ? error.response.status : null;
+
+    if (status === 401) {
+      console.error('Unauthorized - Redirecting to login...');
+      // localStorage.removeItem('token');
+      // window.location.href = '/login';
+    } else if (status === 500) {
+      console.error('Internal Server Error:', error.response.data);
+    } else if (error.code === 'ECONNABORTED') {
+      console.error('Request Timeout');
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 export default api;
 export { getBaseUrl };

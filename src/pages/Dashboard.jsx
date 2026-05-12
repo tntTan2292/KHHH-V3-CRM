@@ -365,11 +365,16 @@ function Dashboard() {
   }, [summaryData, trendDataRes, heatmapDataRes, moversDataRes, coverageData, monthlyDataRes]);
 
   // Cập nhật các module thông minh khác
+  const analyticAbortRef = useRef(null);
   useEffect(() => {
     if (!waitingForDefaultDate) {
-      api.get('/api/analytics/customer-scoring', { params: queryParams }).then(res => setCustomerScoring(res.data));
-      api.get('/api/analytics/churn-prediction', { params: queryParams }).then(res => setChurnPrediction(res.data));
-      api.get('/api/analytics/system-health').then(res => setSystemHealth(res.data));
+      if (analyticAbortRef.current) analyticAbortRef.current.abort();
+      const controller = new AbortController();
+      analyticAbortRef.current = controller;
+
+      api.get('/api/analytics/customer-scoring', { params: queryParams, signal: controller.signal }).then(res => setCustomerScoring(res.data)).catch(() => {});
+      api.get('/api/analytics/churn-prediction', { params: queryParams, signal: controller.signal }).then(res => setChurnPrediction(res.data)).catch(() => {});
+      api.get('/api/analytics/system-health', { signal: controller.signal }).then(res => setSystemHealth(res.data)).catch(() => {});
     }
   }, [waitingForDefaultDate, queryParams]);
 
@@ -691,7 +696,7 @@ function Dashboard() {
                     }}
                     title="Xem danh sách KH Hiện hữu"
                   >
-                    <div><p className="text-vnpost-blue text-[10px] font-black uppercase mb-1 tracking-wider">Hien huu</p><h3 className="text-xl font-black">{(stats.lifecycle?.["active"] || 0).toLocaleString()}</h3></div>
+                    <div><p className="text-vnpost-blue text-[10px] font-black uppercase mb-1 tracking-wider">Hien huu</p><h3 className="text-xl font-black">{(stats?.lifecycle?.["active"] || 0).toLocaleString()}</h3></div>
                     <Users size={20} className="text-vnpost-blue/30" />
                     
                     {/* RF4B: Mini-peek hint */}
@@ -715,7 +720,7 @@ function Dashboard() {
                     }}
                     title="Xem danh sách KH Mới"
                   >
-                    <div><p className="text-indigo-600 text-[10px] font-black uppercase mb-1 tracking-wider">Khách mới</p><h3 className="text-xl font-black">{(stats.lifecycle?.["new"] || 0).toLocaleString()}</h3></div>
+                    <div><p className="text-indigo-600 text-[10px] font-black uppercase mb-1 tracking-wider">Khách mới</p><h3 className="text-xl font-black">{(stats?.lifecycle?.["new"] || 0).toLocaleString()}</h3></div>
                     <Sparkles size={20} className="text-indigo-300" />
                     {/* RF4B: Mini-peek hint */}
                     <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap z-30 shadow-xl uppercase tracking-widest">
@@ -731,7 +736,7 @@ function Dashboard() {
                     }}
                     title="Xem danh sách KH Tái bản"
                   >
-                    <div><p className="text-emerald-600 text-[10px] font-black uppercase mb-1 tracking-wider">Tái bản</p><h3 className="text-xl font-black">{(stats.lifecycle?.["recovered"] || 0).toLocaleString()}</h3></div>
+                    <div><p className="text-emerald-600 text-[10px] font-black uppercase mb-1 tracking-wider">Tái bản</p><h3 className="text-xl font-black">{(stats?.lifecycle?.["recovered"] || 0).toLocaleString()}</h3></div>
                     <ArrowUpRight size={20} className="text-green-300" />
                     {/* RF4B: Mini-peek hint */}
                     <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap z-30 shadow-xl uppercase tracking-widest">
@@ -927,7 +932,7 @@ function Dashboard() {
                       axisLine={false} 
                       tickLine={false} 
                       tick={{ fontSize: 12, fill: '#64748b', fontWeight: 'bold' }}
-                      tickFormatter={(val) => `${(val / 1000000).toFixed(1)}M`}
+                      tickFormatter={(val) => `${(Number(val) / 1000000).toFixed(1)}M`}
                     />
                     <RechartsTooltip 
                       contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontWeight: 'bold', fontSize: '12px' }}
@@ -960,10 +965,11 @@ function Dashboard() {
                   <Skeleton.Table rows={8} />
                 ) : heatmapData && heatmapData.length > 0 ? (() => {
                    try {
-                     const data = [...heatmapData].map(h => ({
+                     const rawData = Array.isArray(heatmapData) ? heatmapData : [];
+                     const data = rawData.map(h => ({
                        ...h,
-                       revenue: Number(h.revenue) || 0,
-                       growth: Number(h.growth) || 0
+                       revenue: Number(h?.revenue) || 0,
+                       growth: Number(h?.growth) || 0
                      }));
                      
                      const avgRev = data.reduce((acc, curr) => acc + curr.revenue, 0) / data.length;

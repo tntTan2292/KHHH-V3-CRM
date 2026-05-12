@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { saveNavigationContext, getNavigationContext, syncUrlWithContext, getContextFromUrl, getDateContext, saveDateContext } from '../utils/navigationMemory';
 import api from '../utils/api';
@@ -10,6 +10,142 @@ import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 
 const COLORS = ['#F9A51A', '#0054A6', '#003E7E', '#22C55E', '#9CA3AF'];
+
+// RF5B: Memoized Customer Row for Performance
+const CustomerRow = React.memo(({ c, handleRowClick, handleHistoryModal, formatCurrency, getRankBadge, lifecycleConfig }) => {
+  return (
+    <tr onClick={() => handleRowClick(c?.ma_crm_cms)} className="group transition-all duration-300 cursor-pointer hover:bg-indigo-50/30">
+      <td className="p-2 relative">
+        <span className="font-mono text-[11px] font-black px-1.5 py-0.5 rounded-md bg-blue-50 text-vnpost-blue">
+          {c?.ma_crm_cms}
+        </span>
+        
+        {/* RF4A: Ghost Action Cluster */}
+        <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all z-20 pointer-events-none group-hover:pointer-events-auto">
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              window.open(`tel:${c?.dien_thoai || ''}`, '_self');
+            }}
+            className="w-8 h-8 rounded-full bg-vnpost-blue text-white flex items-center justify-center shadow-lg hover:scale-110 transition-all"
+            title="Gọi điện ngay"
+          >
+            <Phone size={14} />
+          </button>
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              handleHistoryModal(c);
+            }}
+            className="w-8 h-8 rounded-full bg-vnpost-orange text-white flex items-center justify-center shadow-lg hover:scale-110 transition-all"
+            title="Ghi chú nhanh"
+          >
+            <FileText size={14} />
+          </button>
+        </div>
+      </td>
+      <td className="p-2">
+        <div className="flex items-center gap-2">
+          <span className="font-bold text-gray-800 group-hover:text-vnpost-blue transition-colors text-[13px]">{c?.ten_kh}</span>
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              handleHistoryModal(c);
+            }}
+            className="p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-vnpost-blue transition-colors"
+            title="Xem lịch sử tiếp cận"
+          >
+            <History size={12} />
+          </button>
+        </div>
+      </td>
+      <td className="p-2">
+         {(() => {
+           const status = lifecycleConfig.find(l => l.value === c?.status_type) || lifecycleConfig[0];
+           return (
+             <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[11px] font-black uppercase border shadow-sm ${status.colorClass} ${status.bgClass} ${status.textClass}`}>
+               <status.icon size={12} className={c?.status_type === 'new' ? 'animate-bounce' : ''} />
+               {(() => {
+                 if (c?.status_type === 'active') return 'Hien huu';
+                 if (c?.status_type === 'new') return 'Moi';
+                 if (c?.status_type === 'recovered') return 'Phuc hoi';
+                 if (c?.status_type === 'at_risk') return 'Nguy co';
+                 if (c?.status_type === 'churned') return 'Mat';
+                 return c?.status_type;
+               })()}
+             </span>
+           );
+         })()}
+      </td>
+      <td className="p-2">
+        {getRankBadge(c?.rfm_segment)}
+      </td>
+      <td className="p-2 text-right">
+        <span className="font-bold text-gray-700 text-[13px]">{c?.transaction_count} đơn</span>
+      </td>
+      <td className="p-2 text-right">
+        <div className="flex flex-col items-end">
+          <span className={`font-black text-[13px] ${(Number(c?.dynamic_revenue) || 0) > 1000000 ? 'text-vnpost-blue' : 'text-gray-700'}`}>
+            {formatCurrency(Number(c?.dynamic_revenue) || 0)}
+          </span>
+        </div>
+      </td>
+      <td className="p-2 text-right">
+        <div className={`inline-flex items-center justify-end gap-1 px-2 py-1 rounded-xl font-black text-[11px] shadow-sm border ${
+          c?.growth_velocity > 0 
+            ? 'bg-green-50 text-green-600 border-green-100' 
+            : c?.growth_velocity < 0 
+            ? 'bg-rose-50 text-rose-600 border-rose-100' 
+            : 'bg-gray-50 text-gray-400 border-gray-100'
+        }`}>
+          <TrendingUp size={12} className={(Number(c?.growth_velocity) || 0) > 0 ? 'text-green-500' : 'text-red-400'} />
+          {(Number(c?.growth_velocity) || 0) > 0 ? '+' : ''}{(Number(c?.growth_velocity) || 0).toFixed(1)}%
+        </div>
+      </td>
+      <td className="p-2 text-center">
+        <div className={`inline-flex items-center justify-center w-9 h-9 rounded-xl border-2 shadow-sm font-heading ${
+          c?.health_score >= 80 ? 'border-green-500 bg-green-50 text-green-700' : 
+          c?.health_score >= 50 ? 'border-vnpost-orange bg-orange-50 text-vnpost-orange' : 
+          'border-red-500 bg-red-50 text-red-700'
+        }`}>
+          <div className="flex flex-col items-center">
+            <span className="text-[13px] font-black leading-none">{c?.health_score}</span>
+            <span className="text-[11px] font-bold uppercase tracking-tighter opacity-70">Pts</span>
+          </div>
+        </div>
+      </td>
+      <td className="p-2 text-center">
+         <span className="text-[11px] font-black border border-gray-100 bg-gray-50 px-2 py-1 rounded-xl text-gray-500 shadow-sm" title={`${c?.point_code || ''} - ${c?.point_name || ''}`}>
+           {c?.point_code && c?.point_name ? `${c?.point_code}` : (c?.point_name || c?.point_code || 'N/A')}
+         </span>
+      </td>
+      <td className="p-2 text-center">
+         <div className="flex flex-col items-center">
+           {c?.assigned_staff_name ? (
+             <span className="text-[11px] font-black text-vnpost-blue bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 uppercase">
+               👤 {c?.assigned_staff_name}
+             </span>
+           ) : (
+             <span className="text-[11px] text-gray-300 font-bold italic uppercase">Chưa gán</span>
+           )}
+         </div>
+      </td>
+      <td className="p-2 text-center">
+        <div className="flex items-center justify-center gap-1">
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              handleRowClick(c?.ma_crm_cms);
+            }}
+            className="p-2 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+          >
+            <Info size={16} />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+});
 
 export default function Customers() {
   const [customers, setCustomers] = useState([]);
@@ -63,6 +199,26 @@ export default function Customers() {
   const [selectedPointId, setSelectedPointId] = useState("");
   const [wardOptions, setWardOptions] = useState([]);
   const [selectedWardId, setSelectedWardId] = useState("");
+  
+  // RF5B: Modal Scroll Hardening
+  useEffect(() => {
+    if (selectedCustomer) {
+      const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
+      document.body.style.overflow = 'hidden';
+      document.body.style.paddingRight = `${scrollBarWidth}px`;
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+    };
+  }, [selectedCustomer]);
+
+  // RF5B: Request Cancellation
+  const abortControllerRef = useRef(null);
+  const statsAbortControllerRef = useRef(null);
   const [apiUserRole, setApiUserRole] = useState("");
   const [apiUserWardId, setApiUserWardId] = useState(null);
   const [showEscalateForm, setShowEscalateForm] = useState(false);
@@ -219,13 +375,20 @@ export default function Customers() {
 
 
   const fetchLifecycleStats = async () => {
+    if (statsAbortControllerRef.current) {
+      statsAbortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    statsAbortControllerRef.current = controller;
+
     try {
       const res = await api.get('/api/analytics/dashboard', { 
         params: { 
           start_date: startDate, 
           end_date: endDate,
           node_code: selectedNode?.key || undefined
-        } 
+        },
+        signal: controller.signal
       });
       
       const d = res.data;
@@ -270,6 +433,13 @@ export default function Customers() {
   };
 
   const fetchCustomers = async (targetPage = 1) => {
+    // RF5B: Cancel previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setLoading(true);
     try {
       const params = {
@@ -285,7 +455,7 @@ export default function Customers() {
         node_code: selectedNode?.key || undefined
       };
       
-       const res = await api.get('/api/customers', { params });
+       const res = await api.get('/api/customers', { params, signal: controller.signal });
        setCustomers(res.data.items || []);
        setTotal(res.data.total || 0);
        setTotalPages(res.data.total_pages || 1);
@@ -1340,140 +1510,19 @@ export default function Customers() {
                   </div>
                 </td></tr>
               ) : (
-                customers.map(c => (
-                  <tr key={c.ma_crm_cms} onClick={() => handleRowClick(c.ma_crm_cms)} className="group transition-all duration-300 cursor-pointer hover:bg-indigo-50/30">
-                    <td className="p-2 relative">
-                      <span className="font-mono text-[11px] font-black px-1.5 py-0.5 rounded-md bg-blue-50 text-vnpost-blue">
-                        {c.ma_crm_cms}
-                      </span>
-                      
-                      {/* RF4A: Ghost Action Cluster */}
-                      <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all z-20 pointer-events-none group-hover:pointer-events-auto">
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.open(`tel:${c.dien_thoai || ''}`, '_self');
-                          }}
-                          className="w-8 h-8 rounded-full bg-vnpost-blue text-white flex items-center justify-center shadow-lg hover:scale-110 transition-all"
-                          title="Gọi điện ngay"
-                        >
-                          <Phone size={14} />
-                        </button>
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setHistoryTarget({ ma_kh: c.ma_crm_cms, ten_kh: c.ten_kh });
-                            setShowHistoryModal(true);
-                          }}
-                          className="w-8 h-8 rounded-full bg-vnpost-orange text-white flex items-center justify-center shadow-lg hover:scale-110 transition-all"
-                          title="Ghi chú nhanh"
-                        >
-                          <FileText size={14} />
-                        </button>
-                      </div>
-                    </td>
-                    <td className="p-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-gray-800 group-hover:text-vnpost-blue transition-colors text-[13px]">{c.ten_kh}</span>
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setHistoryTarget({ ma_kh: c.ma_crm_cms, ten_kh: c.ten_kh });
-                            setShowHistoryModal(true);
-                          }}
-                          className="p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-vnpost-blue transition-colors"
-                          title="Xem lịch sử tiếp cận"
-                        >
-                          <History size={12} />
-                        </button>
-                      </div>
-                    </td>
-                    <td className="p-2">
-                       {(() => {
-                         const status = lifecycleConfig.find(l => l.value === c.status_type) || lifecycleConfig[0];
-                         return (
-                           <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[11px] font-black uppercase border shadow-sm ${status.colorClass} ${status.bgClass} ${status.textClass}`}>
-                             <status.icon size={12} className={c.status_type === 'new' ? 'animate-bounce' : ''} />
-                             {(() => {
-                               if (c.status_type === 'active') return 'Hien huu';
-                               if (c.status_type === 'new') return 'Moi';
-                               if (c.status_type === 'recovered') return 'Phuc hoi';
-                               if (c.status_type === 'at_risk') return 'Nguy co';
-                               if (c.status_type === 'churned') return 'Mat';
-                               return c.status_type;
-                             })()}
-                           </span>
-                         );
-                       })()}
-                    </td>
-                    <td className="p-2">
-                      {getRankBadge(c.rfm_segment)}
-                    </td>
-                    <td className="p-2 text-right">
-                      <span className="font-bold text-gray-700 text-[13px]">{c.transaction_count} đơn</span>
-                    </td>
-                    <td className="p-2 text-right">
-                      <div className="flex flex-col items-end">
-                        <span className={`font-black text-[13px] ${c.dynamic_revenue > 1000000 ? 'text-vnpost-blue' : 'text-gray-700'}`}>
-                          {formatCurrency(c.dynamic_revenue)}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="p-2 text-right">
-                      <div className={`inline-flex items-center justify-end gap-1 px-2 py-1 rounded-xl font-black text-[11px] shadow-sm border ${
-                        c.growth_velocity > 0 
-                          ? 'bg-green-50 text-green-600 border-green-100' 
-                          : c.growth_velocity < 0 
-                          ? 'bg-rose-50 text-rose-600 border-rose-100' 
-                          : 'bg-gray-50 text-gray-400 border-gray-100'
-                      }`}>
-                        <TrendingUp size={12} className={c.growth_velocity > 0 ? 'text-green-500' : 'text-red-400'} />
-                        {c.growth_velocity > 0 ? '+' : ''}{c.growth_velocity.toFixed(1)}%
-                      </div>
-                    </td>
-                    <td className="p-2 text-center">
-                      <div className={`inline-flex items-center justify-center w-9 h-9 rounded-xl border-2 shadow-sm font-heading ${
-                        c.health_score >= 80 ? 'border-green-500 bg-green-50 text-green-700' : 
-                        c.health_score >= 50 ? 'border-vnpost-orange bg-orange-50 text-vnpost-orange' : 
-                        'border-red-500 bg-red-50 text-red-700'
-                      }`}>
-                        <div className="flex flex-col items-center">
-                          <span className="text-[13px] font-black leading-none">{c.health_score}</span>
-                          <span className="text-[11px] font-bold uppercase tracking-tighter opacity-70">Pts</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-2 text-center">
-                       <span className="text-[11px] font-black border border-gray-100 bg-gray-50 px-2 py-1 rounded-xl text-gray-500 shadow-sm" title={`${c.point_code || ''} - ${c.point_name || ''}`}>
-                         {c.point_code && c.point_name ? `${c.point_code}` : (c.point_name || c.point_code || 'N/A')}
-                       </span>
-                    </td>
-                    <td className="p-2 text-center">
-                       <div className="flex flex-col items-center">
-                         {c.assigned_staff_name ? (
-                           <span className="text-[11px] font-black text-vnpost-blue bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 uppercase">
-                             👤 {c.assigned_staff_name}
-                           </span>
-                         ) : (
-                           <span className="text-[11px] text-gray-300 font-bold italic uppercase">Chưa gán</span>
-                         )}
-                       </div>
-                    </td>
-                    <td className="p-2 text-center">
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setAssignTarget({ ma_kh: c.ma_crm_cms, ten_kh: c.ten_kh, nhom_kh: c.status_type, rfm_segment: c.rfm_segment });
-                          setSelectedStaffId(c.assigned_staff_id || "");
-                          setShowAssignModal(true);
-                        }}
-                        className="p-1.5 text-vnpost-orange hover:bg-orange-50 rounded-lg transition-all active:scale-90"
-                        title="Giao việc cho nhân viên"
-                      >
-                        <UserPlus size={16} />
-                      </button>
-                    </td>
-                  </tr>
+                (customers || []).map(c => (
+                  <CustomerRow 
+                    key={c?.ma_crm_cms} 
+                    c={c} 
+                    handleRowClick={handleRowClick}
+                    handleHistoryModal={(cust) => {
+                      setHistoryTarget({ ma_kh: cust.ma_crm_cms, ten_kh: cust.ten_kh });
+                      setShowHistoryModal(true);
+                    }}
+                    formatCurrency={formatCurrency}
+                    getRankBadge={getRankBadge}
+                    lifecycleConfig={lifecycleConfig}
+                  />
                 ))
               )}
             </tbody>
