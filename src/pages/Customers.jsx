@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { saveNavigationContext, getNavigationContext, syncUrlWithContext, getContextFromUrl } from '../utils/navigationMemory';
+import { saveNavigationContext, getNavigationContext, syncUrlWithContext, getContextFromUrl, getDateContext, saveDateContext } from '../utils/navigationMemory';
 import api from '../utils/api';
 import { Search, Filter, Download, Download as DownloadX, TableProperties, AlertCircle, X, ChevronRight, ChevronLeft, Calendar, TrendingUp, ArrowUpDown, ChevronUp, ChevronDown, RefreshCw, CloudDownload, CheckCircle2, History, Star, Users, Briefcase, Zap, LogOut, UserPlus, Award, Activity, MapPin, ArrowUpRight, Save, AlertTriangle, Phone, FileText, Edit, Check, UploadCloud, Send, Settings, MessageCircle } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -69,6 +69,25 @@ export default function Customers() {
   const [escalateReason, setEscalateReason] = useState("");
   const [isTreeOpen, setIsTreeOpen] = useState(false);
   const { user } = useAuth();
+
+  // RF4A: Navigation Logic for Modal
+  const handleNextCustomer = () => {
+    const currentIndex = customers.findIndex(c => c.ma_crm_cms === selectedCustomer);
+    if (currentIndex !== -1 && currentIndex < customers.length - 1) {
+      handleRowClick(customers[currentIndex + 1].ma_crm_cms);
+    }
+  };
+
+  const handlePrevCustomer = () => {
+    const currentIndex = customers.findIndex(c => c.ma_crm_cms === selectedCustomer);
+    if (currentIndex > 0) {
+      handleRowClick(customers[currentIndex - 1].ma_crm_cms);
+    }
+  };
+
+  const hasNext = customers.findIndex(c => c.ma_crm_cms === selectedCustomer) < customers.length - 1;
+  const hasPrev = customers.findIndex(c => c.ma_crm_cms === selectedCustomer) > 0;
+
 
   const getTaskFlow = (target) => {
     if (!target) return { type: 'Giao Lead', color: 'from-emerald-500 to-teal-700', text: 'GIAO LEAD MỚI', subtitle: 'Tiếp cận khách hàng tiềm năng' };
@@ -191,6 +210,14 @@ export default function Customers() {
     fetchLifecycleStats();
   }, [filters.search, filters.rfm_segment, filters.lifecycle_status, sortConfig, startDate, endDate, waitingForDefaultDate, page, pageSize, selectedNode]);
 
+  // RF4D: Persist Date
+  useEffect(() => {
+    if (startDate || endDate) {
+      saveDateContext(startDate, endDate);
+    }
+  }, [startDate, endDate]);
+
+
   const fetchLifecycleStats = async () => {
     try {
       const res = await api.get('/api/analytics/dashboard', { 
@@ -218,7 +245,13 @@ export default function Customers() {
     try {
       const res = await api.get('/api/analytics/data-coverage');
       setCoverage(res.data);
-      if (res.data.latest_month && !startDate && !endDate) {
+      
+      // RF4D: Restore Date Context
+      const dateCtx = getDateContext();
+      if (dateCtx && dateCtx.startDate && dateCtx.endDate) {
+        setStartDate(dateCtx.startDate);
+        setEndDate(dateCtx.endDate);
+      } else if (res.data.latest_month && !startDate && !endDate) {
         setStartDate(res.data.latest_month.start);
         setEndDate(res.data.latest_month.end);
         setSelectedMonth(res.data.latest_month.value);
@@ -1295,10 +1328,35 @@ export default function Customers() {
               ) : (
                 customers.map(c => (
                   <tr key={c.ma_crm_cms} onClick={() => handleRowClick(c.ma_crm_cms)} className="group transition-all duration-300 cursor-pointer hover:bg-indigo-50/30">
-                    <td className="p-2">
+                    <td className="p-2 relative">
                       <span className="font-mono text-[11px] font-black px-1.5 py-0.5 rounded-md bg-blue-50 text-vnpost-blue">
                         {c.ma_crm_cms}
                       </span>
+                      
+                      {/* RF4A: Ghost Action Cluster */}
+                      <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all z-20 pointer-events-none group-hover:pointer-events-auto">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(`tel:${c.dien_thoai || ''}`, '_self');
+                          }}
+                          className="w-8 h-8 rounded-full bg-vnpost-blue text-white flex items-center justify-center shadow-lg hover:scale-110 transition-all"
+                          title="Gọi điện ngay"
+                        >
+                          <Phone size={14} />
+                        </button>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setHistoryTarget({ ma_kh: c.ma_crm_cms, ten_kh: c.ten_kh });
+                            setShowHistoryModal(true);
+                          }}
+                          className="w-8 h-8 rounded-full bg-vnpost-orange text-white flex items-center justify-center shadow-lg hover:scale-110 transition-all"
+                          title="Ghi chú nhanh"
+                        >
+                          <FileText size={14} />
+                        </button>
+                      </div>
                     </td>
                     <td className="p-2">
                       <div className="flex items-center gap-2">
@@ -1497,9 +1555,30 @@ export default function Customers() {
                   </button>
                 )}
               </div>
-              <button onClick={closeModal} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
-                <X size={24} className="text-gray-400" />
-              </button>
+               <div className="flex items-center gap-2">
+                  <div className="flex items-center bg-gray-100 rounded-xl p-1 mr-2">
+                    <button 
+                      onClick={handlePrevCustomer}
+                      disabled={!hasPrev}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-sm disabled:opacity-30 transition-all text-gray-500"
+                      title="Khách hàng trước đó"
+                    >
+                      <ChevronLeft size={20} />
+                    </button>
+                    <div className="w-px h-4 bg-gray-200 mx-1"></div>
+                    <button 
+                      onClick={handleNextCustomer}
+                      disabled={!hasNext}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-sm disabled:opacity-30 transition-all text-gray-500"
+                      title="Khách hàng tiếp theo"
+                    >
+                      <ChevronRight size={20} />
+                    </button>
+                  </div>
+                  <button onClick={closeModal} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
+                    <X size={24} className="text-gray-400" />
+                  </button>
+               </div>
             </div>
             
             <div className="p-6 bg-gray-50/50">

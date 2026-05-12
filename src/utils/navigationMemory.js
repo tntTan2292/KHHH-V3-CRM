@@ -1,15 +1,15 @@
 /**
- * RF3A: Navigation Memory Utility
- * Preserves hierarchy context (selected node) across CRM modules.
+ * RF3A & RF4D: Navigation Memory Utility
+ * Preserves hierarchy context (selected node) and time context (dates) across CRM modules.
  */
 
 const STORAGE_KEY = 'crm_v3_navigation_memory';
+const DATE_STORAGE_KEY = 'crm_v3_date_memory';
 
 export const saveNavigationContext = (node) => {
   if (!node) {
     sessionStorage.removeItem(STORAGE_KEY);
   } else {
-    // Only store essential data to keep it lightweight
     const memory = {
       key: node.key,
       title: node.title,
@@ -25,7 +25,6 @@ export const getNavigationContext = () => {
   if (!saved) return null;
   try {
     const memory = JSON.parse(saved);
-    // Optional: add expiry check (e.g., 2 hours)
     if (Date.now() - memory.timestamp > 2 * 60 * 60 * 1000) {
       sessionStorage.removeItem(STORAGE_KEY);
       return null;
@@ -36,9 +35,38 @@ export const getNavigationContext = () => {
   }
 };
 
+// RF4D: Date Persistence
+export const saveDateContext = (startDate, endDate) => {
+  if (!startDate && !endDate) {
+    sessionStorage.removeItem(DATE_STORAGE_KEY);
+  } else {
+    const dateMemory = {
+      startDate,
+      endDate,
+      timestamp: Date.now()
+    };
+    sessionStorage.setItem(DATE_STORAGE_KEY, JSON.stringify(dateMemory));
+  }
+};
+
+export const getDateContext = () => {
+  const saved = sessionStorage.getItem(DATE_STORAGE_KEY);
+  if (!saved) return null;
+  try {
+    const memory = JSON.parse(saved);
+    // Date memory lasts shorter (e.g., 30 mins) to avoid stale data
+    if (Date.now() - memory.timestamp > 30 * 60 * 1000) {
+      sessionStorage.removeItem(DATE_STORAGE_KEY);
+      return null;
+    }
+    return memory;
+  } catch (e) {
+    return null;
+  }
+};
+
 /**
  * Syncs URL search params with the hierarchy context.
- * This enables deep linking and command routing (RF3).
  */
 export const syncUrlWithContext = (node, searchParams, setSearchParams) => {
   const newParams = new URLSearchParams(searchParams);

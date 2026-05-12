@@ -26,13 +26,16 @@ import {
   RefreshCw,
   Save,
   AlertTriangle,
-  Download
+  Download,
+  Phone,
+  FileText
 } from 'lucide-react';
 import TreeExplorer from '../components/TreeExplorer';
 import CustomerHistoryModal from '../components/CustomerHistoryModal';
 import PotentialTransactionModal from '../components/PotentialTransactionModal';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
+import { saveDateContext, getDateContext } from '../utils/navigationMemory';
 
 const PotentialCustomers_V3 = () => {
   const [data, setData] = useState({ items: [], total: 0, page: 1, total_pages: 1, summary: {} });
@@ -111,15 +114,14 @@ const PotentialCustomers_V3 = () => {
       const params = buildPotentialParams(currentPage, currentPageSize);
       const res = await api.get('/api/potential', { params });
       setData(res.data);
-      // Sync ng??y th???c t??? t??? backend khi backend auto-pick th??ng m???i nh???t
       if (res.data.applied_dates) {
         const ad = res.data.applied_dates;
         if (ad.start && !startDate) setStartDate(ad.start);
         if (ad.end && !endDate) setEndDate(ad.end);
       }
     } catch (err) {
-      console.error('L???i t???i d??? li???u kh??ch h??ng ti???m n??ng V3:', err);
-      toast.error("Kh??ng th??? t???i d??? li???u ti???m n??ng. Vui l??ng th??? l???i.");
+      console.error('Lỗi tải dữ liệu khách hàng tiềm năng V3:', err);
+      toast.error("Không thể tải dữ liệu tiềm năng. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
@@ -199,6 +201,13 @@ const PotentialCustomers_V3 = () => {
   useEffect(() => {
     fetchPotentialData(page, pageSize);
   }, [startDate, endDate, minDays, sortConfig, rfmSegment, pageSize, selectedNode, waitingForDefaultDate, page]);
+
+  // RF4D: Persist Date
+  useEffect(() => {
+    if (startDate || endDate) {
+      saveDateContext(startDate, endDate);
+    }
+  }, [startDate, endDate]);
 
   const handleAssignSubmit = async () => {
     if (!selectedStaffId) {
@@ -282,7 +291,13 @@ const PotentialCustomers_V3 = () => {
     try {
       const res = await api.get('/api/analytics/data-coverage');
       setCoverage(res.data);
-      if (!startDate && !endDate && res.data.latest_month) {
+      
+      // RF4D: Restore Date Context
+      const dateCtx = getDateContext();
+      if (dateCtx && dateCtx.startDate && dateCtx.endDate) {
+        setStartDate(dateCtx.startDate);
+        setEndDate(dateCtx.endDate);
+      } else if (!startDate && !endDate && res.data.latest_month) {
         const latest = res.data.latest_month;
         setStartDate(latest.start);
         setEndDate(latest.end);
@@ -600,12 +615,38 @@ const PotentialCustomers_V3 = () => {
                                </span>
                              )}
                            </button>
+
+                           {/* RF4A: Ghost Action Cluster for Leads */}
+                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all pointer-events-none group-hover:pointer-events-auto">
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(`tel:${item.dien_thoai || ''}`, '_self');
+                                }}
+                                className="w-8 h-8 rounded-full bg-vnpost-blue text-white flex items-center justify-center shadow-lg hover:scale-110 transition-all"
+                                title="Gọi điện chào hàng"
+                              >
+                                <Phone size={12} />
+                              </button>
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setHistoryTarget(item);
+                                  setShowHistoryModal(true);
+                                }}
+                                className="w-8 h-8 rounded-full bg-vnpost-orange text-white flex items-center justify-center shadow-lg hover:scale-110 transition-all"
+                                title="Ghi chú nhanh"
+                              >
+                                <FileText size={12} />
+                              </button>
+                           </div>
+
                            <button 
                              onClick={() => {
                                setHistoryTarget(item);
                                setShowHistoryModal(true);
                              }}
-                             className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 hover:text-vnpost-blue transition-colors ml-auto"
+                             className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 hover:text-vnpost-blue transition-colors ml-auto group-hover:hidden"
                              title="Xem lịch sử tương tác"
                            >
                              <History size={14} />

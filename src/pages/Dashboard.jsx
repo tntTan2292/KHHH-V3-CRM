@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import api from '../utils/api';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { saveNavigationContext, getNavigationContext, syncUrlWithContext, getContextFromUrl } from '../utils/navigationMemory';
+import { saveNavigationContext, getNavigationContext, syncUrlWithContext, getContextFromUrl, saveDateContext, getDateContext } from '../utils/navigationMemory';
 import { toast } from 'react-toastify';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
@@ -275,6 +275,14 @@ function Dashboard() {
   const [endDate, setEndDate] = useState("");
   const [waitingForDefaultDate, setWaitingForDefaultDate] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState("");
+
+  // RF4D: Date Persistence
+  useEffect(() => {
+    if (startDate || endDate) {
+      saveDateContext(startDate, endDate);
+    }
+  }, [startDate, endDate]);
+
   const [isExporting, setIsExporting] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [zoomState, setZoomState] = useState({
@@ -390,8 +398,9 @@ function Dashboard() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // --- PERSISTENCE & NAVIGATION MEMORY (RF3A) ---
+  // --- PERSISTENCE & NAVIGATION MEMORY (RF3A & RF4D) ---
   useEffect(() => {
+    // 1. Restore Hierarchy Context
     const urlContext = getContextFromUrl(searchParams);
     if (urlContext) {
       setSelectedNode(urlContext);
@@ -402,6 +411,15 @@ function Dashboard() {
         setSelectedNode(savedContext);
         setNavStack([{ key: "", title: user?.scope || "Toàn tỉnh" }, savedContext]);
         syncUrlWithContext(savedContext, searchParams, setSearchParams);
+      }
+    }
+
+    // 2. Restore Date Context
+    const dateCtx = getDateContext();
+    if (dateCtx && dateCtx.startDate && dateCtx.endDate) {
+      if (!startDate && !endDate) { // Only if not already set by defaults
+        setStartDate(dateCtx.startDate);
+        setEndDate(dateCtx.endDate);
       }
     }
   }, [user]);
@@ -675,9 +693,16 @@ function Dashboard() {
                   >
                     <div><p className="text-vnpost-blue text-[10px] font-black uppercase mb-1 tracking-wider">Hien huu</p><h3 className="text-xl font-black">{(stats.lifecycle?.["active"] || 0).toLocaleString()}</h3></div>
                     <Users size={20} className="text-vnpost-blue/30" />
+                    
+                    {/* RF4B: Mini-peek hint */}
+                    <div className="absolute inset-x-0 bottom-0 h-1 bg-vnpost-blue/10 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></div>
+                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap z-30 shadow-xl uppercase tracking-widest border border-white/10">
+                      Soi 360° khách hàng đang gửi hàng
+                    </div>
+
                     {summaryData?.stats?.lifecycle_delta?.active !== undefined && (
-                      <div className="absolute -top-8 right-2 bg-gray-800 text-white text-[10px] font-bold px-2 py-1 rounded-lg opacity-0 group-hover/lctip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                        {summaryData.stats.lifecycle_delta.active >= 0 ? "+" : ""}{summaryData.stats.lifecycle_delta.active} so ky truoc
+                      <div className="absolute -top-8 right-2 bg-vnpost-blue text-white text-[10px] font-bold px-2 py-1 rounded-lg opacity-0 group-hover/lctip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow-lg">
+                        {summaryData.stats.lifecycle_delta.active >= 0 ? "+" : ""}{summaryData.stats.lifecycle_delta.active} so kỳ trước
                       </div>
                     )}
                   </div>
@@ -692,6 +717,10 @@ function Dashboard() {
                   >
                     <div><p className="text-indigo-600 text-[10px] font-black uppercase mb-1 tracking-wider">Khách mới</p><h3 className="text-xl font-black">{(stats.lifecycle?.["new"] || 0).toLocaleString()}</h3></div>
                     <Sparkles size={20} className="text-indigo-300" />
+                    {/* RF4B: Mini-peek hint */}
+                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap z-30 shadow-xl uppercase tracking-widest">
+                      Phát hiện mới trong kỳ báo cáo
+                    </div>
                   </div>
                   <div 
                     className="card p-3 border-l-4 border-l-emerald-500 bg-gradient-to-br from-emerald-500/5 to-transparent flex justify-between items-end cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
@@ -704,6 +733,10 @@ function Dashboard() {
                   >
                     <div><p className="text-emerald-600 text-[10px] font-black uppercase mb-1 tracking-wider">Tái bản</p><h3 className="text-xl font-black">{(stats.lifecycle?.["recovered"] || 0).toLocaleString()}</h3></div>
                     <ArrowUpRight size={20} className="text-green-300" />
+                    {/* RF4B: Mini-peek hint */}
+                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap z-30 shadow-xl uppercase tracking-widest">
+                      Khách quay lại sau &gt; 30 ngày ngưng gửi
+                    </div>
                   </div>
                 </>
               )}
@@ -727,6 +760,10 @@ function Dashboard() {
                   >
                     <div><p className="text-amber-600 text-[11px] font-black uppercase mb-1 tracking-wider">Nguy cơ (At Risk)</p><h3 className="text-xl font-black">{(stats.lifecycle?.["at_risk"] || 0).toLocaleString()}</h3></div>
                     <Info size={20} className="text-vnpost-orange/30" />
+                    {/* RF4B: Mini-peek hint */}
+                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-vnpost-orange text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap z-30 shadow-xl uppercase tracking-widest animate-bounce-slow">
+                      Hành động ngay: Sản lượng giảm &gt; 50%
+                    </div>
                   </div>
                   <div 
                     className="card p-3 border-l-4 border-l-gray-400 bg-gradient-to-br from-gray-400/5 to-transparent flex justify-between items-end cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
@@ -765,6 +802,12 @@ function Dashboard() {
                 </div>
                 <p className="text-blue-700 text-[11px] font-black uppercase tracking-widest mb-1 relative z-10">💎 Kim Cương (Diamond)</p>
                 <h3 className="text-2xl font-black text-blue-800 relative z-10">{(stats.potential_ranks?.["Kim Cương"] || 0).toLocaleString()}</h3>
+                
+                {/* RF4B: Mini-peek hint */}
+                <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-blue-700 text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap z-30 shadow-xl uppercase tracking-widest">
+                  Tiêu chuẩn: DT &gt; 5M & Tần suất &gt; 20 đơn
+                </div>
+
                 <p className="text-[11px] text-blue-500 font-bold mt-2 relative z-10 uppercase">&gt; 5M và &gt; 20 đơn/tháng</p>
               </div>
               <div 
@@ -781,6 +824,12 @@ function Dashboard() {
                 </div>
                 <p className="text-vnpost-orange text-[11px] font-black uppercase tracking-widest mb-1 relative z-10">🥇 Vàng (Gold)</p>
                 <h3 className="text-2xl font-black text-vnpost-orange relative z-10">{(stats.potential_ranks?.["Vàng"] || 0).toLocaleString()}</h3>
+
+                {/* RF4B: Mini-peek hint */}
+                <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-vnpost-orange text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap z-30 shadow-xl uppercase tracking-widest">
+                  Tiêu chuẩn: DT &gt; 1M & Tần suất &gt; 10 đơn
+                </div>
+
                 <p className="text-[11px] text-vnpost-orange font-bold mt-2 relative z-10 uppercase">&gt; 1M và &gt; 10 đơn/tháng</p>
               </div>
               <div 
@@ -797,6 +846,12 @@ function Dashboard() {
                 </div>
                 <p className="text-orange-900 text-[11px] font-black uppercase tracking-widest mb-1 relative z-10">🥉 Bạc (Silver)</p>
                 <h3 className="text-2xl font-black text-orange-950 relative z-10">{(stats.potential_ranks?.["Bạc"] || 0).toLocaleString()}</h3>
+
+                {/* RF4B: Mini-peek hint */}
+                <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-orange-800 text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap z-30 shadow-xl uppercase tracking-widest">
+                  Tiêu chuẩn: DT &gt; 500K & Tần suất &gt; 5 đơn
+                </div>
+
                 <p className="text-[11px] text-orange-800 font-bold mt-2 relative z-10 uppercase">&gt; 500K và &gt; 5 đơn/tháng</p>
               </div>
             </div>
