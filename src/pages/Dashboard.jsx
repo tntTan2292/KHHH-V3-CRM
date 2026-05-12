@@ -356,7 +356,8 @@ function Dashboard() {
   // 1. Coverage
   const { data: coverageData, error: coverageError } = useSWR('/api/analytics/data-coverage', fetcher, {
     onSuccess: (data) => {
-      if (data && data.latest_month && !startDate && !endDate) {
+      // [RF5C] Governance: Only apply latest month as default if user hasn't selected anything
+      if (data && data.latest_month && (!startDate || startDate === "") && (!endDate || endDate === "")) {
         setStartDate(data.latest_month.start);
         setEndDate(data.latest_month.end);
         setSelectedMonth(data.latest_month.value);
@@ -398,8 +399,24 @@ function Dashboard() {
 
   // 6. Monthly Trend Data (New)
   const { data: monthlyDataRes, isValidating: loadingMonthly } = useSWR(
-    !waitingForDefaultDate ? ['/api/analytics/revenue-monthly', { ...queryParams, start_date: null }] : null,
+    !waitingForDefaultDate ? ['/api/analytics/revenue-monthly', queryParams] : null,
     fetcherWithParams
+  );
+
+  // 7. Scoring & Prediction (Transitioned to SWR for Race Condition Protection)
+  const { data: scoringDataRes } = useSWR(
+    !waitingForDefaultDate ? ['/api/analytics/customer-scoring', queryParams] : null,
+    fetcherWithParams
+  );
+  
+  const { data: churnDataRes } = useSWR(
+    !waitingForDefaultDate ? ['/api/analytics/churn-prediction', queryParams] : null,
+    fetcherWithParams
+  );
+  
+  const { data: healthDataRes } = useSWR(
+    !waitingForDefaultDate ? '/api/analytics/system-health' : null,
+    fetcher
   );
 
   // Sync state with SWR results
@@ -413,20 +430,18 @@ function Dashboard() {
     if (heatmapDataRes) setHeatmapData(heatmapDataRes);
     if (moversDataRes) setTopMovers(moversDataRes);
     if (coverageData) setCoverage(coverageData);
-    if (monthlyDataRes) setRevService(prev => prev); // Placeholder to trigger refresh if needed
-  }, [summaryData, trendDataRes, heatmapDataRes, moversDataRes, coverageData, monthlyDataRes]);
+    if (scoringDataRes) setCustomerScoring(scoringDataRes);
+    if (churnDataRes) setChurnPrediction(churnDataRes);
+    if (healthDataRes) setSystemHealth(healthDataRes);
+  }, [summaryData, trendDataRes, heatmapDataRes, moversDataRes, coverageData, scoringDataRes, churnDataRes, healthDataRes]);
 
-  // Cập nhật các module thông minh khác
+  // AI Assistant Refresh (Simplified since others are on SWR)
   const analyticAbortRef = useRef(null);
   useEffect(() => {
     if (!waitingForDefaultDate) {
       if (analyticAbortRef.current) analyticAbortRef.current.abort();
       const controller = new AbortController();
       analyticAbortRef.current = controller;
-
-      api.get('/api/analytics/customer-scoring', { params: queryParams, signal: controller.signal }).then(res => setCustomerScoring(res.data)).catch(() => {});
-      api.get('/api/analytics/churn-prediction', { params: queryParams, signal: controller.signal }).then(res => setChurnPrediction(res.data)).catch(() => {});
-      api.get('/api/analytics/system-health', { signal: controller.signal }).then(res => setSystemHealth(res.data)).catch(() => {});
     }
   }, [waitingForDefaultDate, queryParams]);
 
