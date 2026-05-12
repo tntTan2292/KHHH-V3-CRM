@@ -82,7 +82,7 @@ async def trigger_summary_refresh(
         raise HTTPException(status_code=500, detail="Lỗi trong quá trình làm mới dữ liệu tổng hợp.")
 
 @router.get("/dashboard")
-@cache_response(ttl_hours=1)
+# @cache_response(ttl_hours=1)
 async def get_dashboard_stats(
     start_date: str = None,
     end_date: str = None,
@@ -114,8 +114,11 @@ async def get_dashboard_stats(
             is_monthly = True
 
     # 4. Lấy dữ liệu Lifecycle và Doanh thu (ƯU TIÊN SUMMARY)
-    month_str = (start_date[:7] if start_date else None) or max_data_date.strftime("%Y-%m")
+    # [RF5C] Strict temporal derivation
+    month_str = start_date[:7] if (start_date and len(start_date) >= 7) else max_data_date.strftime("%Y-%m")
     current_month_str = max_data_date.strftime("%Y-%m")
+    
+    logger.info(f"DASHBOARD TEMPORAL FLOW: Selected={month_str} | Latest={current_month_str} | Range={start_date} to {end_date}")
     
     # [GOVERNANCE] Lifecycle is a Historical State Machine. 
     # Fetch Lifecycle from Unified SSOT Service for the SELECTED period.

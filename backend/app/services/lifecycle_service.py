@@ -13,9 +13,17 @@ class LifecycleService:
         [GOVERNANCE] Centralized Lifecycle Count Resolver (SSOT).
         Unifies counting logic for Dashboard Cards, Customer Module Buttons, and Reports.
         """
+        # [RF5C] Strict Temporal Locking
+        if not month_str and start_date:
+            month_str = start_date[:7]
+            
         if not month_str:
+            # Only fallback if absolutely no time context provided
             max_ts = db.query(func.max(Transaction.ngay_chap_nhan)).scalar()
             month_str = max_ts[:7] if max_ts else "1970-01"
+            logger.warning(f"SSOT: No month_str provided, falling back to LATEST: {month_str}")
+        else:
+            logger.info(f"SSOT: Resolving Lifecycle for LOCKED period: {month_str} (Range: {start_date} to {end_date})")
 
         # 1. Attempt Summary Fetch (Base Layer)
         summary_res = db.query(
