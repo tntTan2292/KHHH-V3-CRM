@@ -906,12 +906,12 @@ export default function Customers() {
              <span className="text-xs bg-vnpost-blue/10 text-vnpost-blue px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter">Bưu điện TP Huế</span>
              <span className="text-xs bg-vnpost-blue text-white px-2 py-0.5 rounded-full font-black uppercase border border-vnpost-blue shadow-sm">Bản Nâng Cấp 3.0</span>
              {selectedNode ? (
-                <span className="text-[10px] bg-vnpost-orange text-white px-3 py-1 rounded-full font-black uppercase shadow-sm">Phạm vi: {selectedNode.title}</span>
+                <span className="text-[11px] bg-vnpost-orange text-white px-3 py-1 rounded-full font-black uppercase shadow-sm">Phạm vi: {selectedNode.title}</span>
               ) : (
-                <span className="text-[10px] bg-vnpost-blue/10 text-vnpost-blue px-3 py-1 rounded-full font-bold uppercase border border-vnpost-blue/10 tracking-tighter">Bưu điện thành phố Huế</span>
+                <span className="text-[11px] bg-vnpost-blue/10 text-vnpost-blue px-3 py-1 rounded-full font-bold uppercase border border-vnpost-blue/10 tracking-tighter">Bưu điện thành phố Huế</span>
               )}
              {(startDate || endDate) && (
-                <span className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full text-[10px] font-black flex items-center gap-1 border border-indigo-100 uppercase tracking-tighter">
+                <span className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full text-[11px] font-black flex items-center gap-1 border border-indigo-100 uppercase tracking-tighter">
                   <Calendar size={12} /> BÁO CÁO: {startDate || '?'} → {endDate || '?'}
                   {coverage.max_date && (
                     <span className="ml-1 text-green-700 opacity-60">
@@ -943,7 +943,7 @@ export default function Customers() {
           </button>
           <button 
             onClick={handleExportMinimal} 
-            className="flex items-center gap-2 px-2 py-2 bg-gray-100 text-gray-400 rounded-lg hover:bg-gray-200 transition-all font-bold text-[10px] uppercase border border-gray-200 active:scale-95"
+            className="flex items-center gap-2 px-2 py-2 bg-gray-100 text-gray-400 rounded-lg hover:bg-gray-200 transition-all font-bold text-[11px] uppercase border border-gray-200 active:scale-95"
             title="Debug: Xuất 10 dòng (Không style) để test Network"
           >
             Minimal
@@ -981,7 +981,7 @@ export default function Customers() {
             )}
 
             {startDate && endDate && (
-              <div className="flex items-center gap-1.5 bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full text-[10px] font-black uppercase border border-gray-200">
+              <div className="flex items-center gap-1.5 bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full text-[11px] font-black uppercase border border-gray-200">
                 <Calendar size={12} /> {new Date(startDate).toLocaleDateString('vi-VN')} - {new Date(endDate).toLocaleDateString('vi-VN')}
               </div>
             )}
@@ -999,7 +999,7 @@ export default function Customers() {
                 setSelectedMonth(coverage.latest_month.value);
               }
             }}
-            className="ml-auto text-[10px] font-black text-vnpost-orange hover:underline uppercase tracking-widest flex items-center gap-1"
+            className="ml-auto text-[11px] font-black text-vnpost-orange hover:underline uppercase tracking-widest flex items-center gap-1"
           >
             <RefreshCw size={12} /> Xoá tất cả bộ lọc
           </button>
@@ -1068,7 +1068,7 @@ export default function Customers() {
             <div className="relative">
                 <button 
                   onClick={() => setIsTreeOpen(!isTreeOpen)}
-                  className={`w-full bg-gray-50 border rounded-2xl px-4 py-3 text-xs font-bold text-vnpost-blue flex justify-between items-center transition-all shadow-inner ${isTreeOpen ? 'bg-white ring-2 ring-vnpost-blue/20 border-vnpost-blue/30' : 'border-gray-100 hover:bg-white'}`}
+                  className={`w-full bg-gray-50 border rounded-2xl px-4 py-2.5 text-xs font-bold text-vnpost-blue flex justify-between items-center transition-all shadow-inner ${isTreeOpen ? 'bg-white ring-2 ring-vnpost-blue/20 border-vnpost-blue/30' : 'border-gray-100 hover:bg-white'}`}
                 >
                   <span className="truncate">{selectedNode ? selectedNode.title : "Bưu điện thành phố Huế"}</span>
                   <ArrowUpRight size={14} className={`transition-transform duration-300 ${isTreeOpen ? 'rotate-180 opacity-100' : 'rotate-90 opacity-40'}`} />
@@ -1112,7 +1112,7 @@ export default function Customers() {
               onChange={handleFilterChange}
               type="text" 
               placeholder="Tìm theo tên khách hàng hoặc mã định danh CRM..." 
-              className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-vnpost-blue focus:ring-4 focus:ring-vnpost-blue/5 transition-all bg-gray-50/30 font-medium"
+              className="w-full pl-11 pr-4 py-2.5 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-vnpost-blue focus:ring-4 focus:ring-vnpost-blue/5 transition-all bg-gray-50/30 font-medium"
             />
           </div>
           
@@ -1121,7 +1121,7 @@ export default function Customers() {
               name="rfm_segment" 
               value={filters.rfm_segment} 
               onChange={handleFilterChange}
-              className="w-full p-3 border border-gray-200 rounded-2xl text-sm outline-none focus:border-vnpost-blue bg-white font-bold text-gray-700 shadow-sm transition-all"
+              className="w-full py-2.5 px-4 border border-gray-200 rounded-2xl text-sm outline-none focus:border-vnpost-blue bg-white font-bold text-gray-700 shadow-sm transition-all"
             >
               <option value="">🎯 Phân hạng (Tất cả)</option>
               <option value="Kim Cương">💎 Kim Cương</option>
@@ -1132,7 +1132,7 @@ export default function Customers() {
             </select>
           </div>
 
-          <button onClick={handleApplyFilter} className="px-8 py-3 bg-vnpost-blue text-white rounded-2xl font-black hover:bg-[#003E7E] transition-all flex items-center gap-2 shadow-xl shadow-vnpost-blue/20 active:scale-95 uppercase tracking-wider text-xs">
+          <button onClick={handleApplyFilter} className="px-8 h-[42px] bg-vnpost-blue text-white rounded-2xl font-black hover:bg-[#003E7E] transition-all flex items-center gap-2 shadow-xl shadow-vnpost-blue/20 active:scale-95 uppercase tracking-wider text-xs">
             <Filter size={18} /> Lọc dữ liệu
           </button>
         </div>
@@ -1232,53 +1232,53 @@ export default function Customers() {
                   className="p-2 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors w-32"
                   onClick={() => handleSort('ma_crm_cms')}
                 >
-                  <div className="flex items-center">Mã CRM <SortIcon column="ma_crm_cms" /></div>
+                  <div className="flex items-center text-[11px]">Mã CRM <SortIcon column="ma_crm_cms" /></div>
                 </th>
                 <th 
                   className="p-2 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors w-64"
                   onClick={() => handleSort('ten_kh')}
                 >
-                  <div className="flex items-center">Tên Khách Hàng <SortIcon column="ten_kh" /></div>
+                  <div className="flex items-center text-[11px]">Tên Khách Hàng <SortIcon column="ten_kh" /></div>
                 </th>
                 <th 
                   className="p-2 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors w-40"
                   onClick={() => handleSort('status_type')}
                 >
-                  <div className="flex items-center">Vòng đời <SortIcon column="status_type" /></div>
+                  <div className="flex items-center text-[11px]">Vòng đời <SortIcon column="status_type" /></div>
                 </th>
                 <th 
                   className="p-2 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors w-32"
                   onClick={() => handleSort('rfm_segment')}
                 >
-                  <div className="flex items-center">Hạng <SortIcon column="rfm_segment" /></div>
+                  <div className="flex items-center text-[11px]">Hạng <SortIcon column="rfm_segment" /></div>
                 </th>
                 <th 
                   className="p-2 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors text-right w-24"
                   onClick={() => handleSort('transaction_count')}
                 >
-                  <div className="flex items-center justify-end">Số đơn <SortIcon column="transaction_count" /></div>
+                  <div className="flex items-center justify-end text-[11px]">Số đơn <SortIcon column="transaction_count" /></div>
                 </th>
                 <th 
                   className="p-2 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors text-right w-40"
                   onClick={() => handleSort('dynamic_revenue')}
                 >
-                  <div className="flex items-center justify-end">Doanh thu <SortIcon column="dynamic_revenue" /></div>
+                  <div className="flex items-center justify-end text-[11px]">Doanh thu <SortIcon column="dynamic_revenue" /></div>
                 </th>
                 <th 
                   className="p-2 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors text-right w-32"
                   onClick={() => handleSort('growth_velocity')}
                 >
-                  <div className="flex items-center justify-end">Tăng trưởng <SortIcon column="growth_velocity" /></div>
+                  <div className="flex items-center justify-end text-[11px]">Tăng trưởng <SortIcon column="growth_velocity" /></div>
                 </th>
                 <th 
                   className="p-2 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors text-center w-32"
                   onClick={() => handleSort('health_score')}
                 >
-                  <div className="flex items-center justify-center">Health Score <SortIcon column="health_score" /></div>
+                  <div className="flex items-center justify-center text-[11px]">Health Score <SortIcon column="health_score" /></div>
                 </th>
-                <th className="p-2 font-black uppercase tracking-tighter text-center w-32">Bưu cục</th>
-                <th className="p-2 font-black uppercase tracking-tighter text-center w-32">Phụ trách</th>
-                <th className="p-2 font-black uppercase tracking-tighter text-center w-28">Thao tác</th>
+                <th className="p-2 font-black uppercase tracking-tighter text-center w-32 text-[11px]">Bưu cục</th>
+                <th className="p-2 font-black uppercase tracking-tighter text-center w-32 text-[11px]">Phụ trách</th>
+                <th className="p-2 font-black uppercase tracking-tighter text-center w-28 text-[11px]">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -1296,7 +1296,7 @@ export default function Customers() {
                 customers.map(c => (
                   <tr key={c.ma_crm_cms} onClick={() => handleRowClick(c.ma_crm_cms)} className="group transition-all duration-300 cursor-pointer hover:bg-indigo-50/30">
                     <td className="p-2">
-                      <span className="font-mono text-[10px] font-black px-1.5 py-0.5 rounded-md bg-blue-50 text-vnpost-blue">
+                      <span className="font-mono text-[11px] font-black px-1.5 py-0.5 rounded-md bg-blue-50 text-vnpost-blue">
                         {c.ma_crm_cms}
                       </span>
                     </td>
@@ -1320,7 +1320,7 @@ export default function Customers() {
                        {(() => {
                          const status = lifecycleConfig.find(l => l.value === c.status_type) || lifecycleConfig[0];
                          return (
-                           <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[9px] font-black uppercase border shadow-sm ${status.colorClass} ${status.bgClass} ${status.textClass}`}>
+                           <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[11px] font-black uppercase border shadow-sm ${status.colorClass} ${status.bgClass} ${status.textClass}`}>
                              <status.icon size={12} className={c.status_type === 'new' ? 'animate-bounce' : ''} />
                              {(() => {
                                if (c.status_type === 'active') return 'Hien huu';
@@ -1338,7 +1338,7 @@ export default function Customers() {
                       {getRankBadge(c.rfm_segment)}
                     </td>
                     <td className="p-2 text-right">
-                      <span className="font-bold text-gray-700 text-[12px]">{c.transaction_count} đơn</span>
+                      <span className="font-bold text-gray-700 text-[13px]">{c.transaction_count} đơn</span>
                     </td>
                     <td className="p-2 text-right">
                       <div className="flex flex-col items-end">
@@ -1348,7 +1348,7 @@ export default function Customers() {
                       </div>
                     </td>
                     <td className="p-2 text-right">
-                      <div className={`inline-flex items-center justify-end gap-1 px-2 py-1 rounded-xl font-black text-[10px] shadow-sm border ${
+                      <div className={`inline-flex items-center justify-end gap-1 px-2 py-1 rounded-xl font-black text-[11px] shadow-sm border ${
                         c.growth_velocity > 0 
                           ? 'bg-green-50 text-green-600 border-green-100' 
                           : c.growth_velocity < 0 
@@ -1366,24 +1366,24 @@ export default function Customers() {
                         'border-red-500 bg-red-50 text-red-700'
                       }`}>
                         <div className="flex flex-col items-center">
-                          <span className="text-xs font-black leading-none">{c.health_score}</span>
-                          <span className="text-[6px] font-bold uppercase tracking-tighter opacity-70">Pts</span>
+                          <span className="text-[13px] font-black leading-none">{c.health_score}</span>
+                          <span className="text-[11px] font-bold uppercase tracking-tighter opacity-70">Pts</span>
                         </div>
                       </div>
                     </td>
                     <td className="p-2 text-center">
-                       <span className="text-[9px] font-black border border-gray-100 bg-gray-50 px-2 py-1 rounded-xl text-gray-500 shadow-sm" title={`${c.point_code || ''} - ${c.point_name || ''}`}>
+                       <span className="text-[11px] font-black border border-gray-100 bg-gray-50 px-2 py-1 rounded-xl text-gray-500 shadow-sm" title={`${c.point_code || ''} - ${c.point_name || ''}`}>
                          {c.point_code && c.point_name ? `${c.point_code}` : (c.point_name || c.point_code || 'N/A')}
                        </span>
                     </td>
                     <td className="p-2 text-center">
                        <div className="flex flex-col items-center">
                          {c.assigned_staff_name ? (
-                           <span className="text-[9px] font-black text-vnpost-blue bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 uppercase">
+                           <span className="text-[11px] font-black text-vnpost-blue bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 uppercase">
                              👤 {c.assigned_staff_name}
                            </span>
                          ) : (
-                           <span className="text-[9px] text-gray-300 font-bold italic uppercase">Chưa gán</span>
+                           <span className="text-[11px] text-gray-300 font-bold italic uppercase">Chưa gán</span>
                          )}
                        </div>
                     </td>
@@ -1485,7 +1485,7 @@ export default function Customers() {
           <div className="bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[90vh] overflow-y-auto animate-fade-in">
             <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex justify-between items-center z-10">
               <div className="flex items-center gap-3">
-                <h3 className="text-xl font-black flex items-center gap-2">
+                <h3 className="text-2xl font-black flex items-center gap-2">
                   Hồ sơ KH: <span className="text-vnpost-blue">{selectedCustomer}</span>
                 </h3>
                 {customerDetails && (
@@ -1512,7 +1512,7 @@ export default function Customers() {
                      <div className="md:col-span-2 space-y-4">
                        <div>
                          <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1">Tên Khách Hàng</p>
-                         <p className="text-xl font-black text-gray-800 tracking-tight">{customerDetails.customer.ten_kh}</p>
+                         <p className="text-2xl font-black text-gray-800 tracking-tight">{customerDetails.customer.ten_kh}</p>
                          <div className="flex flex-wrap gap-2 mt-2">
                             <span className="text-[10px] font-bold bg-blue-50 text-vnpost-blue px-2 py-0.5 rounded-lg border border-blue-100">
                                📍 {customerDetails.customer.ten_bc_vhx}

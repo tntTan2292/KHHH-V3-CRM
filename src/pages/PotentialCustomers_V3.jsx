@@ -294,10 +294,10 @@ const PotentialCustomers_V3 = () => {
   };
 
   const getRankBadge = (rank) => {
-    if (rank === 'Kim Cương') return <span className="flex items-center gap-1.5 text-[10px] font-black text-indigo-700 bg-indigo-50 px-3 py-1 rounded-xl border border-indigo-200 shadow-sm animate-pulse">💎 KIM CƯƠNG</span>;
-    if (rank === 'Vàng') return <span className="flex items-center gap-1.5 text-[10px] font-black text-amber-700 bg-amber-50 px-3 py-1 rounded-xl border border-amber-200 shadow-sm">🏆 VÀNG</span>;
-    if (rank === 'Bạc') return <span className="flex items-center gap-1.5 text-[10px] font-black text-slate-500 bg-slate-50 px-3 py-1 rounded-xl border border-slate-200 shadow-sm">🥈 BẠC</span>;
-    return <span className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 bg-gray-50/50 px-3 py-1 rounded-xl border border-gray-100 italic">👤 THƯỜNG</span>;
+    if (rank === 'Kim Cương') return <span className="flex items-center gap-1.5 text-[11px] font-black text-indigo-700 bg-indigo-50 px-3 py-1 rounded-xl border border-indigo-200 shadow-sm animate-pulse">💎 KIM CƯƠNG</span>;
+    if (rank === 'Vàng') return <span className="flex items-center gap-1.5 text-[11px] font-black text-amber-700 bg-amber-50 px-3 py-1 rounded-xl border border-amber-200 shadow-sm">🏆 VÀNG</span>;
+    if (rank === 'Bạc') return <span className="flex items-center gap-1.5 text-[11px] font-black text-slate-500 bg-slate-50 px-3 py-1 rounded-xl border border-slate-200 shadow-sm">🥈 BẠC</span>;
+    return <span className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 bg-gray-50/50 px-3 py-1 rounded-xl border border-gray-100 italic">👤 THƯỜNG</span>;
   };
 
   const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
@@ -311,7 +311,7 @@ const PotentialCustomers_V3 = () => {
   ];
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-700">
+    <div className="space-y-4 animate-in fade-in duration-700">
       {showAssignModal && (
         <div className="fixed inset-0 bg-[#003E7E]/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-[2rem] w-full max-w-md shadow-2xl overflow-hidden animate-scale-up border-8 border-white">
@@ -319,9 +319,9 @@ const PotentialCustomers_V3 = () => {
               <div>
                 <div className="flex items-center gap-2">
                    <h3 className="text-xl font-black uppercase tracking-tight">{getTaskFlow(assignTarget).text}</h3>
-                   <span className="text-[9px] bg-white/20 px-2 py-0.5 rounded-full font-bold uppercase tracking-widest">{getTaskFlow(assignTarget).type}</span>
+                   <span className="text-[11px] bg-white/20 px-2 py-0.5 rounded-full font-bold uppercase tracking-widest">{getTaskFlow(assignTarget).type}</span>
                 </div>
-                <p className="text-xs font-bold text-white/80 mt-1 uppercase tracking-widest">{getTaskFlow(assignTarget).subtitle}</p>
+                <p className="text-[11px] font-bold text-white/80 mt-1 uppercase tracking-widest">{getTaskFlow(assignTarget).subtitle}</p>
               </div>
               <button onClick={() => setShowAssignModal(false)} className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-all">
                 <X size={24} />
@@ -336,9 +336,9 @@ const PotentialCustomers_V3 = () => {
 
               {wardOptions.length > 0 && (
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Bưu điện Phường/Xã</label>
+                  <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">Bưu điện Phường/Xã</label>
                   <select 
-                    className="w-full px-4 py-4 rounded-xl border-2 border-gray-100 focus:border-vnpost-blue outline-none transition-all text-sm font-bold bg-white"
+                    className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-100 focus:border-vnpost-blue outline-none transition-all text-sm font-bold bg-white"
                     value={selectedWardId}
                     disabled={apiUserRole === 'UNIT_HEAD'}
                     onChange={(e) => {
@@ -360,7 +360,7 @@ const PotentialCustomers_V3 = () => {
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Chọn Bưu cục</label>
                   <select 
-                    className="w-full px-4 py-4 rounded-xl border-2 border-gray-100 focus:border-vnpost-blue outline-none transition-all text-sm font-bold bg-white"
+                    className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-100 focus:border-vnpost-blue outline-none transition-all text-sm font-bold bg-white"
                     value={selectedPointId}
                     onChange={(e) => {
                       const pId = e.target.value;
@@ -379,9 +379,9 @@ const PotentialCustomers_V3 = () => {
               )}
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Chọn nhân sự phụ trách</label>
+                <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">Chọn nhân sự phụ trách</label>
                 <select 
-                  className="w-full px-4 py-4 rounded-xl border-2 border-gray-100 focus:border-vnpost-blue outline-none transition-all text-sm font-bold bg-white"
+                  className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-100 focus:border-vnpost-blue outline-none transition-all text-sm font-bold bg-white"
                   value={selectedStaffId}
                   onChange={(e) => setSelectedStaffId(e.target.value)}
                 >
@@ -402,7 +402,7 @@ const PotentialCustomers_V3 = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nội dung công việc</label>
+                <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">Nội dung công việc</label>
                 <textarea
                   className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-vnpost-blue outline-none transition-all text-sm font-medium bg-white min-h-[100px]"
                   placeholder="Nhập nội dung cần nhân sự thực hiện..."
@@ -412,20 +412,20 @@ const PotentialCustomers_V3 = () => {
               </div>
 
               <div className="flex gap-4 pt-2">
-                <button 
-                  onClick={() => setShowAssignModal(false)}
-                  className="flex-1 py-4 border-2 border-gray-100 rounded-2xl font-black text-gray-400 hover:bg-gray-50 transition-all uppercase tracking-widest text-xs"
-                >
-                  Bỏ qua
-                </button>
-                <button 
-                  onClick={handleAssignSubmit}
-                  disabled={assigning}
-                  className="flex-1 py-4 bg-vnpost-blue text-white rounded-2xl font-black shadow-xl shadow-vnpost-blue/20 hover:bg-[#003E7E] transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-xs disabled:opacity-50"
-                >
-                  {assigning ? <RefreshCw className="animate-spin" size={18} /> : <Save size={18} />}
-                  Kích hoạt 5B
-                </button>
+                  <button 
+                    onClick={() => setShowAssignModal(false)}
+                    className="flex-1 h-[42px] border-2 border-gray-100 rounded-2xl font-black text-gray-400 hover:bg-gray-50 transition-all uppercase tracking-widest text-xs"
+                  >
+                    Bỏ qua
+                  </button>
+                  <button 
+                    onClick={handleAssignSubmit}
+                    disabled={assigning}
+                    className="flex-1 h-[42px] bg-vnpost-blue text-white rounded-2xl font-black shadow-xl shadow-vnpost-blue/20 hover:bg-[#003E7E] transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-xs disabled:opacity-50"
+                  >
+                    {assigning ? <RefreshCw className="animate-spin" size={18} /> : <Save size={18} />}
+                    Kích hoạt 5B
+                  </button>
               </div>
             </div>
           </div>
@@ -437,9 +437,9 @@ const PotentialCustomers_V3 = () => {
         <div>
           <div className="flex items-center gap-2 text-vnpost-blue mb-1">
              <Target size={20} className="text-vnpost-orange" />
-             <span className="text-[10px] font-black uppercase tracking-[0.3em]">Hệ thống chỉ đạo 5B Elite</span>
+             <span className="text-[11px] font-black uppercase tracking-[0.3em]">Hệ thống chỉ đạo 5B Elite</span>
           </div>
-          <h2 className="text-3xl font-black text-gray-800 tracking-tight">
+          <h2 className="text-2xl font-black text-gray-800 tracking-tight">
             Quản trị & Chinh phục Tiềm năng
           </h2>
         </div>
@@ -462,7 +462,7 @@ const PotentialCustomers_V3 = () => {
       </div>
 
       {activeTab === 'pool' ? (
-        <div className="space-y-6 animate-in slide-in-from-left-4 duration-500">
+        <div className="space-y-4 animate-in slide-in-from-left-4 duration-500">
           
           {/* Segment Filter Bar */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -477,14 +477,14 @@ const PotentialCustomers_V3 = () => {
                     setRfmSegment(item.value === "Tất cả" ? "" : item.value);
                     setPage(1);
                   }}
-                  className={`group relative p-4 rounded-2xl transition-all duration-300 flex flex-col items-start gap-1 text-left border-2 ${
+                  className={`group relative p-3 rounded-2xl transition-all duration-300 flex flex-col items-start gap-1 text-left border-2 ${
                     isActive 
                       ? `bg-white shadow-xl scale-105 z-10 -translate-y-1 border-${item.color}-500 border-l-[6px]` 
                       : `${item.bg} border-gray-100/50 hover:border-${item.color}-500 hover:bg-white hover:shadow-lg hover:-translate-y-1 border-l-[6px] opacity-80 hover:opacity-100`
                   }`}
                 >
                   <div className="flex items-center justify-between w-full">
-                    <span className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
+                    <span className={`text-[11px] font-black uppercase tracking-widest ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
                       {item.label}
                     </span>
                     <item.icon size={16} className={isActive ? `text-${item.color}-600` : "text-gray-400 opacity-40"} />
@@ -493,22 +493,22 @@ const PotentialCustomers_V3 = () => {
                     <span className={`text-2xl font-black tracking-tight ${isActive ? `text-${item.color}-600` : `text-${item.color}-700`}`}>
                       {loading ? "..." : count.toLocaleString()}
                     </span>
-                    <span className="text-[10px] text-gray-400 font-bold uppercase opacity-60">Khách</span>
+                    <span className="text-[11px] text-gray-400 font-bold uppercase opacity-60">Khách</span>
                   </div>
                 </button>
               );
             })}
           </div>
 
-          <div className="card !p-8 shadow-2xl border-white bg-white/80 backdrop-blur-xl rounded-[3rem] shadow-gray-200/30">
+          <div className="card !p-4 shadow-2xl border-white bg-white/80 backdrop-blur-xl rounded-[2rem] shadow-gray-200/30">
             {/* Filters */}
-            <div className="flex flex-wrap gap-6 items-end bg-gray-50/80 p-8 rounded-[2rem] border border-gray-100 mb-8">
+            <div className="flex flex-wrap gap-4 items-end bg-gray-50/80 p-4 rounded-[1.5rem] border border-gray-100 mb-4">
               <div className="space-y-3 w-72">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2 ml-2"><MapPin size={14} /> Phạm vi dữ liệu</label>
                 <div className="relative">
                    <button 
                      onClick={() => setIsTreeOpen(!isTreeOpen)}
-                     className={`w-full bg-white border rounded-[1.2rem] px-5 py-4 text-xs font-bold text-vnpost-blue flex justify-between items-center shadow-sm transition-all ${isTreeOpen ? 'ring-2 ring-vnpost-blue/20 border-vnpost-blue/30' : 'border-gray-100 hover:bg-gray-50'}`}
+                     className={`w-full bg-white border rounded-[1.2rem] px-5 py-2.5 text-xs font-bold text-vnpost-blue flex justify-between items-center shadow-sm transition-all ${isTreeOpen ? 'ring-2 ring-vnpost-blue/20 border-vnpost-blue/30' : 'border-gray-100 hover:bg-gray-50'}`}
                    >
                      <span className="truncate">{selectedNode ? selectedNode.title : (user?.scope || "Toàn tỉnh")}</span>
                      <ChevronDown size={14} className={`transition-transform duration-300 ${isTreeOpen ? 'rotate-180' : ''}`} />
@@ -519,29 +519,29 @@ const PotentialCustomers_V3 = () => {
                        <div className="fixed inset-0 z-10" onClick={() => setIsTreeOpen(false)}></div>
                        <div className="absolute top-full left-0 w-80 mt-2 bg-white border border-gray-200 rounded-2xl shadow-2xl p-4 z-20 animate-in fade-in slide-in-from-top-2">
                          <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-50">
-                           <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Chọn Phạm vi dữ liệu</span>
-                           <button onClick={() => setIsTreeOpen(false)} className="text-[10px] font-black text-vnpost-blue uppercase hover:underline">Đóng</button>
+                           <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Chọn Phạm vi dữ liệu</span>
+                           <button onClick={() => setIsTreeOpen(false)} className="text-[11px] font-black text-vnpost-blue uppercase hover:underline">Đóng</button>
                          </div>
                          <TreeExplorer onSelect={(node) => { setSelectedNode(node); setPage(1); setIsTreeOpen(false); }} selectedNode={selectedNode} />
-                         <button onClick={() => { setSelectedNode(null); setPage(1); setIsTreeOpen(false); }} className="w-full mt-4 py-2 bg-gray-100 text-[10px] font-black uppercase rounded-lg hover:bg-vnpost-blue hover:text-white transition-all">Đặt lại Bưu điện thành phố Huế</button>
+                         <button onClick={() => { setSelectedNode(null); setPage(1); setIsTreeOpen(false); }} className="w-full mt-4 py-2 bg-gray-100 text-[11px] font-black uppercase rounded-lg hover:bg-vnpost-blue hover:text-white transition-all">Đặt lại Bưu điện thành phố Huế</button>
                        </div>
                      </>
                    )}
                  </div>
               </div>
               <div className="space-y-3 flex-1">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2 ml-2"><Calendar size={14} /> Từ ngày</label>
-                <input type="date" className="w-full px-5 py-4 rounded-[1.2rem] border border-gray-200 outline-none text-sm font-bold bg-white" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                <label className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2 ml-2"><Calendar size={14} /> Từ ngày</label>
+                <input type="date" className="w-full px-5 py-2.5 rounded-[1.2rem] border border-gray-200 outline-none text-sm font-bold bg-white" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
               </div>
               <div className="space-y-3 flex-1">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2 ml-2"><Calendar size={14} /> Đến ngày</label>
-                <input type="date" className="w-full px-5 py-4 rounded-[1.2rem] border border-gray-200 outline-none text-sm font-bold bg-white" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                <label className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2 ml-2"><Calendar size={14} /> Đến ngày</label>
+                <input type="date" className="w-full px-5 py-2.5 rounded-[1.2rem] border border-gray-200 outline-none text-sm font-bold bg-white" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
               </div>
-              <button onClick={() => setPage(1)} className="px-10 py-4 h-[58px] bg-vnpost-blue text-white rounded-[1.2rem] font-black hover:bg-[#003E7E] transition-all flex items-center gap-3 uppercase tracking-widest text-xs">
-                {loading ? <RefreshCw className="animate-spin" size={20} /> : <Filter size={20} />} Lọc dữ liệu
+              <button onClick={() => setPage(1)} className="px-10 h-[42px] bg-vnpost-blue text-white rounded-xl font-black hover:bg-[#003E7E] transition-all flex items-center gap-3 uppercase tracking-widest text-xs">
+                {loading ? <RefreshCw className="animate-spin" size={18} /> : <Filter size={18} />} Lọc dữ liệu
               </button>
-              <button onClick={handleExportExcel} className="px-10 py-4 h-[58px] bg-emerald-600 text-white rounded-[1.2rem] font-black hover:bg-emerald-700 transition-all flex items-center gap-3 uppercase tracking-widest text-xs shadow-lg shadow-emerald-200">
-                <Download size={20} /> Xuất Excel
+              <button onClick={handleExportExcel} className="px-10 h-[42px] bg-emerald-600 text-white rounded-xl font-black hover:bg-emerald-700 transition-all flex items-center gap-3 uppercase tracking-widest text-xs shadow-lg shadow-emerald-200">
+                <Download size={18} /> Xuất Excel
               </button>
             </div>
 
@@ -550,26 +550,26 @@ const PotentialCustomers_V3 = () => {
               <table className="w-full text-left text-sm whitespace-nowrap">
                 <thead className="bg-[#fcfdfe] text-gray-400 border-b border-gray-50">
                   <tr>
-                    <th className="p-6 font-black uppercase text-[10px]">Pos</th>
-                    <th className="p-6 font-black uppercase text-[10px] cursor-pointer hover:text-vnpost-blue transition-colors" onClick={() => handleSort('ten_kh')}>
+                    <th className="p-2.5 font-black uppercase text-[11px]">Pos</th>
+                    <th className="p-2.5 font-black uppercase text-[11px] cursor-pointer hover:text-vnpost-blue transition-colors" onClick={() => handleSort('ten_kh')}>
                       <div className="flex items-center">Chủ hàng vãng lai <SortIcon column="ten_kh" /></div>
                     </th>
-                    <th className="p-6 font-black uppercase text-[10px] text-center cursor-pointer hover:text-vnpost-blue transition-colors" onClick={() => handleSort('point_name')}>
+                    <th className="p-2.5 font-black uppercase text-[11px] text-center cursor-pointer hover:text-vnpost-blue transition-colors" onClick={() => handleSort('point_name')}>
                       <div className="flex items-center justify-center">Bưu Cục Quản lý <SortIcon column="point_name" /></div>
                     </th>
-                    <th className="p-6 font-black uppercase text-[10px] text-center cursor-pointer hover:text-vnpost-blue transition-colors" onClick={() => handleSort('so_ngay_gui')}>
+                    <th className="p-2.5 font-black uppercase text-[11px] text-center cursor-pointer hover:text-vnpost-blue transition-colors" onClick={() => handleSort('so_ngay_gui')}>
                       <div className="flex items-center justify-center">Tần suất (Ngày) <SortIcon column="so_ngay_gui" /></div>
                     </th>
-                    <th className="p-6 font-black uppercase text-[10px] text-center cursor-pointer hover:text-vnpost-blue transition-colors" onClick={() => handleSort('tong_so_don')}>
+                    <th className="p-2.5 font-black uppercase text-[11px] text-center cursor-pointer hover:text-vnpost-blue transition-colors" onClick={() => handleSort('tong_so_don')}>
                       <div className="flex items-center justify-center">Sản lượng <SortIcon column="tong_so_don" /></div>
                     </th>
-                    <th className="p-6 font-black uppercase text-[10px] text-right cursor-pointer hover:text-vnpost-blue transition-colors" onClick={() => handleSort('tong_doanh_thu')}>
+                    <th className="p-2.5 font-black uppercase text-[11px] text-right cursor-pointer hover:text-vnpost-blue transition-colors" onClick={() => handleSort('tong_doanh_thu')}>
                       <div className="flex items-center justify-end">Doanh Thu <SortIcon column="tong_doanh_thu" /></div>
                     </th>
-                    <th className="p-6 font-black uppercase text-[10px] text-center cursor-pointer hover:text-vnpost-blue transition-colors" onClick={() => handleSort('rfm_segment')}>
+                    <th className="p-2.5 font-black uppercase text-[11px] text-center cursor-pointer hover:text-vnpost-blue transition-colors" onClick={() => handleSort('rfm_segment')}>
                       <div className="flex items-center justify-center">Phân hạng <SortIcon column="rfm_segment" /></div>
                     </th>
-                    <th className="p-6 w-12 text-center"></th>
+                    <th className="p-2.5 w-12 text-center"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50/50">
@@ -579,8 +579,8 @@ const PotentialCustomers_V3 = () => {
                     <tr><td colSpan="8" className="p-20 text-center font-bold text-gray-400 italic">Không có khách hàng nào trong phân khúc này.</td></tr>
                   ) : data.items?.map((item, index) => (
                     <tr key={index} className="hover:bg-blue-50/30 transition-all group">
-                      <td className="p-6 text-gray-300 font-black text-center text-xs">{(page - 1) * pageSize + index + 1}</td>
-                      <td className="p-6 font-bold text-gray-800">
+                      <td className="p-2 text-gray-300 font-black text-center text-[13px]">{(page - 1) * pageSize + index + 1}</td>
+                      <td className="p-2 font-bold text-gray-800">
                         <div className="flex items-center gap-2">
                            <button 
                              onClick={() => {
@@ -593,9 +593,9 @@ const PotentialCustomers_V3 = () => {
                              }}
                              className="text-left hover:text-vnpost-blue hover:underline hover:underline-offset-4 transition-all block"
                            >
-                             <span className="block">{item.ten_kh}</span>
+                             <span className="block text-[13px]">{item.ten_kh}</span>
                              {item.dia_chi_rut_gon && (
-                               <span className="text-[10px] text-gray-400 font-medium block truncate max-w-[150px]">
+                               <span className="text-[11px] text-gray-400 font-medium block truncate max-w-[150px]">
                                  {item.dia_chi_rut_gon}
                                </span>
                              )}
@@ -612,20 +612,20 @@ const PotentialCustomers_V3 = () => {
                            </button>
                         </div>
                       </td>
-                      <td className="p-6 text-center text-xs font-black text-gray-400 uppercase">{item.point_name || 'N/A'}</td>
-                      <td className="p-6 text-center font-black text-indigo-600">{item.so_ngay_gui}</td>
-                      <td className="p-6 text-center font-black text-gray-800">{item.tong_so_don.toLocaleString()}</td>
-                      <td className="p-6 text-right font-black text-vnpost-blue">{formatCurrency(item.tong_doanh_thu)}</td>
-                      <td className="p-6 text-center">{getRankBadge(item.rfm_segment)}</td>
-                      <td className="p-6 text-center">
+                      <td className="p-2 text-center text-[13px] font-black text-gray-400 uppercase">{item.point_name || 'N/A'}</td>
+                      <td className="p-2 text-center font-black text-indigo-600 text-[13px]">{item.so_ngay_gui}</td>
+                      <td className="p-2 text-center font-black text-gray-800 text-[13px]">{item.tong_so_don.toLocaleString()}</td>
+                      <td className="p-2 text-right font-black text-vnpost-blue text-[13px]">{formatCurrency(item.tong_doanh_thu)}</td>
+                      <td className="p-2 text-center">{getRankBadge(item.rfm_segment)}</td>
+                      <td className="p-2 text-center">
                         <button 
                           onClick={() => {
                             setAssignTarget({ ten_kh: item.ten_kh, nhom_kh: item.rfm_segment });
                             setShowAssignModal(true);
                           }}
-                          className="p-3 bg-vnpost-orange/10 hover:bg-vnpost-orange text-vnpost-orange hover:text-white rounded-xl transition-all"
+                          className="p-2.5 bg-vnpost-orange/10 hover:bg-vnpost-orange text-vnpost-orange hover:text-white rounded-xl transition-all"
                         >
-                          <Target size={18} />
+                          <Target size={16} />
                         </button>
                       </td>
                     </tr>
@@ -637,7 +637,7 @@ const PotentialCustomers_V3 = () => {
             {/* Pagination */}
             {data.total_pages > 1 && (
               <div className="mt-8 flex justify-between items-center px-4">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Hiển thị {data.items?.length} / {data.total} khách hàng</span>
+                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Hiển thị {data.items?.length} / {data.total} khách hàng</span>
                 <div className="flex gap-2">
                   <button 
                     disabled={page === 1}

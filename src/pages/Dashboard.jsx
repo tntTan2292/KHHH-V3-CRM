@@ -548,7 +548,7 @@ function Dashboard() {
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-lg font-black text-vnpost-blue uppercase tracking-tight">Kỷ Nguyên CRM 3.0 Dashboard</h2>
+            <h2 className="text-2xl font-black text-vnpost-blue uppercase tracking-tight">Kỷ Nguyên CRM 3.0 Dashboard</h2>
             <div className="flex items-center gap-2 mt-1">
               {selectedNode ? (
                 <span className="text-xs bg-vnpost-orange text-white px-3 py-1 rounded-full font-black uppercase shadow-sm">Đang soi: {selectedNode.title}</span>
@@ -557,7 +557,7 @@ function Dashboard() {
                   {user?.scope || "Toàn tỉnh"}
                 </span>
               )}
-              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest bg-gray-100 px-2 py-1 rounded">Bản Nâng Cấp Elite</span>
+              <span className="text-[11px] text-gray-400 font-bold uppercase tracking-widest bg-gray-100 px-2 py-1 rounded">Bản Nâng Cấp Elite</span>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -572,11 +572,11 @@ function Dashboard() {
             <div className="flex items-center gap-4">
               <div className="bg-white/20 p-2 rounded-xl backdrop-blur-md border border-white/30"><AlertCircle size={24} /></div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-0.5">Cảnh báo Sức khỏe Hệ thống (QA Detected)</p>
+                <p className="text-[11px] font-black uppercase tracking-widest opacity-80 mb-0.5">Cảnh báo Sức khỏe Hệ thống (QA Detected)</p>
                 <p className="text-sm font-bold leading-tight">{systemHealth.message}</p>
               </div>
             </div>
-            <button className="bg-white/10 hover:bg-white/20 text-white border border-white/30 px-5 py-2 rounded-xl font-black text-[10px] transition-all uppercase backdrop-blur-md">Kiểm tra Master File</button>
+            <button className="bg-white/10 hover:bg-white/20 text-white border border-white/30 px-5 py-2 rounded-xl font-black text-[11px] transition-all uppercase backdrop-blur-md">Kiểm tra Master File</button>
           </div>
         )}
 
@@ -586,7 +586,7 @@ function Dashboard() {
         {/* Filters Section */}
         <div className="bg-white/70 backdrop-blur-md rounded-3xl p-4 border border-white/50 shadow-sm flex flex-col lg:flex-row items-end gap-4 no-pdf relative z-50">
           <div className="flex-1 w-full space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-1"><MapPin size={12} /> Phạm vi dữ liệu</label>
+            <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-1"><MapPin size={12} /> Phạm vi dữ liệu</label>
             <div className="relative">
                 <button 
                   onClick={() => setIsTreeOpen(!isTreeOpen)}
@@ -598,7 +598,7 @@ function Dashboard() {
 
                {/* RF2B-A1: Filter Context Hint */}
                {selectedNode && (
-                 <p className="mt-1.5 text-[10px] text-gray-400 font-bold px-1 flex items-center gap-1">
+                 <p className="mt-1.5 text-[11px] text-gray-400 font-bold px-1 flex items-center gap-1">
                    <MapPin size={10} className="text-vnpost-blue/50" />
                    {selectedNode.title}
                    {selectedNode.type === "cum" ? " — Cum dia ban dang soi" : selectedNode.type === "buu_cuc" ? " — Buu cuc truc thuoc" : " — Diem giao dich"}
@@ -613,8 +613,8 @@ function Dashboard() {
                   {/* Tree Explorer as Dropdown Overlay */}
                   <div className="absolute top-full left-0 w-full mt-2 bg-white border border-gray-200 rounded-2xl shadow-2xl p-4 z-20 max-h-[450px] overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-top-2 duration-200">
                       <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg mb-4">
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Chọn Cụm / Bưu cục / Điểm</span>
-                        <button onClick={() => setIsTreeOpen(false)} className="text-[10px] font-black text-vnpost-blue uppercase hover:underline">Đóng</button>
+                        <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Chọn Cụm / Bưu cục / Điểm</span>
+                        <button onClick={() => setIsTreeOpen(false)} className="text-[11px] font-black text-vnpost-blue uppercase hover:underline">Đóng</button>
                       </div>
                       <TreeExplorer 
                         onSelect={(node) => {
@@ -629,22 +629,22 @@ function Dashboard() {
             </div>
           </div>
           <div className="flex-1 w-full space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-1"><Calendar size={12} /> Thời điểm Tùy chọn</label>
+            <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-1"><Calendar size={12} /> Thời điểm Tùy chọn</label>
             <div className="grid grid-cols-2 gap-2">
               <input type="date" value={startDate} onChange={e => { setStartDate(e.target.value); setSelectedMonth(""); }} className="bg-gray-50 border-none rounded-xl px-4 py-2.5 text-xs font-bold text-vnpost-blue focus:ring-2 focus:ring-vnpost-blue/10 transition-all" />
               <input type="date" value={endDate} onChange={e => { setEndDate(e.target.value); setSelectedMonth(""); }} className="bg-gray-50 border-none rounded-xl px-4 py-2.5 text-xs font-bold text-vnpost-blue focus:ring-2 focus:ring-vnpost-blue/10 transition-all" />
             </div>
           </div>
           <div className="flex-1 w-full space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-1"><TrendingUp size={12} /> Chọn Nhanh Tháng</label>
+            <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-1"><TrendingUp size={12} /> Chọn Nhanh Tháng</label>
             <select className="w-full bg-gray-50 border-none rounded-xl px-4 py-2.5 text-xs font-bold text-vnpost-blue cursor-pointer focus:ring-2 focus:ring-vnpost-blue/10 transition-all" value={selectedMonth} onChange={(e) => handleQuickMonth(e.target.value)}>
               <option value="">-- Chọn tháng --</option>
               {coverage.months?.map(m => (<option key={m.value} value={m.value}>{m.label}</option>))}
             </select>
           </div>
           <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-2xl border border-gray-100">
-            <button onClick={() => setComparisonType('mom')} className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all whitespace-nowrap ${comparisonType === 'mom' ? 'bg-vnpost-blue text-white shadow-lg' : 'text-gray-400 hover:bg-gray-200'}`}>MoM</button>
-            <button onClick={() => setComparisonType('yoy')} className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all whitespace-nowrap ${comparisonType === 'yoy' ? 'bg-vnpost-blue text-white shadow-lg' : 'text-gray-400 hover:bg-gray-200'}`}>YoY</button>
+            <button onClick={() => setComparisonType('mom')} className={`px-4 py-2.5 rounded-xl text-[11px] font-black uppercase transition-all whitespace-nowrap ${comparisonType === 'mom' ? 'bg-vnpost-blue text-white shadow-lg' : 'text-gray-400 hover:bg-gray-200'}`}>MoM</button>
+            <button onClick={() => setComparisonType('yoy')} className={`px-4 py-2.5 rounded-xl text-[11px] font-black uppercase transition-all whitespace-nowrap ${comparisonType === 'yoy' ? 'bg-vnpost-blue text-white shadow-lg' : 'text-gray-400 hover:bg-gray-200'}`}>YoY</button>
           </div>
         </div>
 
@@ -725,7 +725,7 @@ function Dashboard() {
                     }}
                     title="Xem danh sách KH Nguy cơ"
                   >
-                    <div><p className="text-amber-600 text-[10px] font-black uppercase mb-1 tracking-wider">Nguy cơ (At Risk)</p><h3 className="text-xl font-black">{(stats.lifecycle?.["at_risk"] || 0).toLocaleString()}</h3></div>
+                    <div><p className="text-amber-600 text-[11px] font-black uppercase mb-1 tracking-wider">Nguy cơ (At Risk)</p><h3 className="text-xl font-black">{(stats.lifecycle?.["at_risk"] || 0).toLocaleString()}</h3></div>
                     <Info size={20} className="text-vnpost-orange/30" />
                   </div>
                   <div 
@@ -763,9 +763,9 @@ function Dashboard() {
                 <div className="absolute -right-4 -top-4 text-blue-100 group-hover:scale-110 transition-transform opacity-30 group-hover:opacity-50">
                   <DollarSign size={80} />
                 </div>
-                <p className="text-blue-700 text-[10px] font-black uppercase tracking-widest mb-1 relative z-10">💎 Kim Cương (Diamond)</p>
+                <p className="text-blue-700 text-[11px] font-black uppercase tracking-widest mb-1 relative z-10">💎 Kim Cương (Diamond)</p>
                 <h3 className="text-2xl font-black text-blue-800 relative z-10">{(stats.potential_ranks?.["Kim Cương"] || 0).toLocaleString()}</h3>
-                <p className="text-[9px] text-blue-500 font-bold mt-2 relative z-10 uppercase">&gt; 5M và &gt; 20 đơn/tháng</p>
+                <p className="text-[11px] text-blue-500 font-bold mt-2 relative z-10 uppercase">&gt; 5M và &gt; 20 đơn/tháng</p>
               </div>
               <div 
                 className="card p-3 border-t-4 border-t-vnpost-orange bg-gradient-to-br from-vnpost-orange/5 to-transparent relative overflow-hidden group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
@@ -779,9 +779,9 @@ function Dashboard() {
                 <div className="absolute -right-4 -top-4 text-orange-100 group-hover:scale-110 transition-transform opacity-30 group-hover:opacity-50">
                   <DollarSign size={80} />
                 </div>
-                <p className="text-vnpost-orange text-[10px] font-black uppercase tracking-widest mb-1 relative z-10">🥇 Vàng (Gold)</p>
+                <p className="text-vnpost-orange text-[11px] font-black uppercase tracking-widest mb-1 relative z-10">🥇 Vàng (Gold)</p>
                 <h3 className="text-2xl font-black text-vnpost-orange relative z-10">{(stats.potential_ranks?.["Vàng"] || 0).toLocaleString()}</h3>
-                <p className="text-[9px] text-vnpost-orange font-bold mt-2 relative z-10 uppercase">&gt; 1M và &gt; 10 đơn/tháng</p>
+                <p className="text-[11px] text-vnpost-orange font-bold mt-2 relative z-10 uppercase">&gt; 1M và &gt; 10 đơn/tháng</p>
               </div>
               <div 
                 className="card p-3 border-t-4 border-t-orange-800 bg-gradient-to-br from-orange-800/5 to-transparent relative overflow-hidden group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
@@ -795,9 +795,9 @@ function Dashboard() {
                 <div className="absolute -right-4 -top-4 text-orange-200 group-hover:scale-110 transition-transform opacity-30 group-hover:opacity-50">
                   <DollarSign size={80} />
                 </div>
-                <p className="text-orange-900 text-[10px] font-black uppercase tracking-widest mb-1 relative z-10">🥉 Bạc (Silver)</p>
+                <p className="text-orange-900 text-[11px] font-black uppercase tracking-widest mb-1 relative z-10">🥉 Bạc (Silver)</p>
                 <h3 className="text-2xl font-black text-orange-950 relative z-10">{(stats.potential_ranks?.["Bạc"] || 0).toLocaleString()}</h3>
-                <p className="text-[9px] text-orange-800 font-bold mt-2 relative z-10 uppercase">&gt; 500K và &gt; 5 đơn/tháng</p>
+                <p className="text-[11px] text-orange-800 font-bold mt-2 relative z-10 uppercase">&gt; 500K và &gt; 5 đơn/tháng</p>
               </div>
             </div>
           </div>
@@ -832,7 +832,7 @@ function Dashboard() {
       {/* Heatmap & Trends */}
         <div className="grid grid-cols-1 gap-6">
           <div className="card p-6 overflow-hidden relative z-10 min-w-0">
-            <h3 className="text-md font-bold text-gray-800 mb-4 flex items-center gap-2 border-b border-gray-50 pb-3">
+            <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2 border-b border-gray-50 pb-3">
               <TrendingUp size={18} className="text-vnpost-blue" /> Biến Động Doanh Thu Theo Ngày
             </h3>
             <div className="h-[300px] w-full">
@@ -887,9 +887,9 @@ function Dashboard() {
           </div>
           
           <div className="card p-6 overflow-hidden relative z-20 min-w-0">
-             <h3 className="text-md font-bold text-gray-800 mb-4 flex justify-between items-center border-b border-gray-50 pb-3">
-               <span className="flex items-center gap-2"><Target size={18} className="text-vnpost-orange" /> Bảng Quản trị Hiệu quả & Tăng trưởng Địa bàn ({comparisonType.toUpperCase()})</span> {selectedNode && <span className="text-[9px] font-bold text-gray-400 ml-2 normal-case tracking-normal">(Đang xem: {selectedNode.title})</span>}
-               <span className="text-[9px] font-black bg-vnpost-orange/10 text-vnpost-orange px-2 py-1 rounded-full uppercase tracking-widest">PHÂN LOẠI CHIẾN LƯỢC 4 NHÓM</span>
+             <h3 className="text-sm font-bold text-gray-800 mb-4 flex justify-between items-center border-b border-gray-50 pb-3">
+               <span className="flex items-center gap-2"><Target size={18} className="text-vnpost-orange" /> Bảng Quản trị Hiệu quả & Tăng trưởng Địa bàn ({comparisonType.toUpperCase()})</span> {selectedNode && <span className="text-[11px] font-bold text-gray-400 ml-2 normal-case tracking-normal">(Đang xem: {selectedNode.title})</span>}
+               <span className="text-[11px] font-black bg-vnpost-orange/10 text-vnpost-orange px-2 py-1 rounded-full uppercase tracking-widest">PHÂN LOẠI CHIẾN LƯỢC 4 NHÓM</span>
              </h3>
               <div className="flex-1 w-full relative">
                 {loadingHeatmap && !heatmapData.length ? (
@@ -1093,11 +1093,11 @@ function Dashboard() {
 
         {/* Biến Động Doanh Thu & Tăng Trưởng MoM */}
         <div className="card p-6 !col-span-full">
-          <h3 className="text-md font-bold text-gray-800 mb-4 flex justify-between items-center border-b border-gray-50 pb-3">
+          <h3 className="text-sm font-bold text-gray-800 mb-4 flex justify-between items-center border-b border-gray-50 pb-3">
             <span className="flex items-center gap-2"><BarChart3 size={18} className="text-vnpost-orange" /> Hiệu Suất Doanh Thu & Tốc Độ Tăng Trưởng</span>
             <div className="flex gap-3">
-               <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-vnpost-orange rounded-sm"></div> <span className="text-[9px] font-bold text-gray-500 uppercase">Doanh thu</span></div>
-               <div className="flex items-center gap-1.5"><div className="w-2.5 h-0.5 bg-blue-500"></div> <span className="text-[9px] font-bold text-gray-500 uppercase">Tăng trưởng (%)</span></div>
+               <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-vnpost-orange rounded-sm"></div> <span className="text-[11px] font-bold text-gray-500 uppercase">Doanh thu</span></div>
+               <div className="flex items-center gap-1.5"><div className="w-2.5 h-0.5 bg-blue-500"></div> <span className="text-[11px] font-bold text-gray-500 uppercase">Tăng trưởng (%)</span></div>
             </div>
           </h3>
           <div className="h-[260px] w-full">
@@ -1536,7 +1536,7 @@ function Dashboard() {
               <button onClick={() => setSelectedCustomer(null)} className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full transition-colors"><X size={24} /></button>
               <div className="relative z-10">
                  <div className="flex items-center gap-2 flex-wrap">
-                   <span className="text-[10px] font-black uppercase tracking-widest bg-white/20 px-3 py-1 rounded-full">{selectedCustomer.rank || selectedCustomer.segment || 'Customer'}</span>
+                   <span className="text-[11px] font-black uppercase tracking-widest bg-white/20 px-3 py-1 rounded-full">{selectedCustomer.rank || selectedCustomer.segment || 'Customer'}</span>
                    {/* [FIX-07] Enhanced Lifecycle badge */}
                    {selectedCustomer.risk_level && (<span className="text-[11px] font-black uppercase bg-red-600 text-white px-4 py-1.5 rounded-full shadow-lg border-2 border-white/20 animate-pulse">{selectedCustomer.risk_level.includes("CAO") ? "⚠️ NGUY CƠ CAO" : "🔔 THEO DÕI"}</span>)}
                    {selectedCustomer.score && !selectedCustomer.risk_level && (<span className="text-[11px] font-black uppercase bg-emerald-600 text-white px-4 py-1.5 rounded-full shadow-lg border-2 border-white/20">✅ KH ACTIVE</span>)}
@@ -1553,15 +1553,15 @@ function Dashboard() {
               <div className="lg:col-span-2 space-y-6">
                  <div className="grid grid-cols-3 gap-4">
                     <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                       <p className="text-[10px] text-gray-400 font-black uppercase mb-1">Doanh thu kỳ này</p>
+                       <p className="text-[11px] text-gray-400 font-black uppercase mb-1">Doanh thu kỳ này</p>
                        <p className="text-xl font-black text-gray-800">{formatCurrency(selectedCustomer.curr_rev || selectedCustomer.revenue)}</p>
                     </div>
                     <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                       <p className="text-[10px] text-gray-400 font-black uppercase mb-1">Tần suất gửi</p>
+                       <p className="text-[11px] text-gray-400 font-black uppercase mb-1">Tần suất gửi</p>
                        <p className="text-xl font-black text-gray-800">{selectedCustomer.frequency || selectedCustomer.transaction_count || 'N/A'} đơn</p>
                     </div>
                     <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
-                       <p className="text-[10px] text-indigo-400 font-black uppercase mb-1">Điểm RFM</p>
+                       <p className="text-[11px] text-indigo-400 font-black uppercase mb-1">Điểm RFM</p>
                        <p className="text-xl font-black text-indigo-600">{selectedCustomer.score || 0}</p>
                     </div>
                  </div>
@@ -1587,7 +1587,7 @@ function Dashboard() {
                                <Area type="monotone" dataKey="revenue" stroke="#0054A6" fill="url(#colorCustomer)" strokeWidth={3} dot={{r: 3}} />
                             </AreaChart>
                          </ResponsiveContainer>
-                       ) : <div className="h-full flex items-center justify-center text-gray-300 italic text-xs">Đang tải xu hướng...</div>}
+                       ) : <div className="h-full flex items-center justify-center text-gray-300 italic text-[13px]">Đang tải xu hướng...</div>}
                     </div>
                  </div>
               </div>
@@ -1601,7 +1601,7 @@ function Dashboard() {
                     <div className="space-y-3">
                        {fullCustomerDetail?.services?.slice(0, 4).map((s, i) => (
                          <div key={i}>
-                            <div className="flex justify-between text-[10px] font-bold mb-1">
+                            <div className="flex justify-between text-[11px] font-bold mb-1">
                                <span className="truncate">{s.name}</span>
                                <span>{((s.value / (fullCustomerDetail.customer.doanh_thu_luy_ke || 1)) * 100).toFixed(0)}%</span>
                             </div>
@@ -1614,17 +1614,17 @@ function Dashboard() {
                  </div>
 
                  <div className="bg-amber-50 p-6 rounded-2xl border border-amber-100">
-                    <h5 className="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <h5 className="text-[11px] font-black text-amber-700 uppercase tracking-widest mb-3 flex items-center gap-2">
                        <Sparkles size={14} className="animate-pulse" /> AI Strategic Insights
                     </h5>
-                    <p className="text-xs text-amber-900 font-medium leading-relaxed">
+                    <p className="text-[13px] text-amber-900 font-medium leading-relaxed">
                        {selectedCustomer.detailed_reason ? (
                          <>Cảnh báo: <b>{selectedCustomer.detailed_reason}</b>. {selectedCustomer.risk_level.includes('CAO') ? 'Khách hàng có nguy cơ rời bỏ cao, cần liên hệ trực tiếp trong 24h tới.' : 'Cần theo dõi sát sao và gửi chương trình khuyến mãi mục tiêu.'}</>
                        ) : (
                          `Khách hàng ${selectedCustomer.ten_kh} đang là đối tác chiến lược với điểm RFM ấn tượng (${selectedCustomer.score}). Khuyến nghị: Duy trì chăm sóc VIP và đề xuất mở rộng dịch vụ Quốc tế.`
                        )}
                     </p>
-                    <div className="mt-4 pt-4 border-t border-amber-200/50 flex justify-between items-center text-[10px] font-black text-amber-700 uppercase">
+                    <div className="mt-4 pt-4 border-t border-amber-200/50 flex justify-between items-center text-[11px] font-black text-amber-700 uppercase">
                        <span>Last Active:</span>
                        <span>{fullCustomerDetail?.last_active || '...'}</span>
                     </div>
