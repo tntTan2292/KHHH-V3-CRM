@@ -381,6 +381,7 @@ export default function Customers() {
     const controller = new AbortController();
     statsAbortControllerRef.current = controller;
 
+    console.log("[API START] /api/analytics/dashboard (Lifecycle Stats)");
     try {
       const res = await api.get('/api/analytics/dashboard', { 
         params: { 
@@ -392,6 +393,7 @@ export default function Customers() {
       });
       
       const d = res.data;
+      console.log("[API SUCCESS] /api/analytics/dashboard");
       // API Dashboard trả về phím 'lifecycle' chứa các con số định danh
       const ls = d.lifecycle || {};
       
@@ -400,7 +402,15 @@ export default function Customers() {
         "Tất cả": d.tong_kh || total
       });
     } catch (err) { 
-      console.error("Lỗi lấy dữ liệu Dashboard:", err); 
+      if (api.isCancel?.(err) || err?.name === 'AbortError') {
+        console.warn("[API ABORTED] /api/analytics/dashboard");
+      } else {
+        console.error("Lỗi lấy dữ liệu Dashboard:", err); 
+      }
+    } finally {
+      if (statsAbortControllerRef.current === controller) {
+        console.log("[LOADING RELEASED] Lifecycle Stats");
+      }
     }
   };
 
@@ -441,6 +451,7 @@ export default function Customers() {
     abortControllerRef.current = controller;
 
     setLoading(true);
+    console.log(`[API START] /api/customers (Page: ${targetPage})`);
     try {
       const params = {
         page: targetPage,
@@ -456,14 +467,22 @@ export default function Customers() {
       };
       
        const res = await api.get('/api/customers', { params, signal: controller.signal });
+       console.log("[API SUCCESS] /api/customers");
        setCustomers(res.data.items || []);
        setTotal(res.data.total || 0);
        setTotalPages(res.data.total_pages || 1);
        setPage(res.data.page || 1);
     } catch (err) {
-      console.error(err);
+      if (api.isCancel?.(err) || err?.name === 'AbortError') {
+        console.warn("[API ABORTED] /api/customers");
+      } else {
+        console.error("Lỗi lấy dữ liệu khách hàng:", err);
+      }
     } finally {
-      setLoading(false);
+      if (abortControllerRef.current === controller) {
+        setLoading(false);
+        console.log("[LOADING RELEASED] /api/customers");
+      }
     }
   };
 

@@ -112,7 +112,10 @@ const PotentialCustomers_V3 = () => {
   });
 
   const fetchPotentialData = async (currentPage = page, currentPageSize = pageSize) => {
-    if (waitingForDefaultDate) return;
+    if (waitingForDefaultDate) {
+      console.log("[DIAGNOSTIC] fetchPotentialData skipped: waitingForDefaultDate is true");
+      return;
+    }
 
     // RF5B: Cancel previous request
     if (abortControllerRef.current) {
@@ -122,9 +125,11 @@ const PotentialCustomers_V3 = () => {
     abortControllerRef.current = controller;
 
     setLoading(true);
+    console.log(`[API START] /api/potential (Page: ${currentPage})`);
     try {
       const params = buildPotentialParams(currentPage, currentPageSize);
       const res = await api.get('/api/potential', { params, signal: controller.signal });
+      console.log("[API SUCCESS] /api/potential");
       setData(res.data);
       if (res.data.applied_dates) {
         const ad = res.data.applied_dates;
@@ -132,10 +137,17 @@ const PotentialCustomers_V3 = () => {
         if (ad.end && !endDate) setEndDate(ad.end);
       }
     } catch (err) {
-      console.error('Lỗi tải dữ liệu khách hàng tiềm năng V3:', err);
-      toast.error("Không thể tải dữ liệu tiềm năng. Vui lòng thử lại.");
+      if (api.isCancel?.(err) || err?.name === 'AbortError') {
+        console.warn("[API ABORTED] /api/potential");
+      } else {
+        console.error('Lỗi tải dữ liệu khách hàng tiềm năng V3:', err);
+        toast.error("Không thể tải dữ liệu tiềm năng. Vui lòng thử lại.");
+      }
     } finally {
-      setLoading(false);
+      if (abortControllerRef.current === controller) {
+        setLoading(false);
+        console.log("[LOADING RELEASED] /api/potential");
+      }
     }
   };
 
@@ -314,8 +326,10 @@ const PotentialCustomers_V3 = () => {
         setStartDate(latest.start);
         setEndDate(latest.end);
       }
-    } catch (err) { console.error(err); }
-    finally {
+    } catch (err) { 
+      console.error("[DIAGNOSTIC] fetchCoverage Error:", err); 
+    } finally {
+      console.log("[DIAGNOSTIC] PotentialCustomers waitingForDefaultDate released via finally");
       setWaitingForDefaultDate(false);
     }
   };

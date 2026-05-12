@@ -55,5 +55,7 @@ api.interceptors.response.use(
   }
 );
 
+api.isCancel = axios.isCancel;
+
 export default api;
 export { getBaseUrl };

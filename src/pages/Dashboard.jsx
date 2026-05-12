@@ -17,9 +17,40 @@ import useSWR from 'swr';
 import Skeleton from '../components/Skeleton';
 import { useAuth } from '../context/AuthContext';
 
-// Fetcher function cho SWR
-const fetcher = url => api.get(url).then(res => res.data);
-const fetcherWithParams = ([url, params]) => api.get(url, { params }).then(res => res.data);
+// Fetcher function cho SWR với Diagnostics
+const fetcher = url => {
+  console.log(`[API START] ${url}`);
+  return api.get(url)
+    .then(res => {
+      console.log(`[API SUCCESS] ${url}`);
+      return res.data;
+    })
+    .catch(err => {
+      if (api.isCancel?.(err) || (err?.name === 'AbortError')) {
+        console.warn(`[API ABORTED] ${url}`);
+      } else {
+        console.error(`[API ERROR] ${url}`, err);
+      }
+      throw err;
+    });
+};
+
+const fetcherWithParams = ([url, params]) => {
+  console.log(`[API START] ${url}`, params);
+  return api.get(url, { params })
+    .then(res => {
+      console.log(`[API SUCCESS] ${url}`);
+      return res.data;
+    })
+    .catch(err => {
+      if (api.isCancel?.(err) || (err?.name === 'AbortError')) {
+        console.warn(`[API ABORTED] ${url}`);
+      } else {
+        console.error(`[API ERROR] ${url}`, err);
+      }
+      throw err;
+    });
+};
 
 const COLORS = ['#F9A51A', '#0054A6', '#003E7E', '#4B5563', '#9CA3AF'];
 
@@ -308,14 +339,20 @@ function Dashboard() {
   }), [startDate, endDate, selectedNode, comparisonType]);
 
   // 1. Coverage
-  const { data: coverageData } = useSWR('/api/analytics/data-coverage', fetcher, {
+  const { data: coverageData, error: coverageError } = useSWR('/api/analytics/data-coverage', fetcher, {
     onSuccess: (data) => {
       if (data && data.latest_month && !startDate && !endDate) {
         setStartDate(data.latest_month.start);
         setEndDate(data.latest_month.end);
         setSelectedMonth(data.latest_month.value);
-        setWaitingForDefaultDate(false);
       }
+      // RF5B-HOTFIX: Luôn giải phóng trạng thái chờ ngày mặc định
+      setWaitingForDefaultDate(false);
+      console.log("[DIAGNOSTIC] Dashboard waitingForDefaultDate released via onSuccess");
+    },
+    onError: (err) => {
+      setWaitingForDefaultDate(false);
+      console.error("[DIAGNOSTIC] Dashboard waitingForDefaultDate released via onError", err);
     }
   });
 
