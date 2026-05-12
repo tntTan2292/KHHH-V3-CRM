@@ -23,6 +23,7 @@ class LifecycleService:
             month_str = max_month_str
 
         is_latest_month = (month_str == max_month_str)
+        logger.info(f"SSOT-SEMANTIC-V2: Resolving Lifecycle. Month={month_str}, Latest={max_month_str}, IsLatest={is_latest_month}")
         
         # Determine if we need dynamic transition calculation
         is_partial = False
@@ -48,16 +49,18 @@ class LifecycleService:
             summary_res = summary_res.filter(MonthlyAnalyticsSummary.point_id.in_(scope_point_ids))
             
         summary_rows = summary_res.group_by(MonthlyAnalyticsSummary.lifecycle_stage).all()
+        logger.info(f"SSOT: Summary Rows found for {month_str}: {len(summary_rows)}")
         
         stage_map = {
-            "active": "active",
-            "at_risk": "at_risk",
-            "churned": "churned", 
-            "new": "new",
+            "active": "active",             # STATE
+            "at_risk": "at_risk",           # STATE
+            "churned": "churned_snapshot",  # POPULATION (Redirected)
+            "churned_snapshot": "churned_snapshot",
+            "new": "discard",               # STATE (Discarded to prevent double-count with NEW_TRANSITION)
             "rebuy": "recovered",
-            "new_transition": "new",       
+            "new_transition": "new",        # TRANSITION (KPI)
             "recovered_transition": "recovered", 
-            "churn_transition": "churned"  
+            "churn_transition": "churned"   # TRANSITION (KPI)
         }
         
         results = {

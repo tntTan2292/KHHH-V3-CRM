@@ -121,6 +121,7 @@ async def get_dashboard_stats(
     month_str = governed_start[:7]
     current_month_str = max_data_date.strftime("%Y-%m")
     
+    logger.info(f"[DIAGNOSTIC-DASHBOARD] start_date={start_date}, end_date={end_date}")
     logger.info(f"DASHBOARD TEMPORAL FLOW: Selected={month_str} | Latest={current_month_str} | Range={governed_start} to {governed_end}")
     
     # [GOVERNANCE] Lifecycle is a Historical State Machine. 
@@ -293,6 +294,14 @@ async def get_dashboard_stats(
     }
     
     logger.info(f"DASHBOARD API SUCCESS: {current_month_str} | Scope: {scope_point_ids} | Results: {lifecycle_stats}")
+    # [GOVERNANCE] Prevent Browser Caching for Dashboard Data
+    from fastapi import Response
+    response_headers = {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0"
+    }
+    
     return response_data
 
 @router.get("/summary")
@@ -305,6 +314,7 @@ async def get_analytics_summary(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    logger.info(f"[DIAGNOSTIC-SUMMARY] start_date={start_date}, end_date={end_date}, node_code={node_code}")
     """ Endpoint hợp nhất: KPIs + Service Mix + Region Mix """
     # Chạy song song các query độc lập để tối ưu thời gian phản hồi
     stats_task = get_dashboard_stats(start_date=start_date, end_date=end_date, node_code=node_code, comparison_type=comparison_type, db=db, current_user=current_user)

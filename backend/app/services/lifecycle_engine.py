@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import dateutil.relativedelta
 import logging
 import os
+import calendar as py_calendar
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +95,7 @@ class LifecycleEngine:
             results = []
             for _, row in df.iterrows():
                 ma_kh = row['ma_kh']
-                pid = int(row['point_id']) if row['point_id'] else 0
+                pid = int(row['point_id']) if pd.notnull(row['point_id']) else 0
                 
                 # Evidence
                 first_dt = pd.to_datetime(row['first_order_date'])
@@ -145,7 +146,7 @@ class LifecycleEngine:
                     'is_recovered_transition': is_recovered,
                     'is_churn_transition': is_churn,
                     'revenue': curr_rev,
-                    'orders': int(row['curr_orders'] or 0)
+                    'orders': int(row['curr_orders']) if pd.notnull(row['curr_orders']) else 0
                 })
             return results
         finally:
