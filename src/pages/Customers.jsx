@@ -37,6 +37,87 @@ const getRankBadge = (segment) => {
   );
 };
 
+const lifecycleConfig = [
+  { 
+    label: "Tất cả", 
+    value: "", 
+    icon: Users, 
+    color: "blue",
+    gradient: "from-blue-600 to-indigo-700",
+    accent: "#0054A6",
+    bgLight: "bg-blue-50/80",
+    borderCol: "border-indigo-600",
+    colorClass: 'border-blue-200',
+    bgClass: 'bg-blue-50',
+    textClass: 'text-blue-700'
+  },
+  { 
+    label: "KH Hiện hữu", 
+    value: "active", 
+    icon: CheckCircle2, 
+    color: "green",
+    gradient: "from-green-500 to-green-700",
+    accent: "#22C55E",
+    bgLight: "bg-green-50/80",
+    borderCol: "border-green-500",
+    colorClass: 'border-green-200',
+    bgClass: 'bg-green-50',
+    textClass: 'text-green-700'
+  },
+  { 
+    label: "KH Mới", 
+    value: "new", 
+    icon: Star, 
+    color: "sky",
+    gradient: "from-sky-500 to-blue-700",
+    accent: "#0EA5E9",
+    bgLight: "bg-sky-50/80",
+    borderCol: "border-sky-500",
+    colorClass: 'border-sky-200',
+    bgClass: 'bg-sky-50',
+    textClass: 'text-sky-700'
+  },
+  { 
+    label: "KH Phục hồi", 
+    value: "recovered", 
+    icon: RefreshCw, 
+    color: "indigo",
+    gradient: "from-indigo-500 to-indigo-800",
+    accent: "#6366F1",
+    bgLight: "bg-indigo-50/80",
+    borderCol: "border-indigo-500",
+    colorClass: 'border-indigo-200',
+    bgClass: 'bg-indigo-50',
+    textClass: 'text-indigo-700'
+  },
+  { 
+    label: "KH Nguy cơ", 
+    value: "at_risk", 
+    icon: AlertCircle, 
+    color: "orange",
+    gradient: "from-orange-400 to-orange-600",
+    accent: "#F97316",
+    bgLight: "bg-orange-50/80",
+    borderCol: "border-orange-500",
+    colorClass: 'border-orange-200',
+    bgClass: 'bg-orange-50',
+    textClass: 'text-orange-700'
+  },
+  { 
+    label: "KH Rời bỏ", 
+    value: "churned", 
+    icon: UserMinus, 
+    color: "rose",
+    gradient: "from-rose-500 to-rose-700",
+    accent: "#E11D48",
+    bgLight: "bg-rose-50/80",
+    borderCol: "border-rose-500",
+    colorClass: 'border-rose-200',
+    bgClass: 'bg-rose-50',
+    textClass: 'text-rose-700'
+  }
+];
+
 // RF5B: Memoized Customer Row for Performance
 const CustomerRow = React.memo(({ c, handleRowClick, handleHistoryModal, formatCurrency, getRankBadge, lifecycleConfig }) => {
   return (
@@ -271,86 +352,7 @@ export default function Customers() {
   const hasPrev = customers.findIndex(c => c.ma_crm_cms === selectedCustomer) > 0;
 
 
-  const lifecycleConfig = [
-    { 
-      label: "Tất cả", 
-      value: "", 
-      icon: Users, 
-      color: "blue",
-      gradient: "from-blue-600 to-indigo-700",
-      accent: "#0054A6",
-      bgLight: "bg-blue-50/80",
-      borderCol: "border-indigo-600",
-      colorClass: 'border-blue-200',
-      bgClass: 'bg-blue-50',
-      textClass: 'text-blue-700'
-    },
-    { 
-      label: "KH Hiện hữu", 
-      value: "active", 
-      icon: CheckCircle2, 
-      color: "green",
-      gradient: "from-green-500 to-green-700",
-      accent: "#22C55E",
-      bgLight: "bg-green-50/80",
-      borderCol: "border-green-500",
-      colorClass: 'border-green-200',
-      bgClass: 'bg-green-50',
-      textClass: 'text-green-700'
-    },
-    { 
-      label: "KH Mới", 
-      value: "new", 
-      icon: Star, 
-      color: "sky",
-      gradient: "from-sky-500 to-blue-700",
-      accent: "#0EA5E9",
-      bgLight: "bg-sky-50/80",
-      borderCol: "border-sky-500",
-      colorClass: 'border-sky-200',
-      bgClass: 'bg-sky-50',
-      textClass: 'text-sky-700'
-    },
-    { 
-      label: "KH Phục hồi", 
-      value: "recovered", 
-      icon: RefreshCw, 
-      color: "indigo",
-      gradient: "from-indigo-500 to-indigo-800",
-      accent: "#6366F1",
-      bgLight: "bg-indigo-50/80",
-      borderCol: "border-indigo-500",
-      colorClass: 'border-indigo-200',
-      bgClass: 'bg-indigo-50',
-      textClass: 'text-indigo-700'
-    },
-    { 
-      label: "KH Nguy cơ", 
-      value: "at_risk", 
-      icon: AlertCircle, 
-      color: "orange",
-      gradient: "from-orange-400 to-orange-600",
-      accent: "#F97316",
-      bgLight: "bg-orange-50/80",
-      borderCol: "border-orange-500",
-      colorClass: 'border-orange-200',
-      bgClass: 'bg-orange-50',
-      textClass: 'text-orange-700'
-    },
-    { 
-      label: "KH Rời bỏ", 
-      value: "churned", 
-      icon: UserMinus, 
-      color: "rose",
-      gradient: "from-rose-500 to-rose-700",
-      accent: "#E11D48",
-      bgLight: "bg-rose-50/80",
-      borderCol: "border-rose-500",
-      colorClass: 'border-rose-200',
-      bgClass: 'bg-rose-50',
-      textClass: 'text-rose-700'
-    }
-  ];
+
 
   const getTaskFlow = (target) => {
     if (!target) return { type: 'Giao Lead', color: 'from-emerald-500 to-teal-700', text: 'GIAO LEAD MỚI', subtitle: 'Tiếp cận khách hàng tiềm năng' };
@@ -634,93 +636,8 @@ export default function Customers() {
     fetchCustomers(1);
   };
 
-  const lifecycleConfig = [
-    { 
-      label: "Tất cả", 
-      value: "", 
-      icon: Users, 
-      color: "blue",
-      gradient: "from-blue-600 to-indigo-700",
-      accent: "#0054A6",
-      bgLight: "bg-blue-50/80",
-      borderCol: "border-indigo-600",
-      colorClass: 'border-blue-200',
-      bgClass: 'bg-blue-50',
-      textClass: 'text-blue-700'
-    },
-    { 
-      label: "KH Hiện hữu", 
-      value: "active", 
-      icon: CheckCircle2, 
-      color: "green",
-      gradient: "from-green-500 to-green-700",
-      accent: "#22C55E",
-      bgLight: "bg-green-50/80",
-      borderCol: "border-green-500",
-      colorClass: 'border-green-200',
-      bgClass: 'bg-green-50',
-      textClass: 'text-green-700'
-    },
-    { 
-      label: "KH Mới", 
-      value: "new", 
-      icon: Star, 
-      color: "sky",
-      gradient: "from-sky-500 to-blue-700",
-      accent: "#0EA5E9",
-      bgLight: "bg-sky-50/80",
-      borderCol: "border-sky-500",
-      colorClass: 'border-sky-200',
-      bgClass: 'bg-sky-50',
-      textClass: 'text-sky-700'
-    },
-    { 
-      label: "KH Phục hồi", 
-      value: "recovered", 
-      icon: RefreshCw, 
-      color: "indigo",
-      gradient: "from-indigo-500 to-indigo-800",
-      accent: "#6366F1",
-      bgLight: "bg-indigo-50/80",
-      borderCol: "border-indigo-500",
-      colorClass: 'border-indigo-200',
-      bgClass: 'bg-indigo-50',
-      textClass: 'text-indigo-700'
-    },
-    { 
-      label: "KH Nguy cơ", 
-      value: "at_risk", 
-      icon: AlertCircle, 
-      color: "orange",
-      gradient: "from-orange-400 to-orange-600",
-      accent: "#F97316",
-      bgLight: "bg-orange-50/80",
-      borderCol: "border-orange-500",
-      colorClass: 'border-orange-200',
-      bgClass: 'bg-orange-50',
-      textClass: 'text-orange-700'
-    },
-    { 
-      label: "KH Mất", 
-      value: "churned", 
-      icon: LogOut, 
-      color: "rose",
-      gradient: "from-rose-500 to-red-800",
-      accent: "#F43F5E",
-      bgLight: "bg-rose-50/80",
-      borderCol: "border-rose-500",
-      colorClass: 'border-rose-200',
-      bgClass: 'bg-rose-50',
-      textClass: 'text-rose-700'
-    },
-  ];
 
-  const getRankBadge = (rank) => {
-    if (rank === 'Kim Cương') return <span className="flex items-center gap-1 text-[10px] font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100 shadow-sm">💎 KIM CƯƠNG</span>;
-    if (rank === 'Vàng') return <span className="flex items-center gap-1 text-[10px] font-black text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 shadow-sm">🏆 VÀNG</span>;
-    if (rank === 'Bạc') return <span className="flex items-center gap-1 text-[10px] font-black text-slate-500 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-200 shadow-sm">🥈 BẠC</span>;
-    return <span className="flex items-center gap-1 text-[10px] font-bold text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-200">👤 THƯỜNG</span>;
-  };
+
 
   const handleExportExcel = async () => {
     try {
@@ -860,7 +777,6 @@ export default function Customers() {
     }
   };
 
-  const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
 
   const handleCheckSftp = async () => {
     setSyncCheck(prev => ({ ...prev, loading: true, error: null }));
