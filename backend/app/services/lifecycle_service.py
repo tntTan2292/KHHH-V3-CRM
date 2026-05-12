@@ -13,23 +13,27 @@ class LifecycleService:
         [GOVERNANCE] Centralized Lifecycle Count Resolver (SSOT).
         Unifies counting logic for Dashboard Cards, Customer Module Buttons, and Reports.
         """
-        # [RF5C] Strict Temporal Locking
+        # 1. Determine Boundary
+        max_ts = db.query(func.max(Transaction.ngay_chap_nhan)).scalar()
+        max_month_str = max_ts[:7] if isinstance(max_ts, str) else max_ts.strftime("%Y-%m")
+        
         if not month_str and start_date:
             month_str = start_date[:7]
-            
         if not month_str:
-            # Only fallback if absolutely no time context provided
-            max_ts = db.query(func.max(Transaction.ngay_chap_nhan)).scalar()
-            if max_ts:
-                if isinstance(max_ts, str):
-                    month_str = max_ts[:7]
-                else: # Assume datetime
-                    month_str = max_ts.strftime("%Y-%m")
-            else:
-                month_str = "1970-01"
-            logger.warning(f"SSOT: No month_str provided, falling back to LATEST: {month_str}")
-        else:
-            logger.info(f"SSOT: Resolving Lifecycle for LOCKED period: {month_str} (Range: {start_date} to {end_date})")
+            month_str = max_month_str
+
+        is_latest_month = (month_str == max_month_str)
+        
+        # Determine if we need dynamic transition calculation
+        is_partial = False
+        if start_date and end_date:
+            from datetime import datetime, timedelta
+            s_dt = datetime.strptime(start_date, "%Y-%m-%d")
+            e_dt = datetime.strptime(end_date, "%Y-%m-%d")
+            if not (s_dt.day == 1 and (e_dt + timedelta(days=1)).day == 1):
+                is_partial = True
+
+        logger.info(f"SSOT: Resolving Lifecycle. Month={month_str}, Latest={max_month_str}, IsPartial={is_partial}")
 
         # 1. Attempt Summary Fetch (Base Layer)
         summary_res = db.query(
@@ -64,17 +68,15 @@ class LifecycleService:
             if target_key in results:
                 results[target_key] += int(count or 0)
 
-        # 2. RF5C-HOTFIX: Temporal Integrity for Partial Ranges
-        # If the user selects a partial month, transitions MUST be recalculated dynamically.
-        # Snapshots (Active, At Risk) remain anchored to the month's summary for Governance.
-        if start_date and end_date:
+        # 3. RF5C-HOTFIX: Dynamic Recalculation for Transitions
+        # Transitions (New, Recovered, Churned in period) are period-bound.
+        # If the range is partial or it's the latest month, we recalculate to ensure integrity.
+        if (is_latest_month or is_partial) and start_date and end_date:
             from datetime import datetime, timedelta
             s_dt = datetime.strptime(start_date, "%Y-%m-%d")
             e_dt = datetime.strptime(end_date, "%Y-%m-%d")
             
-            # If not a full month selection
-            if not (s_dt.day == 1 and (e_dt + timedelta(days=1)).day == 1):
-                logger.info(f"SSOT: Partial range detected ({start_date} to {end_date}). Recalculating Transitions...")
+            logger.info(f"SSOT: Partial or Latest range detected ({start_date} to {end_date}). Recalculating Transitions...")
                 
                 # Dynamic NEW: First transaction ever falls within [start_date, end_date]
                 new_count_query = db.query(func.count(Customer.id)).filter(
@@ -108,21 +110,15 @@ class LifecycleService:
                 if scope_point_ids: recovered_query = recovered_query.filter(Customer.point_id.in_(scope_point_ids))
                 results['recovered'] = recovered_query.scalar() or 0
 
-                # Dynamic CHURNED: Was ACTIVE in snapshot, but has reached 90 days threshold in period
-                # (Simplified: last transaction was > 90 days ago at end_date)
+                # Dynamic CHURNED (Last transaction reached 90 days ago during this period)
                 churn_query = db.query(func.count(Customer.id)).filter(
-                    exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan <= e_dt)
-                    )
-                ).filter(
-                    ~exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan.between(e_dt - timedelta(days=90), e_dt))
-                    )
+                    exists().where((Transaction.ma_kh == Customer.ma_crm_cms) & (Transaction.ngay_chap_nhan <= e_dt)),
+                    ~exists().where((Transaction.ma_kh == Customer.ma_crm_cms) & (Transaction.ngay_chap_nhan.between(e_dt - timedelta(days=90), e_dt)))
                 )
-                # Ensure they were not already churned before
-                # ... this is becoming complex, but for now we align with the 90-day rule.
+                # Ensure they were not already churned at the start of the period to count "Transition"
+                churn_query = churn_query.filter(
+                    exists().where((Transaction.ma_kh == Customer.ma_crm_cms) & (Transaction.ngay_chap_nhan.between(s_dt - timedelta(days=90), s_dt)))
+                )
                 if scope_point_ids: churn_query = churn_query.filter(Customer.point_id.in_(scope_point_ids))
                 results['churned'] = churn_query.scalar() or 0
         

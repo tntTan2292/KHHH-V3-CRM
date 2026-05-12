@@ -540,8 +540,16 @@ function Dashboard() {
     setSelectedMonth(monthStr);
     const [year, month] = monthStr.split('-').map(Number);
     const start = `${year}-${String(month).padStart(2, '0')}-01`;
-    const lastDay = new Date(year, month, 0).getDate();
-    const end = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    
+    let end;
+    // [GOVERNANCE] If selecting latest data month, auto-lock to latest transaction date
+    if (coverage?.latest_month?.value === monthStr) {
+      end = coverage.latest_month.end;
+    } else {
+      const lastDay = new Date(year, month, 0).getDate();
+      end = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    }
+    
     setStartDate(start);
     setEndDate(end);
   };

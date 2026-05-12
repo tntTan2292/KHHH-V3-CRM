@@ -50,19 +50,22 @@ def get_governed_comparison_periods(db, start_date, end_date, comparison_type="m
         if not max_data_date:
             return None, None, None, None, None
         curr_start = max_data_date.replace(day=1, hour=0, minute=0, second=0)
-        # [USER RULE] Always use end of day to include all transactions
         curr_end = max_data_date.replace(hour=23, minute=59, second=59)
     else:
         curr_start = datetime.strptime(start_date, "%Y-%m-%d")
-        curr_end = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+        requested_end = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+        # [GOVERNANCE] Boundary Capping: Cannot report into the future
+        curr_end = min(requested_end, max_data_date.replace(hour=23, minute=59, second=59))
 
+    # [GOVERNANCE] Like-for-Like Comparison (Same Length)
+    delta_days = (curr_end - curr_start).days
+    
     if comparison_type == "yoy":
         prev_start = curr_start - dateutil.relativedelta.relativedelta(years=1)
-        prev_end = curr_end - dateutil.relativedelta.relativedelta(years=1)
+        prev_end = prev_start + timedelta(days=delta_days)
     else:
-        # Standard MoM date shift (Preserving the 23:59:59 boundary)
         prev_start = curr_start - dateutil.relativedelta.relativedelta(months=1)
-        prev_end = curr_end - dateutil.relativedelta.relativedelta(months=1)
+        prev_end = prev_start + timedelta(days=delta_days)
         
     return curr_start, curr_end, prev_start, prev_end, max_data_date
 
@@ -101,24 +104,27 @@ async def get_dashboard_stats(
             "kh_tiem_nang": 0, "revenue_growth": 0, "latest_date": None, "lifecycle": {}
         }
         
-    # 2. Xác định ngày dữ liệu mới nhất
-    max_data_date_raw = db.query(func.max(Transaction.ngay_chap_nhan)).scalar()
-    max_data_date = parse_db_date(max_data_date_raw)
+    # 2. Xác định dải thời gian được quản trị (Governed Temporal Range)
+    curr_start, curr_end, prev_start, prev_end, max_data_date = get_governed_comparison_periods(db, start_date, end_date, comparison_type)
+    
+    # Override with Governed Dates
+    governed_start = curr_start.strftime("%Y-%m-%d")
+    governed_end = curr_end.strftime("%Y-%m-%d")
+    prev_start_str = prev_start.strftime("%Y-%m-%d")
+    prev_end_str = prev_end.strftime("%Y-%m-%d")
 
     # 3. Kiểm tra xem có thể dùng bảng Summary không (Nếu filter theo tháng trọn vẹn)
     is_monthly = False
-    if start_date and end_date:
-        s_dt = datetime.strptime(start_date, "%Y-%m-%d")
-        e_dt = datetime.strptime(end_date, "%Y-%m-%d")
-        if s_dt.day == 1 and (e_dt + timedelta(days=1)).day == 1:
+    if governed_start and governed_end:
+        if curr_start.day == 1 and (curr_end + timedelta(days=1)).day == 1:
             is_monthly = True
 
     # 4. Lấy dữ liệu Lifecycle và Doanh thu (ƯU TIÊN SUMMARY)
-    # [RF5C] Strict temporal derivation
-    month_str = start_date[:7] if (start_date and len(start_date) >= 7) else max_data_date.strftime("%Y-%m")
+    # [RF5C] Strict temporal derivation from governed range
+    month_str = governed_start[:7]
     current_month_str = max_data_date.strftime("%Y-%m")
     
-    logger.info(f"DASHBOARD TEMPORAL FLOW: Selected={month_str} | Latest={current_month_str} | Range={start_date} to {end_date}")
+    logger.info(f"DASHBOARD TEMPORAL FLOW: Selected={month_str} | Latest={current_month_str} | Range={governed_start} to {governed_end}")
     
     # [GOVERNANCE] Lifecycle is a Historical State Machine. 
     # Fetch Lifecycle from Unified SSOT Service for the SELECTED period.
@@ -126,8 +132,8 @@ async def get_dashboard_stats(
         db, 
         month_str=month_str, 
         scope_point_ids=scope_point_ids,
-        start_date=start_date,
-        end_date=end_date
+        start_date=governed_start,
+        end_date=governed_end
     )
 
     # Fetch Revenue and Growth from FILTERED month summary
@@ -194,7 +200,9 @@ async def get_dashboard_stats(
         prev_lifecycle_stats = LifecycleService.get_customer_lifecycle_stats(
             db, 
             month_str=prev_month_str, 
-            scope_point_ids=scope_point_ids
+            scope_point_ids=scope_point_ids,
+            start_date=prev_start.strftime("%Y-%m-%d"),
+            end_date=prev_end.strftime("%Y-%m-%d")
         )
         
         for k in lifecycle_delta.keys():
