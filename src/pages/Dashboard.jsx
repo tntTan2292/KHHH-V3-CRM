@@ -797,7 +797,7 @@ function Dashboard() {
                     onClick={() => {
                       const node = selectedNode;
                       if (node) saveNavigationContext(node);
-                      navigate(`/customers?lifecycle_status=new${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
+                      navigate(`/customers?lifecycle_status=new_event${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
                     }}
                   >
                     <div className="flex justify-between items-start">
@@ -812,7 +812,15 @@ function Dashboard() {
                     </div>
                     
                     <div className="flex items-center justify-between mt-1">
-                      <div className="flex items-center gap-1 opacity-40 hover:opacity-100 transition-opacity">
+                      <div 
+                        className="flex items-center gap-1 opacity-40 hover:opacity-100 transition-opacity cursor-help"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const node = selectedNode;
+                          if (node) saveNavigationContext(node);
+                          navigate(`/customers?lifecycle_status=new_pop${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
+                        }}
+                      >
                          <span className="text-[9px] font-black text-indigo-400 uppercase">Lũy kế:</span>
                          <span className="text-[10px] font-black text-indigo-600">{(stats?.lifecycle?.["new_pop"] || 0).toLocaleString()}</span>
                       </div>
@@ -825,7 +833,7 @@ function Dashboard() {
                     onClick={() => {
                       const node = selectedNode;
                       if (node) saveNavigationContext(node);
-                      navigate(`/customers?lifecycle_status=recovered${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
+                      navigate(`/customers?lifecycle_status=recovered_event${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
                     }}
                   >
                     <div className="flex justify-between items-start">
@@ -840,7 +848,15 @@ function Dashboard() {
                     </div>
 
                     <div className="flex items-center justify-between mt-1">
-                      <div className="flex items-center gap-1 opacity-40 hover:opacity-100 transition-opacity">
+                      <div 
+                        className="flex items-center gap-1 opacity-40 hover:opacity-100 transition-opacity cursor-help"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const node = selectedNode;
+                          if (node) saveNavigationContext(node);
+                          navigate(`/customers?lifecycle_status=recovered_pop${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
+                        }}
+                      >
                          <span className="text-[9px] font-black text-emerald-400 uppercase">Lũy kế:</span>
                          <span className="text-[10px] font-black text-emerald-600">{(stats?.lifecycle?.["recovered_pop"] || 0).toLocaleString()}</span>
                       </div>
@@ -893,7 +909,7 @@ function Dashboard() {
                     onClick={() => {
                       const node = selectedNode;
                       if (node) saveNavigationContext(node);
-                      navigate(`/customers?lifecycle_status=churned${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
+                      navigate(`/customers?lifecycle_status=churn_event${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
                     }}
                   >
                     <div className="flex justify-between items-start">
@@ -908,7 +924,15 @@ function Dashboard() {
                     </div>
 
                     <div className="flex items-center justify-between mt-1">
-                      <div className="flex items-center gap-1 opacity-40 hover:opacity-100 transition-opacity">
+                      <div 
+                        className="flex items-center gap-1 opacity-40 hover:opacity-100 transition-opacity cursor-help"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const node = selectedNode;
+                          if (node) saveNavigationContext(node);
+                          navigate(`/customers?lifecycle_status=churn_pop${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
+                        }}
+                      >
                          <span className="text-[9px] font-black text-rose-400 uppercase">Lũy kế:</span>
                          <span className="text-[10px] font-black text-rose-600">{(stats?.lifecycle?.["churn_pop"] || 0).toLocaleString()}</span>
                       </div>

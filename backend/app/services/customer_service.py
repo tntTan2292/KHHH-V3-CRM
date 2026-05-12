@@ -99,25 +99,37 @@ class CustomerService:
                         (Transaction.ma_kh == Customer.ma_crm_cms) &
                         (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=90), curr_end))
                     ))
+            # [RF5C] Granular Lifecycle SSOT Mapping
+            # Maps dashboard metrics (Events vs Populations) to specific snapshot filters
+            if status_val == 'new_event':
+                filters.append(snapshot_sub.c.is_new_transition == True)
+            elif status_val == 'new_pop':
+                # Probationary population (New state in current month)
+                filters.append(snapshot_sub.c.lifecycle_state == 'NEW')
+            elif status_val == 'recovered_event':
+                filters.append(snapshot_sub.c.is_recovered_transition == True)
+            elif status_val == 'recovered_pop':
+                # Probationary population (Recovered state in current month)
+                filters.append(snapshot_sub.c.lifecycle_state == 'RECOVERED')
+            elif status_val == 'churn_event':
+                filters.append(snapshot_sub.c.is_churn_transition == True)
+            elif status_val == 'churn_pop' or status_val == 'churned_snapshot':
+                filters.append(snapshot_sub.c.lifecycle_state == 'CHURNED')
+            elif status_val == 'active':
+                filters.append(snapshot_sub.c.lifecycle_state == 'ACTIVE')
+            elif status_val == 'at_risk':
+                filters.append(snapshot_sub.c.lifecycle_state == 'AT_RISK')
+            elif status_val == 'new': # Legacy fallback -> Event
+                filters.append(snapshot_sub.c.is_new_transition == True)
+            elif status_val == 'recovered': # Legacy fallback -> Event
+                filters.append(snapshot_sub.c.is_recovered_transition == True)
+            elif status_val == 'churned': # Legacy fallback -> Event
+                filters.append(snapshot_sub.c.is_churn_transition == True)
             else:
-                # Use Snapshot Governance for Full Month or Snapshot-based states
-                if status_val == 'new':
-                    filters.append(snapshot_sub.c.is_new_transition == True)
-                elif status_val == 'recovered':
-                    filters.append(snapshot_sub.c.is_recovered_transition == True)
-                elif status_val == 'churned':
-                    filters.append(snapshot_sub.c.is_churn_transition == True)
-                elif status_val == 'active':
-                    filters.append(snapshot_sub.c.lifecycle_stage == 'ACTIVE')
-                elif status_val == 'at_risk':
-                    filters.append(snapshot_sub.c.lifecycle_stage == 'AT_RISK')
-                elif status_val == 'churned_snapshot':
-                    filters.append(snapshot_sub.c.lifecycle_stage == 'CHURNED')
-                else:
-                    filters.append(func.lower(Customer.lifecycle_state) == status_val)
-                
-                # Join with snapshot for all cases using snapshot filters
-                filters.append(Customer.ma_crm_cms == snapshot_sub.c.ma_kh)
+                filters.append(func.lower(Customer.lifecycle_state) == status_val)
+            
+            # Join with snapshot for all cases using snapshot filters
+            filters.append(Customer.ma_crm_cms == snapshot_sub.c.ma_kh)
             
         if rfm_segment:
             filters.append(Customer.rfm_segment == rfm_segment)
@@ -167,7 +179,8 @@ class CustomerService:
             func.coalesce(metrics_sub.c.dynamic_revenue, 0).label("dynamic_revenue"),
             func.coalesce(metrics_sub.c.transaction_count, 0).label("transaction_count"),
             metrics_sub.c.last_shipped_absolute,
-            NhanSu.full_name.label("assigned_staff_name")
+            NhanSu.full_name.label("assigned_staff_name"),
+            (snapshot_sub.c.lifecycle_state if lifecycle_status else literal("NONE")).label("snapshot_stage")
         ).select_from(Customer)
         
         if lifecycle_status:

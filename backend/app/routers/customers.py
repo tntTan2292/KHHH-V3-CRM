@@ -76,12 +76,18 @@ async def get_customers(
     # 2. Map to dict response (Elite RBAC 3.0 Standard)
     result_items = []
     for row in items:
-        # row contains (Customer, dynamic_revenue, transaction_count, last_shipped_absolute, assigned_staff_name)
+        # row contains (Customer, dynamic_revenue, transaction_count, last_shipped_absolute, assigned_staff_name, snapshot_stage)
         c = row[0]
         if not c: continue
         
-        # Governance: Fix status casing for frontend compatibility
-        status_raw = (c.lifecycle_state or "ACTIVE").lower()
+        # Governance: Priority given to Temporal Snapshot stage for list context
+        snapshot_stage = row[5] if len(row) > 5 else None
+        
+        if snapshot_stage and snapshot_stage != "NONE":
+            status_raw = snapshot_stage.lower()
+        else:
+            status_raw = (c.lifecycle_state or "ACTIVE").lower()
+            
         status_map = {
             "rebuy": "recovered",
             "reactivated": "recovered",

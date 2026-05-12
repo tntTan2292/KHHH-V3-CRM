@@ -74,7 +74,7 @@ const lifecycleConfig = [
   },
   { 
     label: "Mới trong kỳ", 
-    value: "new", 
+    value: "new_event", 
     icon: Star, 
     color: "sky",
     category: "Transition",
@@ -84,19 +84,41 @@ const lifecycleConfig = [
     borderCol: "border-sky-500"
   },
   { 
-    label: "Tái bản trong kỳ", 
-    value: "recovered", 
-    icon: RefreshCw, 
+    label: "Mới (Lũy kế 90d)", 
+    value: "new_pop", 
+    icon: Sparkles, 
     color: "indigo",
-    category: "Transition",
-    gradient: "from-indigo-500 to-indigo-800",
-    accent: "#6366F1",
+    category: "Probationary",
+    gradient: "from-indigo-400 to-indigo-600",
+    accent: "#818CF8",
     bgLight: "bg-indigo-50/80",
-    borderCol: "border-indigo-500"
+    borderCol: "border-indigo-400"
+  },
+  { 
+    label: "Tái bản trong kỳ", 
+    value: "recovered_event", 
+    icon: RefreshCw, 
+    color: "emerald",
+    category: "Transition",
+    gradient: "from-emerald-500 to-emerald-800",
+    accent: "#10B981",
+    bgLight: "bg-emerald-50/80",
+    borderCol: "border-emerald-500"
+  },
+  { 
+    label: "Tái bản (Lũy kế 90d)", 
+    value: "recovered_pop", 
+    icon: Activity, 
+    color: "emerald",
+    category: "Probationary",
+    gradient: "from-emerald-400 to-emerald-600",
+    accent: "#34D399",
+    bgLight: "bg-emerald-50/80",
+    borderCol: "border-emerald-400"
   },
   { 
     label: "Rời bỏ trong kỳ", 
-    value: "churned", 
+    value: "churn_event", 
     icon: UserMinus, 
     color: "rose",
     category: "Transition",
@@ -107,7 +129,7 @@ const lifecycleConfig = [
   },
   { 
     label: "Rời bỏ (Lũy kế)", 
-    value: "churned_snapshot", 
+    value: "churn_pop", 
     icon: History, 
     color: "slate",
     category: "Historical",
@@ -171,13 +193,13 @@ const CustomerRow = React.memo(({ c, handleRowClick, handleHistoryModal, formatC
            const status = lifecycleConfig.find(l => l.value === c?.status_type) || lifecycleConfig[0];
            return (
              <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[11px] font-black uppercase border shadow-sm ${status.colorClass} ${status.bgClass} ${status.textClass}`}>
-               <status.icon size={12} className={c?.status_type === 'new' ? 'animate-bounce' : ''} />
+               <status.icon size={12} className={(c?.status_type === 'new' || c?.status_type === 'new_event') ? 'animate-bounce' : ''} />
                {(() => {
-                 if (c?.status_type === 'active') return 'Hien huu';
-                 if (c?.status_type === 'new') return 'Moi';
-                 if (c?.status_type === 'recovered') return 'Phuc hoi';
-                 if (c?.status_type === 'at_risk') return 'Nguy co';
-                 if (c?.status_type === 'churned') return 'Mat';
+                 if (c?.status_type === 'active') return 'Hiện hữu';
+                 if (c?.status_type === 'new' || c?.status_type === 'new_event' || c?.status_type === 'new_pop') return 'Mới';
+                 if (c?.status_type === 'recovered' || c?.status_type === 'recovered_event' || c?.status_type === 'recovered_pop') return 'Tái bản';
+                 if (c?.status_type === 'at_risk') return 'Nguy cơ';
+                 if (c?.status_type === 'churned' || c?.status_type === 'churn_event' || c?.status_type === 'churn_pop') return 'Rời bỏ';
                  return c?.status_type;
                })()}
              </span>
