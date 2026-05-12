@@ -10,7 +10,7 @@
 
 @layer components {
   .card {
-    @apply bg-white rounded-xl shadow-sm border border-gray-100 p-6 transition-all duration-300;
+    @apply bg-white rounded-xl shadow-sm border border-gray-100 p-4 transition-all duration-300;
   }
   .card:hover {
     @apply shadow-md border-vnpost-orange/30;

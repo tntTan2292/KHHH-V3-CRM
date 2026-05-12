@@ -82,7 +82,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
       )}
 
       {/* Sidebar Container */}
-      <aside className={`fixed md:relative inset-y-0 left-0 ${isCollapsed ? 'md:w-20' : 'md:w-72'} w-72 bg-gradient-to-b from-[#003E7E] to-[#002a54] text-white flex flex-col shadow-2xl z-50 transform transition-all duration-300 ease-in-out ${
+      <aside className={`fixed md:relative inset-y-0 left-0 ${isCollapsed ? 'md:w-20' : 'md:w-64'} w-64 bg-gradient-to-b from-[#003E7E] to-[#002a54] text-white flex flex-col shadow-2xl z-50 transform transition-all duration-300 ease-in-out ${
         isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
       }`}>
         <div className={`p-6 border-b border-white/10 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} gap-4 relative`}>
@@ -157,26 +157,6 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
             );
           })}
         </nav>
-        
-        <div className="p-5 border-t border-white/10 bg-black/10">
-          {!isCollapsed ? (
-            <div className="space-y-4">
-              <div className="flex flex-col gap-0.5">
-                <span className="text-[9px] font-black text-vnpost-orange uppercase tracking-[0.15em] opacity-90">Chỉ đạo & Định hướng chiến lược</span>
-                <span className="text-[11px] font-bold text-white leading-tight">Võ Hoài Trung – PGĐ BĐTP Huế</span>
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <span className="text-[9px] font-black text-vnpost-orange uppercase tracking-[0.15em] opacity-90">Thiết kế & Phát triển hệ thống</span>
-                <span className="text-[11px] font-bold text-white leading-tight">Trần Nhật Tân – CV TT Vận Hành</span>
-              </div>
-            </div>
-          ) : (
-             <div className="flex flex-col items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-vnpost-orange animate-pulse shadow-[0_0_8px_rgba(249,165,26,0.5)]"></div>
-                <span className="text-[9px] font-black text-white/40">CRM 3.0</span>
-             </div>
-          )}
-        </div>
       </aside>
     </>
   );

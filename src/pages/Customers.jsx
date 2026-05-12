@@ -618,7 +618,7 @@ export default function Customers() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Assign Staff Modal */}
       {showAssignModal && (
         <div className="fixed inset-0 bg-[#003E7E]/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
@@ -952,7 +952,7 @@ export default function Customers() {
       </div>
       {/* RF3D: Customer Context Awareness Banner */}
       {(selectedNode || filters.lifecycle_status || filters.rfm_segment || (startDate && endDate)) && (
-        <div className="bg-white/70 backdrop-blur-md rounded-3xl p-4 border border-white/60 shadow-sm flex flex-wrap items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500 mb-6">
+        <div className="bg-white/70 backdrop-blur-md rounded-3xl p-3 border border-white/60 shadow-sm flex flex-wrap items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500 mb-4">
           <div className="bg-vnpost-blue/10 p-2 rounded-xl text-vnpost-blue">
             <Filter size={18} />
           </div>
@@ -1007,7 +1007,7 @@ export default function Customers() {
       )}
 
       {/* Lifecycle Filter Bar - PREMIUM 3D DASHBOARD STYLE */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {lifecycleConfig.map((item) => {
           const isActive = filters.lifecycle_status === item.value;
           
@@ -1024,7 +1024,7 @@ export default function Customers() {
                 setFilters(prev => ({ ...prev, lifecycle_status: item.value }));
                 setPage(1);
               }}
-              className={`group relative p-4 pl-5 rounded-2xl transition-all duration-300 flex flex-col items-start gap-1 text-left overflow-hidden border-2 ${
+              className={`group relative p-3 pl-5 rounded-2xl transition-all duration-300 flex flex-col items-start gap-1 text-left overflow-hidden border-2 ${
                 isActive 
                   ? `bg-white shadow-2xl scale-105 z-10 -translate-y-1 ${item.borderCol} border-l-[6px] ${item.borderCol.replace('border-', 'border-l-')}` 
                   : `${item.bgLight} border-gray-100/50 hover:${item.borderCol} hover:bg-white hover:shadow-xl hover:-translate-y-1 border-l-[6px] ${item.borderCol.replace('border-', 'border-l-')} opacity-80 hover:opacity-100`
@@ -1060,7 +1060,7 @@ export default function Customers() {
         })}
       </div>
 
-      <div className="card space-y-4 !p-6 shadow-sm border-gray-100 relative z-50">
+      <div className="card space-y-4 !p-4 shadow-sm border-gray-100 relative z-50">
         <div className="flex flex-wrap gap-4 items-center">
           {/* Admin Hierarchy Filter */}
           <div className="w-72">
@@ -1138,7 +1138,7 @@ export default function Customers() {
         </div>
 
         {/* Global Period Filter */}
-        <div className="flex flex-wrap gap-4 items-end bg-gradient-to-r from-gray-50 to-white p-5 rounded-2xl border border-gray-100">
+        <div className="flex flex-wrap gap-4 items-end bg-gradient-to-r from-gray-50 to-white p-4 rounded-2xl border border-gray-100">
           <div className="space-y-1.5 flex-1 min-w-[150px]">
             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1 ml-1">
               <Calendar size={12} /> Từ ngày
@@ -1229,56 +1229,56 @@ export default function Customers() {
             <thead className="bg-gray-50/50 text-gray-500 border-b border-gray-100">
               <tr>
                 <th 
-                  className="p-4 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors w-32"
+                  className="p-2 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors w-32"
                   onClick={() => handleSort('ma_crm_cms')}
                 >
                   <div className="flex items-center">Mã CRM <SortIcon column="ma_crm_cms" /></div>
                 </th>
                 <th 
-                  className="p-4 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors w-64"
+                  className="p-2 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors w-64"
                   onClick={() => handleSort('ten_kh')}
                 >
                   <div className="flex items-center">Tên Khách Hàng <SortIcon column="ten_kh" /></div>
                 </th>
                 <th 
-                  className="p-4 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors w-40"
+                  className="p-2 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors w-40"
                   onClick={() => handleSort('status_type')}
                 >
                   <div className="flex items-center">Vòng đời <SortIcon column="status_type" /></div>
                 </th>
                 <th 
-                  className="p-4 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors w-32"
+                  className="p-2 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors w-32"
                   onClick={() => handleSort('rfm_segment')}
                 >
                   <div className="flex items-center">Hạng <SortIcon column="rfm_segment" /></div>
                 </th>
                 <th 
-                  className="p-4 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors text-right w-24"
+                  className="p-2 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors text-right w-24"
                   onClick={() => handleSort('transaction_count')}
                 >
                   <div className="flex items-center justify-end">Số đơn <SortIcon column="transaction_count" /></div>
                 </th>
                 <th 
-                  className="p-4 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors text-right w-40"
+                  className="p-2 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors text-right w-40"
                   onClick={() => handleSort('dynamic_revenue')}
                 >
                   <div className="flex items-center justify-end">Doanh thu <SortIcon column="dynamic_revenue" /></div>
                 </th>
                 <th 
-                  className="p-4 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors text-right w-32"
+                  className="p-2 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors text-right w-32"
                   onClick={() => handleSort('growth_velocity')}
                 >
                   <div className="flex items-center justify-end">Tăng trưởng <SortIcon column="growth_velocity" /></div>
                 </th>
                 <th 
-                  className="p-4 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors text-center w-32"
+                  className="p-2 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors text-center w-32"
                   onClick={() => handleSort('health_score')}
                 >
                   <div className="flex items-center justify-center">Health Score <SortIcon column="health_score" /></div>
                 </th>
-                <th className="p-4 font-black uppercase tracking-tighter text-center w-32">Bưu cục</th>
-                <th className="p-4 font-black uppercase tracking-tighter text-center w-32">Phụ trách</th>
-                <th className="p-4 font-black uppercase tracking-tighter text-center w-28">Thao tác</th>
+                <th className="p-2 font-black uppercase tracking-tighter text-center w-32">Bưu cục</th>
+                <th className="p-2 font-black uppercase tracking-tighter text-center w-32">Phụ trách</th>
+                <th className="p-2 font-black uppercase tracking-tighter text-center w-28">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -1295,14 +1295,14 @@ export default function Customers() {
               ) : (
                 customers.map(c => (
                   <tr key={c.ma_crm_cms} onClick={() => handleRowClick(c.ma_crm_cms)} className="group transition-all duration-300 cursor-pointer hover:bg-indigo-50/30">
-                    <td className="p-4">
-                      <span className="font-mono text-[11px] font-black px-2 py-1 rounded-md bg-blue-50 text-vnpost-blue">
+                    <td className="p-2">
+                      <span className="font-mono text-[10px] font-black px-1.5 py-0.5 rounded-md bg-blue-50 text-vnpost-blue">
                         {c.ma_crm_cms}
                       </span>
                     </td>
-                    <td className="p-4">
+                    <td className="p-2">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-gray-800 group-hover:text-vnpost-blue transition-colors">{c.ten_kh}</span>
+                        <span className="font-bold text-gray-800 group-hover:text-vnpost-blue transition-colors text-[13px]">{c.ten_kh}</span>
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1312,82 +1312,82 @@ export default function Customers() {
                           className="p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-vnpost-blue transition-colors"
                           title="Xem lịch sử tiếp cận"
                         >
-                          <History size={14} />
+                          <History size={12} />
                         </button>
                       </div>
                     </td>
-                    <td className="p-4">
+                    <td className="p-2">
                        {(() => {
                          const status = lifecycleConfig.find(l => l.value === c.status_type) || lifecycleConfig[0];
                          return (
-                           <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase border shadow-sm ${status.colorClass} ${status.bgClass} ${status.textClass}`}>
-                             <status.icon size={14} className={c.status_type === 'new' ? 'animate-bounce' : ''} />
+                           <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[9px] font-black uppercase border shadow-sm ${status.colorClass} ${status.bgClass} ${status.textClass}`}>
+                             <status.icon size={12} className={c.status_type === 'new' ? 'animate-bounce' : ''} />
                              {(() => {
-                               if (c.status_type === 'active') return 'Khách hàng Hiện hữu';
-                               if (c.status_type === 'new') return 'Khách hàng Mới';
-                               if (c.status_type === 'recovered') return 'Khách hàng Phục hồi';
-                               if (c.status_type === 'at_risk') return 'Khách hàng Nguy cơ';
-                               if (c.status_type === 'churned') return 'Khách hàng Mất';
+                               if (c.status_type === 'active') return 'Hien huu';
+                               if (c.status_type === 'new') return 'Moi';
+                               if (c.status_type === 'recovered') return 'Phuc hoi';
+                               if (c.status_type === 'at_risk') return 'Nguy co';
+                               if (c.status_type === 'churned') return 'Mat';
                                return c.status_type;
                              })()}
                            </span>
                          );
                        })()}
                     </td>
-                    <td className="p-4">
+                    <td className="p-2">
                       {getRankBadge(c.rfm_segment)}
                     </td>
-                    <td className="p-4 text-right">
-                      <span className="font-bold text-gray-700">{c.transaction_count} đơn</span>
+                    <td className="p-2 text-right">
+                      <span className="font-bold text-gray-700 text-[12px]">{c.transaction_count} đơn</span>
                     </td>
-                    <td className="p-4 text-right">
+                    <td className="p-2 text-right">
                       <div className="flex flex-col items-end">
-                        <span className={`font-black text-sm ${c.dynamic_revenue > 1000000 ? 'text-vnpost-blue' : 'text-gray-700'}`}>
+                        <span className={`font-black text-[13px] ${c.dynamic_revenue > 1000000 ? 'text-vnpost-blue' : 'text-gray-700'}`}>
                           {formatCurrency(c.dynamic_revenue)}
                         </span>
                       </div>
                     </td>
-                    <td className="p-4 text-right">
-                      <div className={`inline-flex items-center justify-end gap-1 px-3 py-1.5 rounded-xl font-black text-xs shadow-sm border ${
+                    <td className="p-2 text-right">
+                      <div className={`inline-flex items-center justify-end gap-1 px-2 py-1 rounded-xl font-black text-[10px] shadow-sm border ${
                         c.growth_velocity > 0 
                           ? 'bg-green-50 text-green-600 border-green-100' 
                           : c.growth_velocity < 0 
                           ? 'bg-rose-50 text-rose-600 border-rose-100' 
                           : 'bg-gray-50 text-gray-400 border-gray-100'
                       }`}>
-                        <TrendingUp size={14} className={c.growth_velocity > 0 ? 'text-green-500' : 'text-red-400'} />
+                        <TrendingUp size={12} className={c.growth_velocity > 0 ? 'text-green-500' : 'text-red-400'} />
                         {c.growth_velocity > 0 ? '+' : ''}{c.growth_velocity.toFixed(1)}%
                       </div>
                     </td>
-                    <td className="p-4 text-center">
-                      <div className={`inline-flex items-center justify-center w-11 h-11 rounded-2xl border-2 shadow-sm font-heading ${
+                    <td className="p-2 text-center">
+                      <div className={`inline-flex items-center justify-center w-9 h-9 rounded-xl border-2 shadow-sm font-heading ${
                         c.health_score >= 80 ? 'border-green-500 bg-green-50 text-green-700' : 
                         c.health_score >= 50 ? 'border-vnpost-orange bg-orange-50 text-vnpost-orange' : 
                         'border-red-500 bg-red-50 text-red-700'
                       }`}>
                         <div className="flex flex-col items-center">
-                          <span className="text-sm font-black leading-none">{c.health_score}</span>
-                          <span className="text-[7px] font-bold uppercase tracking-tighter opacity-70">Points</span>
+                          <span className="text-xs font-black leading-none">{c.health_score}</span>
+                          <span className="text-[6px] font-bold uppercase tracking-tighter opacity-70">Pts</span>
                         </div>
                       </div>
                     </td>
-                    <td className="p-4 text-center">
-                       <span className="text-[10px] font-black border border-gray-100 bg-gray-50 px-3 py-1.5 rounded-2xl text-gray-500 shadow-sm" title={`${c.point_code || ''} - ${c.point_name || ''}`}>
-                         {c.point_code && c.point_name ? `${c.point_code} - ${c.point_name}` : (c.point_name || c.point_code || 'N/A')}
+                    <td className="p-2 text-center">
+                       <span className="text-[9px] font-black border border-gray-100 bg-gray-50 px-2 py-1 rounded-xl text-gray-500 shadow-sm" title={`${c.point_code || ''} - ${c.point_name || ''}`}>
+                         {c.point_code && c.point_name ? `${c.point_code}` : (c.point_name || c.point_code || 'N/A')}
                        </span>
                     </td>
-                    <td className="p-4 text-center">
+                    <td className="p-2 text-center">
                        <div className="flex flex-col items-center">
                          {c.assigned_staff_name ? (
-                           <span className="text-[10px] font-black text-vnpost-blue bg-blue-50 px-2 py-1 rounded border border-blue-100 uppercase">
+                           <span className="text-[9px] font-black text-vnpost-blue bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 uppercase">
                              👤 {c.assigned_staff_name}
                            </span>
                          ) : (
-                           <span className="text-[10px] text-gray-300 font-bold italic uppercase">Chưa gán</span>
+                           <span className="text-[9px] text-gray-300 font-bold italic uppercase">Chưa gán</span>
                          )}
                        </div>
                     </td>
-                    <td className="p-4 text-center">
+                    <td className="p-2 text-center">
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
@@ -1395,10 +1395,10 @@ export default function Customers() {
                           setSelectedStaffId(c.assigned_staff_id || "");
                           setShowAssignModal(true);
                         }}
-                        className="p-2 text-vnpost-orange hover:bg-orange-50 rounded-lg transition-all active:scale-90"
+                        className="p-1.5 text-vnpost-orange hover:bg-orange-50 rounded-lg transition-all active:scale-90"
                         title="Giao việc cho nhân viên"
                       >
-                        <UserPlus size={18} />
+                        <UserPlus size={16} />
                       </button>
                     </td>
                   </tr>
@@ -1512,7 +1512,7 @@ export default function Customers() {
                      <div className="md:col-span-2 space-y-4">
                        <div>
                          <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1">Tên Khách Hàng</p>
-                         <p className="text-2xl font-black text-gray-800 tracking-tight">{customerDetails.customer.ten_kh}</p>
+                         <p className="text-xl font-black text-gray-800 tracking-tight">{customerDetails.customer.ten_kh}</p>
                          <div className="flex flex-wrap gap-2 mt-2">
                             <span className="text-[10px] font-bold bg-blue-50 text-vnpost-blue px-2 py-0.5 rounded-lg border border-blue-100">
                                📍 {customerDetails.customer.ten_bc_vhx}

@@ -114,7 +114,7 @@ const AIAssistantInsights = ({ summary, stats, churnPrediction, heatmapData }) =
               <div className={`w-3 h-3 rounded-full ${type === 'negative' ? 'bg-red-500' : 'bg-current'}`}></div>
               Biệt đội Antigravity - Strategic Insights
             </div>
-            <h4 className="text-3xl font-black italic tracking-tight uppercase">
+            <h4 className="text-2xl font-black italic tracking-tight uppercase">
               {type === 'negative' ? 'CẢNH BÁO RỦI RO HỆ THỐNG' : 
                type === 'warning' ? 'LƯU Ý BIẾN ĐỘNG CƠ CẤU' : 
                type === 'positive' ? 'TÍN HIỆU TĂNG TRƯỞNG ELITE' : 'PHÂN TÍCH DIỄN BIẾN THỊ TRƯỜNG'}
@@ -204,14 +204,14 @@ const EliteMorningPulse = ({ report, loading }) => {
               <span className="text-[10px] font-black bg-blue-600 text-white px-2 py-0.5 rounded-full uppercase tracking-widest">Bot Báo Cáo Sáng</span>
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{stats.date}</span>
             </div>
-            <h3 className="text-2xl font-black text-gray-800 tracking-tight">NHỊP ĐẬP ELITE <span className="text-vnpost-blue">T-1</span></h3>
+            <h3 className="text-xl font-black text-gray-800 tracking-tight">NHỊP ĐẬP ELITE <span className="text-vnpost-blue">T-1</span></h3>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-8 px-8 border-x border-gray-100">
           <div className="text-center">
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Doanh thu</p>
-            <p className="text-xl font-black text-gray-800">{new Intl.NumberFormat('vi-VN').format(stats.revenue)}đ</p>
+            <p className="text-lg font-black text-gray-800">{new Intl.NumberFormat('vi-VN').format(stats.revenue)}đ</p>
             <p className={`text-[10px] font-black ${growthColor} mt-1 flex items-center justify-center gap-0.5`}>
               {stats.is_up ? <ArrowUpRight size={12} /> : <TrendingUp size={12} className="rotate-180" />}
               {stats.is_up ? '+' : ''}{stats.growth.toFixed(1)}%
@@ -219,11 +219,11 @@ const EliteMorningPulse = ({ report, loading }) => {
           </div>
           <div className="text-center">
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Sản lượng</p>
-            <p className="text-xl font-black text-gray-800">{stats.orders.toLocaleString()} <span className="text-xs text-gray-400">đơn</span></p>
+            <p className="text-lg font-black text-gray-800">{stats.orders.toLocaleString()} <span className="text-xs text-gray-400">đơn</span></p>
           </div>
           <div className="text-center">
             <p className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-1">⚠️ Nguy cơ</p>
-            <p className="text-xl font-black text-red-600">{alerts.at_risk_count.toLocaleString()} <span className="text-xs text-red-400">KH</span></p>
+            <p className="text-lg font-black text-red-600">{alerts.at_risk_count.toLocaleString()} <span className="text-xs text-red-400">KH</span></p>
           </div>
         </div>
 
@@ -544,11 +544,11 @@ function Dashboard() {
         </div>
       )}
 
-      <div className={`flex-1 p-6 space-y-6 ${isExporting ? 'is-exporting' : ''}`} ref={dashboardRef}>
+      <div className={`flex-1 p-4 space-y-4 ${isExporting ? 'is-exporting' : ''}`} ref={dashboardRef}>
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-black text-vnpost-blue uppercase tracking-tight">Kỷ Nguyên CRM 3.0 Dashboard</h2>
+            <h2 className="text-lg font-black text-vnpost-blue uppercase tracking-tight">Kỷ Nguyên CRM 3.0 Dashboard</h2>
             <div className="flex items-center gap-2 mt-1">
               {selectedNode ? (
                 <span className="text-xs bg-vnpost-orange text-white px-3 py-1 rounded-full font-black uppercase shadow-sm">Đang soi: {selectedNode.title}</span>
@@ -584,7 +584,7 @@ function Dashboard() {
         <EliteMorningPulse report={botReport} loading={loadingBot} />
 
         {/* Filters Section */}
-        <div className="bg-white/70 backdrop-blur-md rounded-3xl p-6 border border-white/50 shadow-sm flex flex-col lg:flex-row items-end gap-6 no-pdf relative z-50">
+        <div className="bg-white/70 backdrop-blur-md rounded-3xl p-4 border border-white/50 shadow-sm flex flex-col lg:flex-row items-end gap-4 no-pdf relative z-50">
           <div className="flex-1 w-full space-y-2">
             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-1"><MapPin size={12} /> Phạm vi dữ liệu</label>
             <div className="relative">
@@ -649,14 +649,14 @@ function Dashboard() {
         </div>
 
         {/* Lifecycle & Tiers Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           <div className="lg:col-span-3 space-y-4">
             <h3 className="text-sm font-black text-vnpost-blue uppercase tracking-widest flex items-center gap-2">
               <Users size={16} /> Nhóm 01: Cấu trúc Tệp Khách hàng Định danh (
               <Link to="/guidelines#lifecycle" className="text-vnpost-orange hover:underline cursor-pointer">Lifecycle</Link>
               )
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {(!summaryData && !stats.lifecycle?.["active"]) ? (
                 <>
                   <Skeleton.Card /><Skeleton.Card /><Skeleton.Card />
@@ -665,7 +665,7 @@ function Dashboard() {
                 <>
                   {/* RF3C: Lifecycle Drilldown */}
                   <div 
-                    className="card p-4 border-l-4 border-l-vnpost-blue bg-gradient-to-br from-vnpost-blue/5 to-transparent flex justify-between items-end relative group/lctip cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+                    className="card p-3 border-l-4 border-l-vnpost-blue bg-gradient-to-br from-vnpost-blue/5 to-transparent flex justify-between items-end relative group/lctip cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
                     onClick={() => {
                       const node = selectedNode;
                       if (node) saveNavigationContext(node);
@@ -673,7 +673,7 @@ function Dashboard() {
                     }}
                     title="Xem danh sách KH Hiện hữu"
                   >
-                    <div><p className="text-vnpost-blue text-[10px] font-black uppercase mb-1 tracking-wider">Hien huu</p><h3 className="text-2xl font-black">{(stats.lifecycle?.["active"] || 0).toLocaleString()}</h3></div>
+                    <div><p className="text-vnpost-blue text-[10px] font-black uppercase mb-1 tracking-wider">Hien huu</p><h3 className="text-xl font-black">{(stats.lifecycle?.["active"] || 0).toLocaleString()}</h3></div>
                     <Users size={20} className="text-vnpost-blue/30" />
                     {summaryData?.stats?.lifecycle_delta?.active !== undefined && (
                       <div className="absolute -top-8 right-2 bg-gray-800 text-white text-[10px] font-bold px-2 py-1 rounded-lg opacity-0 group-hover/lctip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
@@ -682,7 +682,7 @@ function Dashboard() {
                     )}
                   </div>
                   <div 
-                    className="card p-4 border-l-4 border-l-indigo-500 bg-gradient-to-br from-indigo-500/5 to-transparent flex justify-between items-end cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+                    className="card p-3 border-l-4 border-l-indigo-500 bg-gradient-to-br from-indigo-500/5 to-transparent flex justify-between items-end cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
                     onClick={() => {
                       const node = selectedNode;
                       if (node) saveNavigationContext(node);
@@ -690,11 +690,11 @@ function Dashboard() {
                     }}
                     title="Xem danh sách KH Mới"
                   >
-                    <div><p className="text-indigo-600 text-[10px] font-black uppercase mb-1 tracking-wider">Khách mới</p><h3 className="text-2xl font-black">{(stats.lifecycle?.["new"] || 0).toLocaleString()}</h3></div>
+                    <div><p className="text-indigo-600 text-[10px] font-black uppercase mb-1 tracking-wider">Khách mới</p><h3 className="text-xl font-black">{(stats.lifecycle?.["new"] || 0).toLocaleString()}</h3></div>
                     <Sparkles size={20} className="text-indigo-300" />
                   </div>
                   <div 
-                    className="card p-4 border-l-4 border-l-emerald-500 bg-gradient-to-br from-emerald-500/5 to-transparent flex justify-between items-end cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+                    className="card p-3 border-l-4 border-l-emerald-500 bg-gradient-to-br from-emerald-500/5 to-transparent flex justify-between items-end cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
                     onClick={() => {
                       const node = selectedNode;
                       if (node) saveNavigationContext(node);
@@ -702,7 +702,7 @@ function Dashboard() {
                     }}
                     title="Xem danh sách KH Tái bản"
                   >
-                    <div><p className="text-emerald-600 text-[10px] font-black uppercase mb-1 tracking-wider">Tái bản</p><h3 className="text-2xl font-black">{(stats.lifecycle?.["recovered"] || 0).toLocaleString()}</h3></div>
+                    <div><p className="text-emerald-600 text-[10px] font-black uppercase mb-1 tracking-wider">Tái bản</p><h3 className="text-xl font-black">{(stats.lifecycle?.["recovered"] || 0).toLocaleString()}</h3></div>
                     <ArrowUpRight size={20} className="text-green-300" />
                   </div>
                 </>
@@ -717,7 +717,7 @@ function Dashboard() {
               ) : (
                 <>
                   <div 
-                    className="card p-4 border-l-4 border-l-amber-500 bg-gradient-to-br from-amber-500/5 to-transparent flex justify-between items-end cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+                    className="card p-3 border-l-4 border-l-amber-500 bg-gradient-to-br from-amber-500/5 to-transparent flex justify-between items-end cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
                     onClick={() => {
                       const node = selectedNode;
                       if (node) saveNavigationContext(node);
@@ -725,11 +725,11 @@ function Dashboard() {
                     }}
                     title="Xem danh sách KH Nguy cơ"
                   >
-                    <div><p className="text-amber-600 text-[10px] font-black uppercase mb-1 tracking-wider">Nguy cơ (At Risk)</p><h3 className="text-2xl font-black">{(stats.lifecycle?.["at_risk"] || 0).toLocaleString()}</h3></div>
+                    <div><p className="text-amber-600 text-[10px] font-black uppercase mb-1 tracking-wider">Nguy cơ (At Risk)</p><h3 className="text-xl font-black">{(stats.lifecycle?.["at_risk"] || 0).toLocaleString()}</h3></div>
                     <Info size={20} className="text-vnpost-orange/30" />
                   </div>
                   <div 
-                    className="card p-4 border-l-4 border-l-gray-400 bg-gradient-to-br from-gray-400/5 to-transparent flex justify-between items-end cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+                    className="card p-3 border-l-4 border-l-gray-400 bg-gradient-to-br from-gray-400/5 to-transparent flex justify-between items-end cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
                     onClick={() => {
                       const node = selectedNode;
                       if (node) saveNavigationContext(node);
@@ -737,7 +737,7 @@ function Dashboard() {
                     }}
                     title="Xem danh sách KH Rời bỏ"
                   >
-                    <div><p className="text-gray-500 text-[10px] font-black uppercase mb-1 tracking-wider">Rời bỏ (Churn)</p><h3 className="text-2xl font-black">{(stats.lifecycle?.["churned"] || 0).toLocaleString()}</h3></div>
+                    <div><p className="text-gray-500 text-[10px] font-black uppercase mb-1 tracking-wider">Rời bỏ (Churn)</p><h3 className="text-xl font-black">{(stats.lifecycle?.["churned"] || 0).toLocaleString()}</h3></div>
                     <UserMinus size={20} className="text-gray-300" />
                   </div>
                 </>
@@ -745,14 +745,14 @@ function Dashboard() {
             </div>
             
             {/* ELITE TIERS (Restored from Backup V2) */}
-            <h3 className="text-sm font-black text-vnpost-orange uppercase tracking-widest flex items-center gap-2 mt-8">
+            <h3 className="text-sm font-black text-vnpost-orange uppercase tracking-widest flex items-center gap-2 mt-4">
               <ArrowUpRight size={16} /> Nhóm 02: Phân hạng Khách hàng Tiềm năng (
               <Link to="/guidelines#potentials" className="text-vnpost-blue hover:underline cursor-pointer">Potentials</Link>
               )
             </h3>
-            <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 transition-opacity duration-300 ${(!summaryData && !stats.potential_ranks?.["Kim Cương"]) ? 'opacity-50' : 'opacity-100'}`}>
+            <div className={`grid grid-cols-1 md:grid-cols-3 gap-3 transition-opacity duration-300 ${(!summaryData && !stats.potential_ranks?.["Kim Cương"]) ? 'opacity-50' : 'opacity-100'}`}>
               <div 
-                className="card p-4 border-t-4 border-t-blue-600 bg-gradient-to-br from-blue-600/5 to-transparent relative overflow-hidden group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+                className="card p-3 border-t-4 border-t-blue-600 bg-gradient-to-br from-blue-600/5 to-transparent relative overflow-hidden group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
                 onClick={() => {
                   const node = selectedNode;
                   if (node) saveNavigationContext(node);
@@ -764,11 +764,11 @@ function Dashboard() {
                   <DollarSign size={80} />
                 </div>
                 <p className="text-blue-700 text-[10px] font-black uppercase tracking-widest mb-1 relative z-10">💎 Kim Cương (Diamond)</p>
-                <h3 className="text-3xl font-black text-blue-800 relative z-10">{(stats.potential_ranks?.["Kim Cương"] || 0).toLocaleString()}</h3>
+                <h3 className="text-2xl font-black text-blue-800 relative z-10">{(stats.potential_ranks?.["Kim Cương"] || 0).toLocaleString()}</h3>
                 <p className="text-[9px] text-blue-500 font-bold mt-2 relative z-10 uppercase">&gt; 5M và &gt; 20 đơn/tháng</p>
               </div>
               <div 
-                className="card p-4 border-t-4 border-t-vnpost-orange bg-gradient-to-br from-vnpost-orange/5 to-transparent relative overflow-hidden group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+                className="card p-3 border-t-4 border-t-vnpost-orange bg-gradient-to-br from-vnpost-orange/5 to-transparent relative overflow-hidden group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
                 onClick={() => {
                   const node = selectedNode;
                   if (node) saveNavigationContext(node);
@@ -780,11 +780,11 @@ function Dashboard() {
                   <DollarSign size={80} />
                 </div>
                 <p className="text-vnpost-orange text-[10px] font-black uppercase tracking-widest mb-1 relative z-10">🥇 Vàng (Gold)</p>
-                <h3 className="text-3xl font-black text-vnpost-orange relative z-10">{(stats.potential_ranks?.["Vàng"] || 0).toLocaleString()}</h3>
+                <h3 className="text-2xl font-black text-vnpost-orange relative z-10">{(stats.potential_ranks?.["Vàng"] || 0).toLocaleString()}</h3>
                 <p className="text-[9px] text-vnpost-orange font-bold mt-2 relative z-10 uppercase">&gt; 1M và &gt; 10 đơn/tháng</p>
               </div>
               <div 
-                className="card p-4 border-t-4 border-t-orange-800 bg-gradient-to-br from-orange-800/5 to-transparent relative overflow-hidden group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+                className="card p-3 border-t-4 border-t-orange-800 bg-gradient-to-br from-orange-800/5 to-transparent relative overflow-hidden group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
                 onClick={() => {
                   const node = selectedNode;
                   if (node) saveNavigationContext(node);
@@ -796,7 +796,7 @@ function Dashboard() {
                   <DollarSign size={80} />
                 </div>
                 <p className="text-orange-900 text-[10px] font-black uppercase tracking-widest mb-1 relative z-10">🥉 Bạc (Silver)</p>
-                <h3 className="text-3xl font-black text-orange-950 relative z-10">{(stats.potential_ranks?.["Bạc"] || 0).toLocaleString()}</h3>
+                <h3 className="text-2xl font-black text-orange-950 relative z-10">{(stats.potential_ranks?.["Bạc"] || 0).toLocaleString()}</h3>
                 <p className="text-[9px] text-orange-800 font-bold mt-2 relative z-10 uppercase">&gt; 500K và &gt; 5 đơn/tháng</p>
               </div>
             </div>
@@ -832,10 +832,10 @@ function Dashboard() {
       {/* Heatmap & Trends */}
         <div className="grid grid-cols-1 gap-6">
           <div className="card p-6 overflow-hidden relative z-10 min-w-0">
-            <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2 border-b border-gray-50 pb-4">
-              <TrendingUp size={20} className="text-vnpost-blue" /> Biến Động Doanh Thu Theo Ngày
+            <h3 className="text-md font-bold text-gray-800 mb-4 flex items-center gap-2 border-b border-gray-50 pb-3">
+              <TrendingUp size={18} className="text-vnpost-blue" /> Biến Động Doanh Thu Theo Ngày
             </h3>
-            <div className="h-96 w-full">
+            <div className="h-[300px] w-full">
               {loadingTrend && !trendData.length ? (
                 <Skeleton.Chart height="h-80" />
               ) : (
@@ -887,9 +887,9 @@ function Dashboard() {
           </div>
           
           <div className="card p-6 overflow-hidden relative z-20 min-w-0">
-             <h3 className="text-lg font-bold text-gray-800 mb-6 flex justify-between items-center border-b border-gray-50 pb-4">
-               <span className="flex items-center gap-2"><Target size={20} className="text-vnpost-orange" /> Bảng Quản trị Hiệu quả & Tăng trưởng Địa bàn ({comparisonType.toUpperCase()})</span> {selectedNode && <span className="text-[10px] font-bold text-gray-400 ml-2 normal-case tracking-normal">(Đang xem: {selectedNode.title})</span>}
-               <span className="text-[10px] font-black bg-vnpost-orange/10 text-vnpost-orange px-3 py-1 rounded-full uppercase tracking-widest">PHÂN LOẠI CHIẾN LƯỢC 4 NHÓM</span>
+             <h3 className="text-md font-bold text-gray-800 mb-4 flex justify-between items-center border-b border-gray-50 pb-3">
+               <span className="flex items-center gap-2"><Target size={18} className="text-vnpost-orange" /> Bảng Quản trị Hiệu quả & Tăng trưởng Địa bàn ({comparisonType.toUpperCase()})</span> {selectedNode && <span className="text-[9px] font-bold text-gray-400 ml-2 normal-case tracking-normal">(Đang xem: {selectedNode.title})</span>}
+               <span className="text-[9px] font-black bg-vnpost-orange/10 text-vnpost-orange px-2 py-1 rounded-full uppercase tracking-widest">PHÂN LOẠI CHIẾN LƯỢC 4 NHÓM</span>
              </h3>
               <div className="flex-1 w-full relative">
                 {loadingHeatmap && !heatmapData.length ? (
@@ -958,11 +958,11 @@ function Dashboard() {
                             <table className="w-full text-left border-collapse">
                               <thead className="sticky top-0 bg-white/80 backdrop-blur-md z-10">
                                 <tr className="border-b border-gray-100">
-                                  <th className="p-4 text-[15px] font-black text-gray-500 uppercase tracking-widest">Đơn vị địa bàn</th>
-                                  <th className="p-4 text-[15px] font-black text-gray-500 uppercase tracking-widest text-right">Doanh thu</th>
-                                  <th className="p-4 text-[15px] font-black text-gray-500 uppercase tracking-widest text-center">Tăng trưởng</th>
-                                  <th className="p-4 text-[15px] font-black text-gray-500 uppercase tracking-widest text-center">Chiến lược</th>
-                                  <th className="p-4 text-[15px] font-black text-gray-500 uppercase tracking-widest text-right">Thao tác</th>
+                                  <th className="p-2.5 text-[11px] font-black text-gray-500 uppercase tracking-widest">Đơn vị địa bàn</th>
+                                  <th className="p-2.5 text-[11px] font-black text-gray-500 uppercase tracking-widest text-right">Doanh thu</th>
+                                  <th className="p-2.5 text-[11px] font-black text-gray-500 uppercase tracking-widest text-center">Tăng trưởng</th>
+                                  <th className="p-2.5 text-[11px] font-black text-gray-500 uppercase tracking-widest text-center">Chiến lược</th>
+                                  <th className="p-2.5 text-[11px] font-black text-gray-500 uppercase tracking-widest text-right">Thao tác</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -973,7 +973,7 @@ function Dashboard() {
                                   const _isRisk = item.growth < -10;
                                   return (
                                     <tr key={idx} className={`group hover:bg-white transition-all border-b border-gray-50/50 ${_isWeak ? "border-l-4 border-l-red-600 bg-red-50/40" : _isRisk ? "border-l-4 border-l-amber-500 bg-amber-50/20" : ""}`}>
-                                      <td className="p-4">
+                                      <td className="p-2.5">
                                         <div 
                                           className="flex flex-col cursor-pointer hover:opacity-80 transition-all group/item"
                                           onClick={() => {
@@ -992,36 +992,36 @@ function Dashboard() {
                                           }}
                                           title="Mở danh sách khách hàng của địa bàn này"
                                         >
-                                          <span className="text-[17px] font-black text-gray-800 group-hover:text-vnpost-blue transition-colors uppercase tracking-tight flex items-center gap-2">
+                                          <span className="text-[14px] font-black text-gray-800 group-hover:text-vnpost-blue transition-colors uppercase tracking-tight flex items-center gap-2">
                                             {item.don_vi}
-                                            <ArrowUpRight size={14} className="opacity-0 group-hover/item:opacity-100 transition-all text-vnpost-blue" />
+                                            <ArrowUpRight size={12} className="opacity-0 group-hover/item:opacity-100 transition-all text-vnpost-blue" />
                                           </span>
-                                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tighter">ID: {item.ma_don_vi}</span>
+                                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">ID: {item.ma_don_vi}</span>
                                         </div>
                                       </td>
-                                      <td className="p-4 text-right">
-                                        <span className="text-[18px] font-black text-gray-800">{formatCurrency(item.revenue)}</span>
+                                      <td className="p-2.5 text-right">
+                                        <span className="text-[14px] font-black text-gray-800">{formatCurrency(item.revenue)}</span>
                                       </td>
-                                      <td className="p-4">
-                                        <div className={`flex items-center justify-center gap-1 font-black text-[15px] ${item.growth >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                                          {item.growth >= 0 ? <ArrowUpRight size={14}/> : <TrendingUp size={14} className="rotate-180"/>}
+                                      <td className="p-2.5">
+                                        <div className={`flex items-center justify-center gap-1 font-black text-[12px] ${item.growth >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                          {item.growth >= 0 ? <ArrowUpRight size={12}/> : <TrendingUp size={12} className="rotate-180"/>}
                                           {item.growth > 0 ? '+' : ''}{item.growth}%
                                         </div>
                                       </td>
-                                      <td className="p-4">
+                                      <td className="p-2.5">
                                         <div className="flex justify-center">
-                                          <div className={`flex items-center gap-2 px-4 py-2 rounded-full ${q.bg} ${q.text} text-[11px] font-black border ${q.color.replace('bg-', 'border-')}/20 shadow-sm uppercase tracking-widest`}>
+                                          <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full ${q.bg} ${q.text} text-[9px] font-black border ${q.color.replace('bg-', 'border-')}/20 shadow-sm uppercase tracking-widest`}>
                                             {q.icon} {q.label}
                                           </div>
                                         </div>
                                       </td>
-                                      <td className="p-4 text-right">
+                                      <td className="p-2.5 text-right">
                                         <button 
                                           onClick={() => handleDrillDown(item)}
-                                          className="p-2 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-vnpost-blue hover:border-vnpost-blue hover:bg-vnpost-blue/5 shadow-sm transition-all inline-flex items-center gap-2 group/btn"
+                                          className="p-1.5 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-vnpost-blue hover:border-vnpost-blue hover:bg-vnpost-blue/5 shadow-sm transition-all inline-flex items-center gap-2 group/btn"
                                         >
-                                          <span className="text-[9px] font-black uppercase opacity-0 group-hover/btn:opacity-100 transition-all">Chi tiết</span>
-                                          <TrendingUp size={14} className="rotate-90"/>
+                                          <span className="text-[8px] font-black uppercase opacity-0 group-hover/btn:opacity-100 transition-all">Chi tiết</span>
+                                          <TrendingUp size={12} className="rotate-90"/>
                                         </button>
                                       </td>
                                     </tr>
@@ -1036,18 +1036,18 @@ function Dashboard() {
                                   
                                   return (
                                     <tr className="bg-vnpost-blue/5">
-                                      <td className="p-4">
+                                      <td className="p-2.5">
                                         <div className="flex flex-col">
-                                          <span className="text-[17px] font-black text-vnpost-blue uppercase tracking-tight">TỔNG CỘNG ĐỊA BÀN</span>
-                                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{data.length} đơn vị con</span>
+                                          <span className="text-[14px] font-black text-vnpost-blue uppercase tracking-tight">TỔNG CỘNG ĐỊA BÀN</span>
+                                          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{data.length} đơn vị con</span>
                                         </div>
                                       </td>
-                                      <td className="p-4 text-right">
-                                        <span className="text-[20px] font-black text-vnpost-blue">{formatCurrency(totalRev)}</span>
+                                      <td className="p-2.5 text-right">
+                                        <span className="text-[16px] font-black text-vnpost-blue">{formatCurrency(totalRev)}</span>
                                       </td>
-                                      <td className="p-4">
-                                        <div className={`flex items-center justify-center gap-1 font-black text-[17px] ${totalGrowth >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                                          {totalGrowth >= 0 ? <ArrowUpRight size={16}/> : <TrendingUp size={16} className="rotate-180"/>}
+                                      <td className="p-2.5">
+                                        <div className={`flex items-center justify-center gap-1 font-black text-[14px] ${totalGrowth >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                          {totalGrowth >= 0 ? <ArrowUpRight size={14}/> : <TrendingUp size={14} className="rotate-180"/>}
                                           {totalGrowth > 0 ? '+' : ''}{totalGrowth.toFixed(1)}%
                                         </div>
                                       </td>
@@ -1093,14 +1093,14 @@ function Dashboard() {
 
         {/* Biến Động Doanh Thu & Tăng Trưởng MoM */}
         <div className="card p-6 !col-span-full">
-          <h3 className="text-lg font-bold text-gray-800 mb-6 flex justify-between items-center border-b border-gray-50 pb-4">
-            <span className="flex items-center gap-2"><BarChart3 size={20} className="text-vnpost-orange" /> Hiệu Suất Doanh Thu & Tốc Độ Tăng Trưởng</span>
-            <div className="flex gap-4">
-               <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-vnpost-orange rounded-sm"></div> <span className="text-[10px] font-bold text-gray-500 uppercase">Doanh thu</span></div>
-               <div className="flex items-center gap-1.5"><div className="w-3 h-0.5 bg-blue-500"></div> <span className="text-[10px] font-bold text-gray-500 uppercase">Tăng trưởng (%)</span></div>
+          <h3 className="text-md font-bold text-gray-800 mb-4 flex justify-between items-center border-b border-gray-50 pb-3">
+            <span className="flex items-center gap-2"><BarChart3 size={18} className="text-vnpost-orange" /> Hiệu Suất Doanh Thu & Tốc Độ Tăng Trưởng</span>
+            <div className="flex gap-3">
+               <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-vnpost-orange rounded-sm"></div> <span className="text-[9px] font-bold text-gray-500 uppercase">Doanh thu</span></div>
+               <div className="flex items-center gap-1.5"><div className="w-2.5 h-0.5 bg-blue-500"></div> <span className="text-[9px] font-bold text-gray-500 uppercase">Tăng trưởng (%)</span></div>
             </div>
           </h3>
-          <div className="h-80 w-full">
+          <div className="h-[260px] w-full">
             {monthlyDataRes && monthlyDataRes.length > 0 ? (() => {
               // Tính toán dữ liệu tăng trưởng MoM từ dữ liệu hàng tháng thực tế
               const chartData = monthlyDataRes.slice(-14).map((d, i, arr) => {
@@ -1181,9 +1181,9 @@ function Dashboard() {
                   <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-2 mb-2">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-blue-50 rounded-lg text-vnpost-blue"><TrendingUp size={24} /></div>
-                          <h3 className="text-lg font-bold text-gray-800 uppercase tracking-tight">Biến động Doanh thu</h3>
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 bg-blue-50 rounded-lg text-vnpost-blue"><TrendingUp size={18} /></div>
+                          <h3 className="text-md font-bold text-gray-800 uppercase tracking-tight">Biến động Doanh thu</h3>
                         </div>
                       </div>
                       {moversData?.period && (
@@ -1231,9 +1231,9 @@ function Dashboard() {
                   <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-2 mb-2">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-orange-50 rounded-lg text-vnpost-orange"><BarChart3 size={24} /></div>
-                          <h3 className="text-lg font-bold text-gray-800 uppercase tracking-tight">Biến động Sản lượng</h3>
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 bg-orange-50 rounded-lg text-vnpost-orange"><BarChart3 size={18} /></div>
+                          <h3 className="text-md font-bold text-gray-800 uppercase tracking-tight">Biến động Sản lượng</h3>
                         </div>
                       </div>
                       {moversData?.period && (
@@ -1541,7 +1541,7 @@ function Dashboard() {
                    {selectedCustomer.risk_level && (<span className="text-[11px] font-black uppercase bg-red-600 text-white px-4 py-1.5 rounded-full shadow-lg border-2 border-white/20 animate-pulse">{selectedCustomer.risk_level.includes("CAO") ? "⚠️ NGUY CƠ CAO" : "🔔 THEO DÕI"}</span>)}
                    {selectedCustomer.score && !selectedCustomer.risk_level && (<span className="text-[11px] font-black uppercase bg-emerald-600 text-white px-4 py-1.5 rounded-full shadow-lg border-2 border-white/20">✅ KH ACTIVE</span>)}
                  </div>
-                 <h2 className="text-3xl font-black mt-2 uppercase">{selectedCustomer.ten_kh}</h2>
+                 <h2 className="text-2xl font-black mt-2 uppercase">{selectedCustomer.ten_kh}</h2>
                  <p className="text-blue-200 font-bold mt-1 tracking-widest">{selectedCustomer.ma_kh || selectedCustomer.ma_crm_cms}</p>
                  {/* RF2B-A2: Goi y tiep can */}
                  {selectedCustomer.risk_level ? (<p className="text-[11px] mt-2 bg-white/10 px-3 py-1.5 rounded-xl text-red-100 font-bold inline-block">Gợi ý: Ưu tiên giữ chân - {selectedCustomer.risk_level.includes("CAO") ? "trong 24h" : "tuần này"}</p>) : selectedCustomer.score ? (<p className="text-[11px] mt-2 bg-white/10 px-3 py-1.5 rounded-xl text-blue-100 font-bold inline-block">Gợi ý: Ưu tiên upsell EMS</p>) : null}
