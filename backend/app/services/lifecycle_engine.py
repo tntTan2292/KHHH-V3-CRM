@@ -100,42 +100,53 @@ class LifecycleEngine:
                 # Evidence
                 first_dt = pd.to_datetime(row['first_order_date'])
                 last_before_dt = pd.to_datetime(row['last_order_before']) if row['last_order_before'] else None
-                curr_rev = row['curr_rev'] or 0
+                curr_rev = float(row['curr_rev']) if pd.notnull(row['curr_rev']) else 0.0
                 
                 # Prev state from snapshot
                 prev_state = prev_snapshots.get(ma_kh, 'UNKNOWN')
+                
+                # CALCULATE DELTAS
+                days_since_first = (reporting_period_end - first_dt).days if pd.notnull(first_dt) else 9999
+                
+                last_active = last_before_dt or first_dt
+                days_inactive = (reporting_period_end - last_active).days if pd.notnull(last_active) else 9999
+
+                # Note: last_recovery_date should ideally be tracked in snapshots. 
+                # For now, we derive it from prev_state and curr_rev
+                # If prev was CHURNED and now has rev, it's a recovery.
+                # We need to persist this 'RECOVERED' status for 90 days.
                 
                 # DETERMINE TRANSITIONS & NEW STATE
                 is_new = False
                 is_recovered = False
                 is_churn = False
                 final_state = 'ACTIVE'
-                
-                # Transition 1: NEW (First revenue ever in this period)
-                if first_dt.strftime('%Y-%m') == month_str:
-                    is_new = True
+
+                # 1. NEW (Primary State - 90 Days)
+                if days_since_first <= 90:
                     final_state = 'NEW'
+                    if first_dt.strftime('%Y-%m') == month_str:
+                        is_new = True
                 
-                # Transition 2: RECOVERED (Prev was Risk/Churn, now has Revenue)
-                elif curr_rev > 0 and prev_state in ['AT_RISK', 'CHURNED']:
-                    is_recovered = True
-                    final_state = 'ACTIVE' # Transition: RECOVERED, Snapshot state: ACTIVE
+                # 2. RECOVERED (Primary State - 90 Days)
+                # Logic: If they were recovered in this month OR were RECOVERED in the previous snapshot
+                elif (curr_rev > 0 and prev_state == 'CHURNED') or (prev_state == 'RECOVERED' and days_inactive <= 90):
+                    final_state = 'RECOVERED'
+                    if curr_rev > 0 and prev_state == 'CHURNED':
+                        is_recovered = True
                 
-                # Transition 3: CHURN (Prev was ACTIVE, now >90 days inactive at period end)
-                elif curr_rev == 0:
-                    last_active = last_before_dt or first_dt
-                    days_inactive = (reporting_period_end - last_active).days
-                    
+                # 3. MATURE STATES (Active / At Risk / Churn)
+                elif curr_rev > 0:
+                    final_state = 'ACTIVE'
+                else:
                     if days_inactive > 90:
                         final_state = 'CHURNED'
-                        if prev_state == 'ACTIVE':
+                        if prev_state in ['ACTIVE', 'AT_RISK', 'NEW', 'RECOVERED']:
                             is_churn = True
                     elif days_inactive > 30:
                         final_state = 'AT_RISK'
                     else:
                         final_state = 'ACTIVE'
-                else:
-                    final_state = 'ACTIVE'
 
                 # Log for summary consumption
                 results.append({

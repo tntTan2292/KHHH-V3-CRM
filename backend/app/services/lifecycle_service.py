@@ -52,15 +52,18 @@ class LifecycleService:
         logger.info(f"SSOT: Summary Rows found for {month_str}: {len(summary_rows)}")
         
         stage_map = {
-            "active": "active",             # STATE
-            "at_risk": "at_risk",           # STATE
-            "churned": "churned_snapshot",  # POPULATION (Redirected)
+            # STATE Metrics (Population)
+            "active": "active",
+            "at_risk": "at_risk",
+            "new": "active",             # 90-day New population is considered 'Active' in broad terms
+            "recovered": "active",       # 90-day Recovered population is considered 'Active'
+            "churned": "churned_snapshot",
             "churned_snapshot": "churned_snapshot",
-            "new": "discard",               # STATE (Discarded to prevent double-count with NEW_TRANSITION)
-            "rebuy": "recovered",
-            "new_transition": "new",        # TRANSITION (KPI)
+            
+            # TRANSITION Metrics (KPI Cards)
+            "new_transition": "new",
             "recovered_transition": "recovered", 
-            "churn_transition": "churned"   # TRANSITION (KPI)
+            "churn_transition": "churned"
         }
         
         results = {
