@@ -183,6 +183,8 @@ async def get_dashboard_stats(
 
     # [FIX-07] Lifecycle Delta calculation (Current vs Previous) - Unified SSOT
     lifecycle_delta = {k: 0 for k in lifecycle_stats.keys() if k != 'total'}
+    lifecycle_growth = {k: 0 for k in lifecycle_stats.keys() if k != 'total'}
+    
     if prev_start:
         prev_month_str = prev_start.strftime("%Y-%m")
         prev_lifecycle_stats = LifecycleService.get_customer_lifecycle_stats(
@@ -192,7 +194,13 @@ async def get_dashboard_stats(
         )
         
         for k in lifecycle_delta.keys():
-            lifecycle_delta[k] = lifecycle_stats.get(k, 0) - prev_lifecycle_stats.get(k, 0)
+            curr_v = lifecycle_stats.get(k, 0)
+            prev_v = prev_lifecycle_stats.get(k, 0)
+            lifecycle_delta[k] = curr_v - prev_v
+            if prev_v > 0:
+                lifecycle_growth[k] = round(((curr_v - prev_v) / prev_v) * 100, 1)
+            else:
+                lifecycle_growth[k] = 100.0 if curr_v > 0 else 0.0
     
     rev_growth = 0
     latest_val = db.query(func.sum(Transaction.doanh_thu)).filter(Transaction.id == -1) # Default empty query
@@ -240,6 +248,7 @@ async def get_dashboard_stats(
         "latest_date": latest_date_str,
         "lifecycle": lifecycle_stats,
         "lifecycle_delta": lifecycle_delta,
+        "lifecycle_growth": lifecycle_growth,
         "growth": growth_stats,
         "potential_ranks": potential_ranks,
         "debug_info": {

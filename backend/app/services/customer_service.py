@@ -67,12 +67,13 @@ class CustomerService:
                 filters.append(snapshot_sub.c.is_recovered_transition == True)
             elif status_val == 'churned':
                 filters.append(snapshot_sub.c.is_churn_transition == True)
-            elif status_val == 'at_risk':
-                filters.append(func.lower(Customer.lifecycle_state) == 'at_risk')
             elif status_val == 'active':
-                filters.append(func.lower(Customer.lifecycle_state) == 'active')
+                filters.append(snapshot_sub.c.lifecycle_stage == 'ACTIVE')
+            elif status_val == 'at_risk':
+                filters.append(snapshot_sub.c.lifecycle_stage == 'AT_RISK')
+            elif status_val == 'churned_snapshot':
+                filters.append(snapshot_sub.c.lifecycle_stage == 'CHURNED')
             else:
-                if status_val == 'recovered': status_val = 'rebuy'
                 filters.append(func.lower(Customer.lifecycle_state) == status_val)
             
             # Ensure the join is performed in the final query

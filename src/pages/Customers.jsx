@@ -40,82 +40,81 @@ const getRankBadge = (segment) => {
 
 const lifecycleConfig = [
   { 
-    label: "Tất cả", 
+    label: "Tất cả khách hàng", 
     value: "", 
     icon: Users, 
     color: "blue",
+    category: "General",
     gradient: "from-blue-600 to-indigo-700",
     accent: "#0054A6",
     bgLight: "bg-blue-50/80",
-    borderCol: "border-indigo-600",
-    colorClass: 'border-blue-200',
-    bgClass: 'bg-blue-50',
-    textClass: 'text-blue-700'
+    borderCol: "border-indigo-600"
   },
   { 
-    label: "KH Hiện hữu", 
+    label: "Hiện hữu", 
     value: "active", 
     icon: CheckCircle2, 
     color: "green",
+    category: "Snapshot",
     gradient: "from-green-500 to-green-700",
     accent: "#22C55E",
     bgLight: "bg-green-50/80",
-    borderCol: "border-green-500",
-    colorClass: 'border-green-200',
-    bgClass: 'bg-green-50',
-    textClass: 'text-green-700'
+    borderCol: "border-green-500"
   },
   { 
-    label: "KH Mới", 
-    value: "new", 
-    icon: Star, 
-    color: "sky",
-    gradient: "from-sky-500 to-blue-700",
-    accent: "#0EA5E9",
-    bgLight: "bg-sky-50/80",
-    borderCol: "border-sky-500",
-    colorClass: 'border-sky-200',
-    bgClass: 'bg-sky-50',
-    textClass: 'text-sky-700'
-  },
-  { 
-    label: "KH Phục hồi", 
-    value: "recovered", 
-    icon: RefreshCw, 
-    color: "indigo",
-    gradient: "from-indigo-500 to-indigo-800",
-    accent: "#6366F1",
-    bgLight: "bg-indigo-50/80",
-    borderCol: "border-indigo-500",
-    colorClass: 'border-indigo-200',
-    bgClass: 'bg-indigo-50',
-    textClass: 'text-indigo-700'
-  },
-  { 
-    label: "KH Nguy cơ", 
+    label: "Nguy cơ", 
     value: "at_risk", 
     icon: AlertCircle, 
     color: "orange",
+    category: "Snapshot",
     gradient: "from-orange-400 to-orange-600",
     accent: "#F97316",
     bgLight: "bg-orange-50/80",
-    borderCol: "border-orange-500",
-    colorClass: 'border-orange-200',
-    bgClass: 'bg-orange-50',
-    textClass: 'text-orange-700'
+    borderCol: "border-orange-500"
   },
   { 
-    label: "KH Rời bỏ", 
+    label: "Mới trong kỳ", 
+    value: "new", 
+    icon: Star, 
+    color: "sky",
+    category: "Transition",
+    gradient: "from-sky-500 to-blue-700",
+    accent: "#0EA5E9",
+    bgLight: "bg-sky-50/80",
+    borderCol: "border-sky-500"
+  },
+  { 
+    label: "Tái bản trong kỳ", 
+    value: "recovered", 
+    icon: RefreshCw, 
+    color: "indigo",
+    category: "Transition",
+    gradient: "from-indigo-500 to-indigo-800",
+    accent: "#6366F1",
+    bgLight: "bg-indigo-50/80",
+    borderCol: "border-indigo-500"
+  },
+  { 
+    label: "Rời bỏ trong kỳ", 
     value: "churned", 
     icon: UserMinus, 
     color: "rose",
+    category: "Transition",
     gradient: "from-rose-500 to-rose-700",
     accent: "#E11D48",
     bgLight: "bg-rose-50/80",
-    borderCol: "border-rose-500",
-    colorClass: 'border-rose-200',
-    bgClass: 'bg-rose-50',
-    textClass: 'text-rose-700'
+    borderCol: "border-rose-500"
+  },
+  { 
+    label: "Rời bỏ (Lũy kế)", 
+    value: "churned_snapshot", 
+    icon: History, 
+    color: "slate",
+    category: "Historical",
+    gradient: "from-slate-500 to-slate-700",
+    accent: "#64748B",
+    bgLight: "bg-slate-50/80",
+    borderCol: "border-slate-500"
   }
 ];
 
@@ -1252,58 +1251,64 @@ export default function Customers() {
         </div>
       )}
 
-      {/* Lifecycle Filter Bar - PREMIUM 3D DASHBOARD STYLE */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        {lifecycleConfig.map((item) => {
-          const isActive = filters.lifecycle_status === item.value;
-          
-          const findCount = () => {
-            if (item.value === "") return lifecycleStats["Tất cả"] || total;
-            return lifecycleStats[item.value] || 0;
-          };
-          const count = findCount();
-          
-          return (
-            <button
-              key={item.label}
-              onClick={() => {
-                setFilters(prev => ({ ...prev, lifecycle_status: item.value }));
-                setPage(1);
-              }}
-              className={`group relative p-3 pl-5 rounded-2xl transition-all duration-300 flex flex-col items-start gap-1 text-left overflow-hidden border-2 ${
-                isActive 
-                  ? `bg-white shadow-2xl scale-105 z-10 -translate-y-1 ${item.borderCol} border-l-[6px] ${item.borderCol.replace('border-', 'border-l-')}` 
-                  : `${item.bgLight} border-gray-100/50 hover:${item.borderCol} hover:bg-white hover:shadow-xl hover:-translate-y-1 border-l-[6px] ${item.borderCol.replace('border-', 'border-l-')} opacity-80 hover:opacity-100`
-              }`}
-            >
-              {/* Background Glow when Active */}
-              {isActive && (
-                <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${item.gradient} opacity-[0.08] rounded-full blur-3xl -mr-10 -mt-10`}></div>
-              )}
+      {/* Lifecycle Filter Bar - RF5C CATEGORIZED */}
+      <div className="space-y-4 mb-4">
+        {[
+          { id: "Snapshot", label: "Trạng thái (Snapshot)", color: "text-vnpost-blue" },
+          { id: "Transition", label: "Biến động trong kỳ (Transition)", color: "text-indigo-600" },
+          { id: "Historical", label: "Dữ liệu lịch sử", color: "text-gray-500" }
+        ].map(cat => (
+          <div key={cat.id} className="space-y-2">
+            <div className="flex items-center gap-2 ml-1">
+              <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${cat.color}`}>{cat.label}</span>
+              <div className="flex-1 h-[1px] bg-gray-100"></div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2">
+              {lifecycleConfig
+                .filter(item => item.category === cat.id || (cat.id === "Snapshot" && item.category === "General"))
+                .map((item) => {
+                const isActive = filters.lifecycle_status === item.value;
+                const count = lifecycleStats[item.value === "" ? "Tất cả" : item.value] || 0;
+                const monthSuffix = (item.category === "Transition" && selectedMonth) ? `tháng ${selectedMonth}` : "";
+                
+                return (
+                  <button
+                    key={item.label}
+                    onClick={() => {
+                      setFilters(prev => ({ ...prev, lifecycle_status: item.value }));
+                      setPage(1);
+                    }}
+                    className={`group relative p-2.5 pl-4 rounded-xl transition-all duration-300 flex flex-col items-start gap-0.5 text-left overflow-hidden border-2 ${
+                      isActive 
+                        ? `bg-white shadow-lg scale-[1.02] z-10 ${item.borderCol} border-l-[4px]` 
+                        : `${item.bgLight} border-gray-100/50 hover:${item.borderCol} hover:bg-white hover:shadow-md border-l-[4px] opacity-90 hover:opacity-100`
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <span className={`text-[9px] font-black uppercase tracking-wider truncate max-w-[120px] ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
+                        {item.label} {monthSuffix}
+                      </span>
+                      <item.icon size={14} className={isActive ? `text-${item.color}-600` : "text-gray-400 opacity-40"} />
+                    </div>
+                    
+                    <div className="flex items-baseline gap-1 pointer-events-none">
+                      <span className={`text-lg font-black tracking-tight ${
+                        isActive ? `text-${item.color}-600` : `text-${item.color}-700`
+                      }`}>
+                        {count.toLocaleString()}
+                      </span>
+                      <span className="text-[8px] text-gray-400 font-bold uppercase opacity-60">KH</span>
+                    </div>
 
-              <div className="flex items-center justify-between w-full">
-                <span className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
-                  {item.label}
-                </span>
-                <item.icon size={16} className={isActive ? `text-${item.color}-600` : "text-gray-400 opacity-40"} />
-              </div>
-              
-              <div className="flex items-baseline gap-1.5 pointer-events-none">
-                <span className={`text-2xl font-black font-heading tracking-tight ${
-                  isActive ? `text-${item.color}-600` : `text-${item.color}-700`
-                }`}>
-                  {count.toLocaleString()}
-                </span>
-                <span className="text-[10px] text-gray-400 font-bold uppercase opacity-60">Khách</span>
-              </div>
-
-              {/* Status Indicator Bar (Bottom) */}
-              <div className={`absolute bottom-0 left-0 h-1 transition-all duration-500 ${
-                isActive ? `w-full bg-gradient-to-r ${item.gradient}` : 'w-0'
-              }`}></div>
-            </button>
-          );
-        })}
+                    {isActive && (
+                      <div className={`absolute bottom-0 left-0 h-0.5 w-full bg-gradient-to-r ${item.gradient}`}></div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="card space-y-4 !p-4 shadow-sm border-gray-100 relative z-50">

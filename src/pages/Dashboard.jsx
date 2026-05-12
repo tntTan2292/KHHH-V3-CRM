@@ -307,6 +307,21 @@ function Dashboard() {
   const [waitingForDefaultDate, setWaitingForDefaultDate] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState("");
 
+  const selectedMonthLabel = useMemo(() => {
+    if (selectedMonth) return selectedMonth;
+    if (startDate) return startDate.substring(0, 7);
+    return "";
+  }, [selectedMonth, startDate]);
+
+  const prevMonthLabel = useMemo(() => {
+    if (!selectedMonthLabel) return "";
+    try {
+      const [y, m] = selectedMonthLabel.split('-').map(Number);
+      const d = new Date(y, m - 2, 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    } catch(e) { return ""; }
+  }, [selectedMonthLabel]);
+
   // RF4D: Date Persistence
   useEffect(() => {
     if (startDate || endDate) {
@@ -725,73 +740,95 @@ function Dashboard() {
                 <>
                   {/* RF5C: ACTIVE SNAPSHOT CARD */}
                   <div 
-                    className="card p-3 border-l-4 border-l-vnpost-blue bg-gradient-to-br from-vnpost-blue/5 to-transparent flex justify-between items-end relative group/lctip cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+                    className="card p-3 border-l-4 border-l-vnpost-blue bg-gradient-to-br from-vnpost-blue/5 to-transparent flex flex-col justify-between relative group/lctip cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
                     onClick={() => {
                       const node = selectedNode;
                       if (node) saveNavigationContext(node);
                       navigate(`/customers?lifecycle_status=active${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
                     }}
                   >
-                    <div>
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <p className="text-vnpost-blue text-[10px] font-black uppercase tracking-wider">Hien huu</p>
-                        <span className="text-[8px] bg-vnpost-blue/10 text-vnpost-blue px-1.5 py-0.5 rounded font-black border border-vnpost-blue/10 uppercase">Snapshot</span>
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <p className="text-vnpost-blue text-[10px] font-black uppercase tracking-wider">Hien huu {selectedMonthLabel}</p>
+                          <span className="text-[8px] bg-vnpost-blue/10 text-vnpost-blue px-1.5 py-0.5 rounded font-black border border-vnpost-blue/10 uppercase">Snapshot</span>
+                        </div>
+                        <h3 className="text-2xl font-black">{(stats?.lifecycle?.["active"] || 0).toLocaleString()}</h3>
                       </div>
-                      <h3 className="text-xl font-black">{(stats?.lifecycle?.["active"] || 0).toLocaleString()}</h3>
+                      <Users size={20} className="text-vnpost-blue/30" />
                     </div>
-                    <Users size={20} className="text-vnpost-blue/30" />
+
+                    <div className="flex items-center gap-2 mt-auto">
+                      {stats.lifecycle_growth?.active !== undefined && (
+                        <div className={`text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 ${stats.lifecycle_growth.active >= 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                          {stats.lifecycle_growth.active >= 0 ? "▲" : "▼"} {Math.abs(stats.lifecycle_growth.active)}%
+                          <span className="opacity-60 font-bold ml-1 text-[8px]">vs {prevMonthLabel}</span>
+                        </div>
+                      )}
+                    </div>
                     
                     <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap z-30 shadow-xl uppercase tracking-widest border border-white/10">
                       Tổng số KH đang gửi hàng (Đóng băng cuối kỳ)
                     </div>
-
-                    {summaryData?.stats?.lifecycle_delta?.active !== undefined && (
-                      <div className="absolute -top-8 right-2 bg-vnpost-blue text-white text-[10px] font-bold px-2 py-1 rounded-lg opacity-0 group-hover/lctip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow-lg">
-                        {summaryData.stats.lifecycle_delta.active >= 0 ? "+" : ""}{summaryData.stats.lifecycle_delta.active} so kỳ trước
-                      </div>
-                    )}
                   </div>
+
                   {/* RF5C: NEW TRANSITION CARD */}
                   <div 
-                    className="card p-3 border-l-4 border-l-indigo-500 bg-gradient-to-br from-indigo-500/5 to-transparent flex justify-between items-end relative group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+                    className="card p-3 border-l-4 border-l-indigo-500 bg-gradient-to-br from-indigo-500/5 to-transparent flex flex-col justify-between relative group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
                     onClick={() => {
                       const node = selectedNode;
                       if (node) saveNavigationContext(node);
                       navigate(`/customers?lifecycle_status=new${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
                     }}
                   >
-                    <div>
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <p className="text-indigo-600 text-[10px] font-black uppercase tracking-wider">Phát sinh mới</p>
-                        <span className="text-[8px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded font-black border border-indigo-200 uppercase">Transition</span>
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <p className="text-indigo-600 text-[10px] font-black uppercase tracking-wider">Mới {selectedMonthLabel}</p>
+                          <span className="text-[8px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded font-black border border-indigo-200 uppercase">Transition</span>
+                        </div>
+                        <h3 className="text-2xl font-black">{(stats?.lifecycle?.["new"] || 0).toLocaleString()}</h3>
                       </div>
-                      <h3 className="text-xl font-black">{(stats?.lifecycle?.["new"] || 0).toLocaleString()}</h3>
+                      <Sparkles size={20} className="text-indigo-300" />
                     </div>
-                    <Sparkles size={20} className="text-indigo-300" />
+                    
+                    <div className="mt-auto pt-2 border-t border-indigo-100/30">
+                      <p className="text-[8px] font-black text-indigo-400 uppercase tracking-tighter">Tổng lũy kế trong kỳ</p>
+                      <p className="text-xs font-black text-indigo-600">{(stats?.lifecycle?.["new"] || 0).toLocaleString()}</p>
+                    </div>
+
                     <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap z-30 shadow-xl uppercase tracking-widest">
-                      KH có doanh thu lần đầu trong kỳ này
+                      KH có doanh thu lần đầu trong {selectedMonthLabel}
                     </div>
                   </div>
 
                   {/* RF5C: RECOVERED TRANSITION CARD */}
                   <div 
-                    className="card p-3 border-l-4 border-l-emerald-500 bg-gradient-to-br from-emerald-500/5 to-transparent flex justify-between items-end relative group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+                    className="card p-3 border-l-4 border-l-emerald-500 bg-gradient-to-br from-emerald-500/5 to-transparent flex flex-col justify-between relative group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
                     onClick={() => {
                       const node = selectedNode;
                       if (node) saveNavigationContext(node);
                       navigate(`/customers?lifecycle_status=recovered${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
                     }}
                   >
-                    <div>
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <p className="text-emerald-600 text-[10px] font-black uppercase tracking-wider">Tái bản</p>
-                        <span className="text-[8px] bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded font-black border border-emerald-200 uppercase">Transition</span>
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <p className="text-emerald-600 text-[10px] font-black uppercase tracking-wider">Tái bản {selectedMonthLabel}</p>
+                          <span className="text-[8px] bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded font-black border border-emerald-200 uppercase">Transition</span>
+                        </div>
+                        <h3 className="text-2xl font-black">{(stats?.lifecycle?.["recovered"] || 0).toLocaleString()}</h3>
                       </div>
-                      <h3 className="text-xl font-black">{(stats?.lifecycle?.["recovered"] || 0).toLocaleString()}</h3>
+                      <ArrowUpRight size={20} className="text-green-300" />
                     </div>
-                    <ArrowUpRight size={20} className="text-green-300" />
+
+                    <div className="mt-auto pt-2 border-t border-emerald-100/30">
+                      <p className="text-[8px] font-black text-emerald-400 uppercase tracking-tighter">Tổng phục hồi kỳ này</p>
+                      <p className="text-xs font-black text-emerald-600">{(stats?.lifecycle?.["recovered"] || 0).toLocaleString()}</p>
+                    </div>
+
                     <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap z-30 shadow-xl uppercase tracking-widest">
-                      KH quay lại giao dịch sau thời kỳ At Risk/Churn
+                      KH quay lại giao dịch trong {selectedMonthLabel} sau &gt; 30 ngày ngưng gửi
                     </div>
                   </div>
                 </>
@@ -807,45 +844,65 @@ function Dashboard() {
                 <>
                   {/* RF5C: AT RISK SNAPSHOT CARD */}
                   <div 
-                    className="card p-3 border-l-4 border-l-amber-500 bg-gradient-to-br from-amber-500/5 to-transparent flex justify-between items-end relative group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+                    className="card p-3 border-l-4 border-l-amber-500 bg-gradient-to-br from-amber-500/5 to-transparent flex flex-col justify-between relative group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
                     onClick={() => {
                       const node = selectedNode;
                       if (node) saveNavigationContext(node);
                       navigate(`/customers?lifecycle_status=at_risk${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
                     }}
                   >
-                    <div>
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <p className="text-amber-600 text-[10px] font-black uppercase tracking-wider">Nguy cơ cao</p>
-                        <span className="text-[8px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded font-black border border-amber-200 uppercase">Snapshot</span>
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <p className="text-amber-600 text-[10px] font-black uppercase tracking-wider">Nguy cơ {selectedMonthLabel}</p>
+                          <span className="text-[8px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded font-black border border-amber-200 uppercase">Snapshot</span>
+                        </div>
+                        <h3 className="text-2xl font-black">{(stats?.lifecycle?.["at_risk"] || 0).toLocaleString()}</h3>
                       </div>
-                      <h3 className="text-xl font-black">{(stats?.lifecycle?.["at_risk"] || 0).toLocaleString()}</h3>
+                      <AlertCircle size={20} className="text-amber-300" />
                     </div>
-                    <AlertCircle size={20} className="text-amber-300" />
+
+                    <div className="flex items-center gap-2 mt-auto">
+                      {stats.lifecycle_growth?.at_risk !== undefined && (
+                        <div className={`text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 ${stats.lifecycle_growth.at_risk <= 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                          {stats.lifecycle_growth.at_risk >= 0 ? "▲" : "▼"} {Math.abs(stats.lifecycle_growth.at_risk)}%
+                          <span className="opacity-60 font-bold ml-1 text-[8px]">vs {prevMonthLabel}</span>
+                        </div>
+                      )}
+                    </div>
+
                     <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-amber-600 text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap z-30 shadow-xl uppercase tracking-widest">
-                      KH &gt; 30 ngày chưa phát sinh đơn mới
+                      KH &gt; 30 ngày chưa phát sinh đơn mới (Tại thời điểm {selectedMonthLabel})
                     </div>
                   </div>
 
                   {/* RF5C: CHURN TRANSITION CARD */}
                   <div 
-                    className="card p-3 border-l-4 border-l-rose-500 bg-gradient-to-br from-rose-500/5 to-transparent flex justify-between items-end relative group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+                    className="card p-3 border-l-4 border-l-rose-500 bg-gradient-to-br from-rose-500/5 to-transparent flex flex-col justify-between relative group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
                     onClick={() => {
                       const node = selectedNode;
                       if (node) saveNavigationContext(node);
                       navigate(`/customers?lifecycle_status=churned${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
                     }}
                   >
-                    <div>
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <p className="text-rose-600 text-[10px] font-black uppercase tracking-wider">Rời bỏ trong kỳ</p>
-                        <span className="text-[8px] bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded font-black border border-rose-200 uppercase">Transition</span>
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <p className="text-rose-600 text-[10px] font-black uppercase tracking-wider">Rời bỏ tháng {selectedMonthLabel}</p>
+                          <span className="text-[8px] bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded font-black border border-rose-200 uppercase">Transition</span>
+                        </div>
+                        <h3 className="text-2xl font-black">{(stats?.lifecycle?.["churned"] || 0).toLocaleString()}</h3>
                       </div>
-                      <h3 className="text-xl font-black">{(stats?.lifecycle?.["churned"] || 0).toLocaleString()}</h3>
+                      <UserMinus size={20} className="text-rose-300" />
                     </div>
-                    <UserMinus size={20} className="text-rose-300" />
+
+                    <div className="mt-auto pt-2 border-t border-rose-100/30">
+                      <p className="text-[8px] font-black text-rose-400 uppercase tracking-tighter">Tổng lũy kế toàn tệp</p>
+                      <p className="text-xs font-black text-rose-600">{(stats?.lifecycle?.["churned_snapshot"] || 0).toLocaleString()}</p>
+                    </div>
+
                     <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-rose-600 text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap z-30 shadow-xl uppercase tracking-widest">
-                      Biến động rời bỏ (Event-based) trong kỳ báo cáo
+                      Biến động rời bỏ (Event-based) trong tháng {selectedMonthLabel}
                     </div>
                   </div>
                 </>
