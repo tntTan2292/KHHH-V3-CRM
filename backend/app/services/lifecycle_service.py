@@ -37,17 +37,18 @@ class LifecycleService:
         summary_rows = summary_res.group_by(MonthlyAnalyticsSummary.lifecycle_stage).all()
         
         # Mapping to normalized keys (Frontend Slug Compatibility)
+        # RF5C: Distinguish between Snapshot states and Transition events
         stage_map = {
             "active": "active",
-            "new": "new",
-            "rebuy": "recovered",
-            "reactivated": "recovered",
             "at_risk": "at_risk",
-            "churned": "churned"
+            "churned": "churned_snapshot", # Snapshot of churned population
+            "new_transition": "new",       # Transition in period
+            "recovered_transition": "recovered", # Transition in period
+            "churn_transition": "churned"  # Transition in period (Event)
         }
         
         results = {
-            "active": 0, "new": 0, "recovered": 0, "at_risk": 0, "churned": 0, "total": 0
+            "active": 0, "new": 0, "recovered": 0, "at_risk": 0, "churned": 0, "churned_snapshot": 0, "total": 0
         }
 
         if summary_rows:
@@ -59,7 +60,6 @@ class LifecycleService:
                     results[target_key] += int(count or 0)
         else:
             # 2. Fallback to Live Calculation (Calculation Layer)
-            # This ensures that even if Summary hasn't run yet, we don't return 0/Stale counts.
             logger.warning(f"SSOT: Summary missing for {month_str}. Falling back to Live Calculation...")
             live_results = LifecycleEngine.process_month_summary(month_str)
             
@@ -68,9 +68,14 @@ class LifecycleService:
                 live_results = [r for r in live_results if r['point_id'] in scope_point_ids]
             
             for r in live_results:
-                target_key = stage_map.get(r['state'].lower(), r['state'].lower())
-                if target_key in results:
-                    results[target_key] += 1
+                # Aggregate Snapshots
+                s_key = stage_map.get(r['lifecycle_state'].lower())
+                if s_key in results: results[s_key] += 1
+                
+                # Aggregate Transitions
+                if r.get('is_new_transition'): results['new'] += 1
+                if r.get('is_recovered_transition'): results['recovered'] += 1
+                if r.get('is_churn_transition'): results['churned'] += 1
         
         results["total"] = sum(v for k, v in results.items() if k != "total")
         return results

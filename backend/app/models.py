@@ -428,6 +428,37 @@ class MonthlyAnalyticsSummary(Base):
         Index('idx_summary_main', 'point_id', 'year_month', 'lifecycle_stage', 'growth_tag', 'vip_tier', 'priority_level', 'ma_dv', 'region_type'),
     )
 
+class CustomerMonthlySnapshot(Base):
+    """
+    [GOVERNANCE] Materialized Monthly Lifecycle Snapshot.
+    Stores the frozen state of a customer at the end of a reporting period.
+    Ensures historical consistency (Temporal State Freeze).
+    """
+    __tablename__ = "customer_monthly_snapshots"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    year_month = Column(String(10), index=True) # 'YYYY-MM'
+    ma_kh = Column(String(100), index=True)
+    point_id = Column(Integer, ForeignKey("hierarchy_nodes.id"), index=True)
+    
+    lifecycle_state = Column(String(50), index=True) # NEW, ACTIVE, AT_RISK, CHURNED, RECOVERED
+    vip_tier = Column(String(50), index=True)
+    rfm_segment = Column(String(100))
+    
+    # Transition Flags (Idempotency Governance)
+    is_new_transition = Column(Boolean, default=False)
+    is_recovered_transition = Column(Boolean, default=False)
+    is_churn_transition = Column(Boolean, default=False)
+    
+    revenue = Column(Float, default=0.0)
+    orders = Column(Integer, default=0)
+    
+    captured_at = Column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint('year_month', 'ma_kh', name='_customer_month_snapshot_uc'),
+    )
+
 class LifecycleLog(Base):
     __tablename__ = "lifecycle_logs"
     id = Column(Integer, primary_key=True, index=True)

@@ -114,11 +114,10 @@ class SummaryService:
             
             # Merge with VIP and Priority data
             if not vip_df.empty:
-                df_ident = pd.merge(df_ident, vip_df[['ma_kh', 'vip_tier', 'risk_status']], on='ma_kh', how='left')
+                df_ident = pd.merge(df_ident, vip_df[['ma_kh', 'vip_tier']], on='ma_kh', how='left')
                 df_ident['vip_tier'] = df_ident['vip_tier'].fillna('NORMAL')
             else:
                 df_ident['vip_tier'] = 'NORMAL'
-                df_ident['risk_status'] = None
                 
             if not priority_df.empty:
                 df_ident = pd.merge(df_ident, priority_df[['ma_kh', 'priority_level']], on='ma_kh', how='left')
@@ -126,10 +125,26 @@ class SummaryService:
             else:
                 df_ident['priority_level'] = 'LOW'
 
-            # Gộp theo Stage, Growth, VIP và Priority
-            stage_counts = df_ident.groupby(['point_id', 'state', 'growth', 'vip_tier', 'priority_level'], dropna=False).size().reset_index(name='count')
-            for _, r in stage_counts.iterrows():
-                summary_data.append((month_str, int(r['point_id']), r['state'], r['growth'], r['vip_tier'], r['priority_level'], 'ALL', 'ALL', 0.0, 0, int(r['count'])))
+            # 1. AGGREGATE SNAPSHOT STATES
+            snapshot_agg = df_ident.groupby(['point_id', 'lifecycle_state', 'vip_tier', 'priority_level'], dropna=False).size().reset_index(name='count')
+            for _, r in snapshot_agg.iterrows():
+                summary_data.append((month_str, int(r['point_id']), r['lifecycle_state'], None, r['vip_tier'], r['priority_level'], 'ALL', 'ALL', 0.0, 0, int(r['count'])))
+            
+            # 2. AGGREGATE TRANSITION EVENTS
+            # NEW Transitions
+            new_agg = df_ident[df_ident['is_new_transition'] == True].groupby(['point_id', 'vip_tier', 'priority_level']).size().reset_index(name='count')
+            for _, r in new_agg.iterrows():
+                summary_data.append((month_str, int(r['point_id']), 'NEW_TRANSITION', None, r['vip_tier'], r['priority_level'], 'ALL', 'ALL', 0.0, 0, int(r['count'])))
+                
+            # RECOVERED Transitions
+            rec_agg = df_ident[df_ident['is_recovered_transition'] == True].groupby(['point_id', 'vip_tier', 'priority_level']).size().reset_index(name='count')
+            for _, r in rec_agg.iterrows():
+                summary_data.append((month_str, int(r['point_id']), 'RECOVERED_TRANSITION', None, r['vip_tier'], r['priority_level'], 'ALL', 'ALL', 0.0, 0, int(r['count'])))
+                
+            # CHURN Transitions
+            chu_agg = df_ident[df_ident['is_churn_transition'] == True].groupby(['point_id', 'vip_tier', 'priority_level']).size().reset_index(name='count')
+            for _, r in chu_agg.iterrows():
+                summary_data.append((month_str, int(r['point_id']), 'CHURN_TRANSITION', None, r['vip_tier'], r['priority_level'], 'ALL', 'ALL', 0.0, 0, int(r['count'])))
             
             # Tính doanh thu thực tế cho nhóm định danh
             sql_rev_ident = """

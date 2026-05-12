@@ -55,11 +55,30 @@ class CustomerService:
         
         if lifecycle_status:
             status_val = lifecycle_status.lower()
-            if status_val == 'recovered': status_val = 'rebuy'
-            filters.append(func.lower(Customer.lifecycle_state) == status_val)
-            # [GOVERNANCE] Chỉ hiển thị những KH đã tham gia vào Lifecycle (có phát sinh đơn hàng)
-            # để khớp tuyệt đối với số liệu trên các thẻ KPI Dashboard (Single Source of Truth)
-            filters.append(exists().where(Transaction.ma_kh == Customer.ma_crm_cms))
+            month_str = curr_start.strftime("%Y-%m")
+            
+            from ..models import CustomerMonthlySnapshot
+            # Join with snapshots to get governed transitions if month is matched
+            snapshot_sub = db.query(CustomerMonthlySnapshot).filter(CustomerMonthlySnapshot.year_month == month_str).subquery()
+            
+            if status_val == 'new':
+                filters.append(snapshot_sub.c.is_new_transition == True)
+            elif status_val == 'recovered':
+                filters.append(snapshot_sub.c.is_recovered_transition == True)
+            elif status_val == 'churned':
+                filters.append(snapshot_sub.c.is_churn_transition == True)
+            elif status_val == 'at_risk':
+                filters.append(func.lower(Customer.lifecycle_state) == 'at_risk')
+            elif status_val == 'active':
+                filters.append(func.lower(Customer.lifecycle_state) == 'active')
+            else:
+                if status_val == 'recovered': status_val = 'rebuy'
+                filters.append(func.lower(Customer.lifecycle_state) == status_val)
+            
+            # Ensure the join is performed in the final query
+            # We'll add this subquery to the select_from chain later
+            # For now, we just ensure Customer matches the snapshot
+            filters.append(Customer.ma_crm_cms == snapshot_sub.c.ma_kh)
             
         if rfm_segment:
             filters.append(Customer.rfm_segment == rfm_segment)
@@ -85,7 +104,11 @@ class CustomerService:
             filters.append(Customer.ma_bc_phu_trach.in_(scope_codes))
 
         # 4. Total Count (Deterministic - Must match results)
-        base_query = db.query(Customer).filter(*filters)
+        base_query = db.query(Customer)
+        if lifecycle_status:
+            base_query = base_query.join(snapshot_sub, Customer.ma_crm_cms == snapshot_sub.c.ma_kh)
+        
+        base_query = base_query.filter(*filters)
         total = base_query.count()
 
         # 5. Metrics Subquery - CHỈ tính cho tháng hiện tại (Dynamic Metrics)
@@ -106,10 +129,14 @@ class CustomerService:
             func.coalesce(metrics_sub.c.transaction_count, 0).label("transaction_count"),
             metrics_sub.c.last_shipped_absolute,
             NhanSu.full_name.label("assigned_staff_name")
-        ).select_from(Customer)\
-         .outerjoin(metrics_sub, Customer.ma_crm_cms == metrics_sub.c.ma_kh)\
-         .outerjoin(NhanSu, Customer.assigned_staff_id == NhanSu.id)\
-         .filter(*filters)
+        ).select_from(Customer)
+        
+        if lifecycle_status:
+            final_query = final_query.join(snapshot_sub, Customer.ma_crm_cms == snapshot_sub.c.ma_kh)
+            
+        final_query = final_query.outerjoin(metrics_sub, Customer.ma_crm_cms == metrics_sub.c.ma_kh)\
+          .outerjoin(NhanSu, Customer.assigned_staff_id == NhanSu.id)\
+          .filter(*filters)
 
         # 7. Sorting
         sort_map = {

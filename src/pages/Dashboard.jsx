@@ -723,7 +723,7 @@ function Dashboard() {
                 </>
               ) : (
                 <>
-                  {/* RF3C: Lifecycle Drilldown */}
+                  {/* RF5C: ACTIVE SNAPSHOT CARD */}
                   <div 
                     className="card p-3 border-l-4 border-l-vnpost-blue bg-gradient-to-br from-vnpost-blue/5 to-transparent flex justify-between items-end relative group/lctip cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
                     onClick={() => {
@@ -731,15 +731,18 @@ function Dashboard() {
                       if (node) saveNavigationContext(node);
                       navigate(`/customers?lifecycle_status=active${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
                     }}
-                    title="Xem danh sách KH Hiện hữu"
                   >
-                    <div><p className="text-vnpost-blue text-[10px] font-black uppercase mb-1 tracking-wider">Hien huu</p><h3 className="text-xl font-black">{(stats?.lifecycle?.["active"] || 0).toLocaleString()}</h3></div>
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <p className="text-vnpost-blue text-[10px] font-black uppercase tracking-wider">Hien huu</p>
+                        <span className="text-[8px] bg-vnpost-blue/10 text-vnpost-blue px-1.5 py-0.5 rounded font-black border border-vnpost-blue/10 uppercase">Snapshot</span>
+                      </div>
+                      <h3 className="text-xl font-black">{(stats?.lifecycle?.["active"] || 0).toLocaleString()}</h3>
+                    </div>
                     <Users size={20} className="text-vnpost-blue/30" />
                     
-                    {/* RF4B: Mini-peek hint */}
-                    <div className="absolute inset-x-0 bottom-0 h-1 bg-vnpost-blue/10 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></div>
                     <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap z-30 shadow-xl uppercase tracking-widest border border-white/10">
-                      Soi 360° khách hàng đang gửi hàng
+                      Tổng số KH đang gửi hàng (Đóng băng cuối kỳ)
                     </div>
 
                     {summaryData?.stats?.lifecycle_delta?.active !== undefined && (
@@ -748,36 +751,47 @@ function Dashboard() {
                       </div>
                     )}
                   </div>
+                  {/* RF5C: NEW TRANSITION CARD */}
                   <div 
-                    className="card p-3 border-l-4 border-l-indigo-500 bg-gradient-to-br from-indigo-500/5 to-transparent flex justify-between items-end cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+                    className="card p-3 border-l-4 border-l-indigo-500 bg-gradient-to-br from-indigo-500/5 to-transparent flex justify-between items-end relative group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
                     onClick={() => {
                       const node = selectedNode;
                       if (node) saveNavigationContext(node);
                       navigate(`/customers?lifecycle_status=new${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
                     }}
-                    title="Xem danh sách KH Mới"
                   >
-                    <div><p className="text-indigo-600 text-[10px] font-black uppercase mb-1 tracking-wider">Khách mới</p><h3 className="text-xl font-black">{(stats?.lifecycle?.["new"] || 0).toLocaleString()}</h3></div>
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <p className="text-indigo-600 text-[10px] font-black uppercase tracking-wider">Phát sinh mới</p>
+                        <span className="text-[8px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded font-black border border-indigo-200 uppercase">Transition</span>
+                      </div>
+                      <h3 className="text-xl font-black">{(stats?.lifecycle?.["new"] || 0).toLocaleString()}</h3>
+                    </div>
                     <Sparkles size={20} className="text-indigo-300" />
-                    {/* RF4B: Mini-peek hint */}
                     <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap z-30 shadow-xl uppercase tracking-widest">
-                      Phát hiện mới trong kỳ báo cáo
+                      KH có doanh thu lần đầu trong kỳ này
                     </div>
                   </div>
+
+                  {/* RF5C: RECOVERED TRANSITION CARD */}
                   <div 
-                    className="card p-3 border-l-4 border-l-emerald-500 bg-gradient-to-br from-emerald-500/5 to-transparent flex justify-between items-end cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+                    className="card p-3 border-l-4 border-l-emerald-500 bg-gradient-to-br from-emerald-500/5 to-transparent flex justify-between items-end relative group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
                     onClick={() => {
                       const node = selectedNode;
                       if (node) saveNavigationContext(node);
                       navigate(`/customers?lifecycle_status=recovered${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
                     }}
-                    title="Xem danh sách KH Tái bản"
                   >
-                    <div><p className="text-emerald-600 text-[10px] font-black uppercase mb-1 tracking-wider">Tái bản</p><h3 className="text-xl font-black">{(stats?.lifecycle?.["recovered"] || 0).toLocaleString()}</h3></div>
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <p className="text-emerald-600 text-[10px] font-black uppercase tracking-wider">Tái bản</p>
+                        <span className="text-[8px] bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded font-black border border-emerald-200 uppercase">Transition</span>
+                      </div>
+                      <h3 className="text-xl font-black">{(stats?.lifecycle?.["recovered"] || 0).toLocaleString()}</h3>
+                    </div>
                     <ArrowUpRight size={20} className="text-green-300" />
-                    {/* RF4B: Mini-peek hint */}
                     <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap z-30 shadow-xl uppercase tracking-widest">
-                      Khách quay lại sau &gt; 30 ngày ngưng gửi
+                      KH quay lại giao dịch sau thời kỳ At Risk/Churn
                     </div>
                   </div>
                 </>
@@ -791,33 +805,48 @@ function Dashboard() {
                 </>
               ) : (
                 <>
+                  {/* RF5C: AT RISK SNAPSHOT CARD */}
                   <div 
-                    className="card p-3 border-l-4 border-l-amber-500 bg-gradient-to-br from-amber-500/5 to-transparent flex justify-between items-end cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+                    className="card p-3 border-l-4 border-l-amber-500 bg-gradient-to-br from-amber-500/5 to-transparent flex justify-between items-end relative group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
                     onClick={() => {
                       const node = selectedNode;
                       if (node) saveNavigationContext(node);
                       navigate(`/customers?lifecycle_status=at_risk${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
                     }}
-                    title="Xem danh sách KH Nguy cơ"
                   >
-                    <div><p className="text-amber-600 text-[11px] font-black uppercase mb-1 tracking-wider">Nguy cơ (At Risk)</p><h3 className="text-xl font-black">{(stats.lifecycle?.["at_risk"] || 0).toLocaleString()}</h3></div>
-                    <Info size={20} className="text-vnpost-orange/30" />
-                    {/* RF4B: Mini-peek hint */}
-                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-vnpost-orange text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap z-30 shadow-xl uppercase tracking-widest animate-bounce-slow">
-                      Hành động ngay: Sản lượng giảm &gt; 50%
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <p className="text-amber-600 text-[10px] font-black uppercase tracking-wider">Nguy cơ cao</p>
+                        <span className="text-[8px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded font-black border border-amber-200 uppercase">Snapshot</span>
+                      </div>
+                      <h3 className="text-xl font-black">{(stats?.lifecycle?.["at_risk"] || 0).toLocaleString()}</h3>
+                    </div>
+                    <AlertCircle size={20} className="text-amber-300" />
+                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-amber-600 text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap z-30 shadow-xl uppercase tracking-widest">
+                      KH &gt; 30 ngày chưa phát sinh đơn mới
                     </div>
                   </div>
+
+                  {/* RF5C: CHURN TRANSITION CARD */}
                   <div 
-                    className="card p-3 border-l-4 border-l-gray-400 bg-gradient-to-br from-gray-400/5 to-transparent flex justify-between items-end cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+                    className="card p-3 border-l-4 border-l-rose-500 bg-gradient-to-br from-rose-500/5 to-transparent flex justify-between items-end relative group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
                     onClick={() => {
                       const node = selectedNode;
                       if (node) saveNavigationContext(node);
                       navigate(`/customers?lifecycle_status=churned${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
                     }}
-                    title="Xem danh sách KH Rời bỏ"
                   >
-                    <div><p className="text-gray-500 text-[10px] font-black uppercase mb-1 tracking-wider">Rời bỏ (Churn)</p><h3 className="text-xl font-black">{(stats.lifecycle?.["churned"] || 0).toLocaleString()}</h3></div>
-                    <UserMinus size={20} className="text-gray-300" />
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <p className="text-rose-600 text-[10px] font-black uppercase tracking-wider">Rời bỏ trong kỳ</p>
+                        <span className="text-[8px] bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded font-black border border-rose-200 uppercase">Transition</span>
+                      </div>
+                      <h3 className="text-xl font-black">{(stats?.lifecycle?.["churned"] || 0).toLocaleString()}</h3>
+                    </div>
+                    <UserMinus size={20} className="text-rose-300" />
+                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-rose-600 text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap z-30 shadow-xl uppercase tracking-widest">
+                      Biến động rời bỏ (Event-based) trong kỳ báo cáo
+                    </div>
                   </div>
                 </>
               )}
