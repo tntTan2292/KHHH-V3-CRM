@@ -382,7 +382,7 @@ async def get_data_coverage(db: Session = Depends(get_db)):
     }
 
 @router.get("/revenue-trend")
-@cache_response(ttl_hours=4)
+# @cache_response(ttl_hours=4)
 async def get_revenue_trend(
     start_date: str = None,
     end_date: str = None,
@@ -424,17 +424,19 @@ async def get_revenue_monthly(
     if scope_ids is not None and not scope_ids: return []
 
     # 2. Xác định dải thời gian (Rolling 12 months + Current)
-    max_month_raw = db.query(func.max(MonthlyAnalyticsSummary.year_month)).scalar()
-    if not max_month_raw: return []
-    
-    # Tính mốc bắt đầu (T-12)
-    end_dt = datetime.strptime(max_month_raw, "%Y-%m")
-    start_dt = end_dt - dateutil.relativedelta.relativedelta(months=12)
-    start_month_str = start_dt.strftime("%Y-%m")
+    # [RF5C] Nếu có start_date/end_date, ưu tiên sử dụng dải ngày người dùng chọn
+    if start_date and end_date:
+        start_month_str = start_date[:7]
+        max_month_raw = end_date[:7]
+    else:
+        max_month_raw = db.query(func.max(MonthlyAnalyticsSummary.year_month)).scalar()
+        if not max_month_raw: return []
+        # Tính mốc bắt đầu (T-12)
+        end_dt = datetime.strptime(max_month_raw, "%Y-%m")
+        start_dt = end_dt - dateutil.relativedelta.relativedelta(months=12)
+        start_month_str = start_dt.strftime("%Y-%m")
 
     # Group by Tháng-Năm (YYYY-MM)
-    # Ưu tiên lấy từ bảng MonthlyAnalyticsSummary để đạt tốc độ tối đa
-    # Chỉ lấy các Stage chính (NEW, ACTIVE, RECOVERED) để tránh double counting với Rank
     query = db.query(
         MonthlyAnalyticsSummary.year_month.label("month"),
         func.sum(MonthlyAnalyticsSummary.total_revenue).label("total")
@@ -453,7 +455,7 @@ async def get_revenue_monthly(
     return [{"month": r[0], "total": r[1] or 0} for r in stats]
 
 @router.get("/revenue-by-service")
-@cache_response(ttl_hours=12)
+# @cache_response(ttl_hours=12)
 async def get_revenue_by_service(
     start_date: str = None,
     end_date: str = None,
@@ -496,7 +498,7 @@ async def get_revenue_by_service(
     return result
 
 @router.get("/revenue-by-region")
-@cache_response(ttl_hours=12)
+# @cache_response(ttl_hours=12)
 async def get_revenue_by_region(
     start_date: str = None,
     end_date: str = None,
@@ -796,7 +798,7 @@ async def get_system_health(db: Session = Depends(get_db)):
     }
 
 @router.get("/customer-scoring")
-@cache_response(ttl_hours=24)
+# @cache_response(ttl_hours=24)
 async def get_customer_performance_scoring(
     start_date: str = None,
     end_date: str = None,
@@ -887,7 +889,7 @@ async def get_customer_performance_scoring(
     return sorted(results, key=lambda x: x['score'], reverse=True)[:limit]
 
 @router.get("/churn-prediction")
-@cache_response(ttl_hours=24)
+# @cache_response(ttl_hours=24)
 async def get_churn_prediction_alerts(
     end_date: str = None,
     node_code: str = None,

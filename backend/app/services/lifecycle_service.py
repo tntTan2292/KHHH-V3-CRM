@@ -20,7 +20,13 @@ class LifecycleService:
         if not month_str:
             # Only fallback if absolutely no time context provided
             max_ts = db.query(func.max(Transaction.ngay_chap_nhan)).scalar()
-            month_str = max_ts[:7] if max_ts else "1970-01"
+            if max_ts:
+                if isinstance(max_ts, str):
+                    month_str = max_ts[:7]
+                else: # Assume datetime
+                    month_str = max_ts.strftime("%Y-%m")
+            else:
+                month_str = "1970-01"
             logger.warning(f"SSOT: No month_str provided, falling back to LATEST: {month_str}")
         else:
             logger.info(f"SSOT: Resolving Lifecycle for LOCKED period: {month_str} (Range: {start_date} to {end_date})")
