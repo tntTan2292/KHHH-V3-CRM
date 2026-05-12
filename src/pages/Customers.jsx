@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { saveNavigationContext, getNavigationContext, syncUrlWithContext, getContextFromUrl, getDateContext, saveDateContext } from '../utils/navigationMemory';
 import api from '../utils/api';
-import { Search, Filter, Download, Download as DownloadX, TableProperties, AlertCircle, X, ChevronRight, ChevronLeft, Calendar, TrendingUp, ArrowUpDown, ChevronUp, ChevronDown, RefreshCw, CloudDownload, CheckCircle2, History, Star, Users, Briefcase, Zap, LogOut, UserPlus, Award, Activity, MapPin, ArrowUpRight, Save, AlertTriangle, Phone, FileText, Edit, Check, UploadCloud, Send, Settings, MessageCircle } from 'lucide-react';
+import { Search, Filter, Download, Download as DownloadX, TableProperties, AlertCircle, X, ChevronRight, ChevronLeft, Calendar, TrendingUp, ArrowUpDown, ChevronUp, ChevronDown, RefreshCw, CloudDownload, CheckCircle2, History, Star, Users, Briefcase, Zap, LogOut, UserPlus, Award, Activity, MapPin, ArrowUpRight, Save, AlertTriangle, Phone, FileText, Edit, Check, UploadCloud, Send, Settings, MessageCircle, Sparkles, Info } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import TreeExplorer from '../components/TreeExplorer';
 import CustomerHistoryModal from '../components/CustomerHistoryModal';
@@ -10,6 +10,32 @@ import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 
 const COLORS = ['#F9A51A', '#0054A6', '#003E7E', '#22C55E', '#9CA3AF'];
+
+// RF5B-HOTFIX-2: Global Helper Functions for Safety & Performance
+const formatCurrency = (val) => {
+  if (val === undefined || val === null || isNaN(val)) return '0 ₫';
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+};
+
+const getRankBadge = (segment) => {
+  if (!segment) return <span className="px-2 py-1 bg-gray-50 text-gray-400 rounded-lg text-[10px] font-black uppercase border border-gray-100">Chưa xếp hạng</span>;
+  
+  const ranks = {
+    'Kim Cương': { color: 'text-blue-700 bg-blue-50 border-blue-200', icon: '💎' },
+    'Vàng': { color: 'text-amber-700 bg-amber-50 border-amber-200', icon: '🏆' },
+    'Bạc': { color: 'text-slate-600 bg-slate-100 border-slate-200', icon: '🥈' },
+    'Tiềm Năng': { color: 'text-indigo-600 bg-indigo-50 border-indigo-100', icon: '✨' },
+    'Thường': { color: 'text-gray-500 bg-gray-50 border-gray-100', icon: '👤' }
+  };
+
+  const rank = ranks[segment] || ranks['Thường'];
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-black uppercase border shadow-sm ${rank.color}`}>
+      <span>{rank.icon}</span>
+      {segment}
+    </span>
+  );
+};
 
 // RF5B: Memoized Customer Row for Performance
 const CustomerRow = React.memo(({ c, handleRowClick, handleHistoryModal, formatCurrency, getRankBadge, lifecycleConfig }) => {
@@ -244,6 +270,87 @@ export default function Customers() {
   const hasNext = customers.findIndex(c => c.ma_crm_cms === selectedCustomer) < customers.length - 1;
   const hasPrev = customers.findIndex(c => c.ma_crm_cms === selectedCustomer) > 0;
 
+
+  const lifecycleConfig = [
+    { 
+      label: "Tất cả", 
+      value: "", 
+      icon: Users, 
+      color: "blue",
+      gradient: "from-blue-600 to-indigo-700",
+      accent: "#0054A6",
+      bgLight: "bg-blue-50/80",
+      borderCol: "border-indigo-600",
+      colorClass: 'border-blue-200',
+      bgClass: 'bg-blue-50',
+      textClass: 'text-blue-700'
+    },
+    { 
+      label: "KH Hiện hữu", 
+      value: "active", 
+      icon: CheckCircle2, 
+      color: "green",
+      gradient: "from-green-500 to-green-700",
+      accent: "#22C55E",
+      bgLight: "bg-green-50/80",
+      borderCol: "border-green-500",
+      colorClass: 'border-green-200',
+      bgClass: 'bg-green-50',
+      textClass: 'text-green-700'
+    },
+    { 
+      label: "KH Mới", 
+      value: "new", 
+      icon: Star, 
+      color: "sky",
+      gradient: "from-sky-500 to-blue-700",
+      accent: "#0EA5E9",
+      bgLight: "bg-sky-50/80",
+      borderCol: "border-sky-500",
+      colorClass: 'border-sky-200',
+      bgClass: 'bg-sky-50',
+      textClass: 'text-sky-700'
+    },
+    { 
+      label: "KH Phục hồi", 
+      value: "recovered", 
+      icon: RefreshCw, 
+      color: "indigo",
+      gradient: "from-indigo-500 to-indigo-800",
+      accent: "#6366F1",
+      bgLight: "bg-indigo-50/80",
+      borderCol: "border-indigo-500",
+      colorClass: 'border-indigo-200',
+      bgClass: 'bg-indigo-50',
+      textClass: 'text-indigo-700'
+    },
+    { 
+      label: "KH Nguy cơ", 
+      value: "at_risk", 
+      icon: AlertCircle, 
+      color: "orange",
+      gradient: "from-orange-400 to-orange-600",
+      accent: "#F97316",
+      bgLight: "bg-orange-50/80",
+      borderCol: "border-orange-500",
+      colorClass: 'border-orange-200',
+      bgClass: 'bg-orange-50',
+      textClass: 'text-orange-700'
+    },
+    { 
+      label: "KH Rời bỏ", 
+      value: "churned", 
+      icon: UserMinus, 
+      color: "rose",
+      gradient: "from-rose-500 to-rose-700",
+      accent: "#E11D48",
+      bgLight: "bg-rose-50/80",
+      borderCol: "border-rose-500",
+      colorClass: 'border-rose-200',
+      bgClass: 'bg-rose-50',
+      textClass: 'text-rose-700'
+    }
+  ];
 
   const getTaskFlow = (target) => {
     if (!target) return { type: 'Giao Lead', color: 'from-emerald-500 to-teal-700', text: 'GIAO LEAD MỚI', subtitle: 'Tiếp cận khách hàng tiềm năng' };
