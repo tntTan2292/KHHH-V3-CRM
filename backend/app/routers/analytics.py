@@ -57,15 +57,12 @@ def get_governed_comparison_periods(db, start_date, end_date, comparison_type="m
         # [GOVERNANCE] Boundary Capping: Cannot report into the future
         curr_end = min(requested_end, max_data_date.replace(hour=23, minute=59, second=59))
 
-    # [GOVERNANCE] Like-for-Like Comparison (Same Length)
-    delta_days = (curr_end - curr_start).days
-    
     if comparison_type == "yoy":
         prev_start = curr_start - dateutil.relativedelta.relativedelta(years=1)
-        prev_end = prev_start + timedelta(days=delta_days)
+        prev_end = curr_end - dateutil.relativedelta.relativedelta(years=1)
     else:
         prev_start = curr_start - dateutil.relativedelta.relativedelta(months=1)
-        prev_end = prev_start + timedelta(days=delta_days)
+        prev_end = curr_end - dateutil.relativedelta.relativedelta(months=1)
         
     return curr_start, curr_end, prev_start, prev_end, max_data_date
 
@@ -323,13 +320,11 @@ async def get_analytics_summary(
     latest_month_range = None
     if latest_trans and hasattr(latest_trans, 'year'):
         year, month = latest_trans.year, latest_trans.month
-        import calendar
-        last_day = calendar.monthrange(year, month)[1]
         latest_month_range = {
             "label": f"Tháng {month:02d}/{year}",
             "value": f"{year}-{month:02d}",
             "start": f"{year}-{month:02d}-01",
-            "end": f"{year}-{month:02d}-{last_day:02d}"
+            "end": latest_trans.strftime("%Y-%m-%d")
         }
     
     return {

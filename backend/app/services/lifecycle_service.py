@@ -52,7 +52,9 @@ class LifecycleService:
         stage_map = {
             "active": "active",
             "at_risk": "at_risk",
-            "churned": "churned_snapshot", 
+            "churned": "churned", 
+            "new": "new",
+            "rebuy": "recovered",
             "new_transition": "new",       
             "recovered_transition": "recovered", 
             "churn_transition": "churned"  
@@ -74,7 +76,7 @@ class LifecycleService:
         if (is_latest_month or is_partial) and start_date and end_date:
             from datetime import datetime, timedelta
             s_dt = datetime.strptime(start_date, "%Y-%m-%d")
-            e_dt = datetime.strptime(end_date, "%Y-%m-%d")
+            e_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
             
             logger.info(f"SSOT: Partial or Latest range detected ({start_date} to {end_date}). Recalculating Transitions...")
                 
