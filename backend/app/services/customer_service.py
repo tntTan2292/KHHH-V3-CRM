@@ -57,29 +57,67 @@ class CustomerService:
             status_val = lifecycle_status.lower()
             month_str = curr_start.strftime("%Y-%m")
             
-            from ..models import CustomerMonthlySnapshot
-            # Join with snapshots to get governed transitions if month is matched
+            # RF5C-HOTFIX: Temporal Integrity check
+            # Full month check (simplified)
+            is_partial = not (curr_start.day == 1 and (curr_end + timedelta(seconds=1)).day == 1)
+            
+            from ..models import CustomerMonthlySnapshot, Transaction
             snapshot_sub = db.query(CustomerMonthlySnapshot).filter(CustomerMonthlySnapshot.year_month == month_str).subquery()
             
-            if status_val == 'new':
-                filters.append(snapshot_sub.c.is_new_transition == True)
-            elif status_val == 'recovered':
-                filters.append(snapshot_sub.c.is_recovered_transition == True)
-            elif status_val == 'churned':
-                filters.append(snapshot_sub.c.is_churn_transition == True)
-            elif status_val == 'active':
-                filters.append(snapshot_sub.c.lifecycle_stage == 'ACTIVE')
-            elif status_val == 'at_risk':
-                filters.append(snapshot_sub.c.lifecycle_stage == 'AT_RISK')
-            elif status_val == 'churned_snapshot':
-                filters.append(snapshot_sub.c.lifecycle_stage == 'CHURNED')
+            if is_partial and status_val in ['new', 'recovered', 'churned']:
+                if status_val == 'new':
+                    # First transaction ever falls within [curr_start, curr_end]
+                    filters.append(exists().where(
+                        (Transaction.ma_kh == Customer.ma_crm_cms) &
+                        (Transaction.ngay_chap_nhan.between(curr_start, curr_end))
+                    ))
+                    filters.append(~exists().where(
+                        (Transaction.ma_kh == Customer.ma_crm_cms) &
+                        (Transaction.ngay_chap_nhan < curr_start)
+                    ))
+                elif status_val == 'recovered':
+                    # Transaction in period, but none in previous 30 days
+                    filters.append(exists().where(
+                        (Transaction.ma_kh == Customer.ma_crm_cms) &
+                        (Transaction.ngay_chap_nhan.between(curr_start, curr_end))
+                    ))
+                    filters.append(~exists().where(
+                        (Transaction.ma_kh == Customer.ma_crm_cms) &
+                        (Transaction.ngay_chap_nhan.between(curr_start - timedelta(days=30), curr_start - timedelta(seconds=1)))
+                    ))
+                    filters.append(exists().where(
+                        (Transaction.ma_kh == Customer.ma_crm_cms) &
+                        (Transaction.ngay_chap_nhan < curr_start - timedelta(days=30))
+                    ))
+                elif status_val == 'churned':
+                    # Simplified 90-day churn rule within period
+                    filters.append(exists().where(
+                        (Transaction.ma_kh == Customer.ma_crm_cms) &
+                        (Transaction.ngay_chap_nhan <= curr_end)
+                    ))
+                    filters.append(~exists().where(
+                        (Transaction.ma_kh == Customer.ma_crm_cms) &
+                        (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=90), curr_end))
+                    ))
             else:
-                filters.append(func.lower(Customer.lifecycle_state) == status_val)
-            
-            # Ensure the join is performed in the final query
-            # We'll add this subquery to the select_from chain later
-            # For now, we just ensure Customer matches the snapshot
-            filters.append(Customer.ma_crm_cms == snapshot_sub.c.ma_kh)
+                # Use Snapshot Governance for Full Month or Snapshot-based states
+                if status_val == 'new':
+                    filters.append(snapshot_sub.c.is_new_transition == True)
+                elif status_val == 'recovered':
+                    filters.append(snapshot_sub.c.is_recovered_transition == True)
+                elif status_val == 'churned':
+                    filters.append(snapshot_sub.c.is_churn_transition == True)
+                elif status_val == 'active':
+                    filters.append(snapshot_sub.c.lifecycle_stage == 'ACTIVE')
+                elif status_val == 'at_risk':
+                    filters.append(snapshot_sub.c.lifecycle_stage == 'AT_RISK')
+                elif status_val == 'churned_snapshot':
+                    filters.append(snapshot_sub.c.lifecycle_stage == 'CHURNED')
+                else:
+                    filters.append(func.lower(Customer.lifecycle_state) == status_val)
+                
+                # Join with snapshot for all cases using snapshot filters
+                filters.append(Customer.ma_crm_cms == snapshot_sub.c.ma_kh)
             
         if rfm_segment:
             filters.append(Customer.rfm_segment == rfm_segment)

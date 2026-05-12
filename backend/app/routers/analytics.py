@@ -118,12 +118,13 @@ async def get_dashboard_stats(
     current_month_str = max_data_date.strftime("%Y-%m")
     
     # [GOVERNANCE] Lifecycle is a Historical State Machine. 
-    # Dashboard summary should always reflect the CURRENT state distribution.
-    # Fetch Lifecycle from Unified SSOT Service
+    # Fetch Lifecycle from Unified SSOT Service for the SELECTED period.
     lifecycle_stats = LifecycleService.get_customer_lifecycle_stats(
         db, 
-        month_str=current_month_str, 
-        scope_point_ids=scope_point_ids
+        month_str=month_str, 
+        scope_point_ids=scope_point_ids,
+        start_date=start_date,
+        end_date=end_date
     )
 
     # Fetch Revenue and Growth from FILTERED month summary

@@ -1251,64 +1251,47 @@ export default function Customers() {
         </div>
       )}
 
-      {/* Lifecycle Filter Bar - RF5C CATEGORIZED */}
-      <div className="space-y-4 mb-4">
-        {[
-          { id: "Snapshot", label: "Trạng thái (Snapshot)", color: "text-vnpost-blue" },
-          { id: "Transition", label: "Biến động trong kỳ (Transition)", color: "text-indigo-600" },
-          { id: "Historical", label: "Dữ liệu lịch sử", color: "text-gray-500" }
-        ].map(cat => (
-          <div key={cat.id} className="space-y-2">
-            <div className="flex items-center gap-2 ml-1">
-              <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${cat.color}`}>{cat.label}</span>
-              <div className="flex-1 h-[1px] bg-gray-100"></div>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2">
-              {lifecycleConfig
-                .filter(item => item.category === cat.id || (cat.id === "Snapshot" && item.category === "General"))
-                .map((item) => {
-                const isActive = filters.lifecycle_status === item.value;
-                const count = lifecycleStats[item.value === "" ? "Tất cả" : item.value] || 0;
-                const monthSuffix = (item.category === "Transition" && selectedMonth) ? `tháng ${selectedMonth}` : "";
-                
-                return (
-                  <button
-                    key={item.label}
-                    onClick={() => {
-                      setFilters(prev => ({ ...prev, lifecycle_status: item.value }));
-                      setPage(1);
-                    }}
-                    className={`group relative p-2.5 pl-4 rounded-xl transition-all duration-300 flex flex-col items-start gap-0.5 text-left overflow-hidden border-2 ${
-                      isActive 
-                        ? `bg-white shadow-lg scale-[1.02] z-10 ${item.borderCol} border-l-[4px]` 
-                        : `${item.bgLight} border-gray-100/50 hover:${item.borderCol} hover:bg-white hover:shadow-md border-l-[4px] opacity-90 hover:opacity-100`
-                    }`}
-                  >
-                    <div className="flex items-center justify-between w-full">
-                      <span className={`text-[9px] font-black uppercase tracking-wider truncate max-w-[120px] ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
-                        {item.label} {monthSuffix}
-                      </span>
-                      <item.icon size={14} className={isActive ? `text-${item.color}-600` : "text-gray-400 opacity-40"} />
-                    </div>
-                    
-                    <div className="flex items-baseline gap-1 pointer-events-none">
-                      <span className={`text-lg font-black tracking-tight ${
-                        isActive ? `text-${item.color}-600` : `text-${item.color}-700`
-                      }`}>
-                        {count.toLocaleString()}
-                      </span>
-                      <span className="text-[8px] text-gray-400 font-bold uppercase opacity-60">KH</span>
-                    </div>
+      {/* Lifecycle Filter Bar - RESTORED TO SINGLE ROW */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-2 mb-4">
+        {lifecycleConfig.map((item) => {
+          const isActive = filters.lifecycle_status === item.value;
+          const count = lifecycleStats[item.value === "" ? "Tất cả" : item.value] || 0;
+          
+          return (
+            <button
+              key={item.label}
+              onClick={() => {
+                setFilters(prev => ({ ...prev, lifecycle_status: item.value }));
+                setPage(1);
+              }}
+              className={`group relative p-2.5 pl-4 rounded-xl transition-all duration-300 flex flex-col items-start gap-0.5 text-left overflow-hidden border-2 ${
+                isActive 
+                  ? `bg-white shadow-lg scale-[1.02] z-10 ${item.borderCol} border-l-[4px]` 
+                  : `${item.bgLight} border-gray-100/50 hover:${item.borderCol} hover:bg-white hover:shadow-md border-l-[4px] opacity-90 hover:opacity-100`
+              }`}
+            >
+              <div className="flex items-center justify-between w-full">
+                <span className={`text-[9px] font-black uppercase tracking-wider truncate ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
+                  {item.label}
+                </span>
+                <item.icon size={14} className={isActive ? `text-${item.color}-600` : "text-gray-400 opacity-40"} />
+              </div>
+              
+              <div className="flex items-baseline gap-1 pointer-events-none">
+                <span className={`text-lg font-black tracking-tight ${
+                  isActive ? `text-${item.color}-600` : `text-${item.color}-700`
+                }`}>
+                  {count.toLocaleString()}
+                </span>
+                <span className="text-[8px] text-gray-400 font-bold uppercase opacity-60">KH</span>
+              </div>
 
-                    {isActive && (
-                      <div className={`absolute bottom-0 left-0 h-0.5 w-full bg-gradient-to-r ${item.gradient}`}></div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+              {isActive && (
+                <div className={`absolute bottom-0 left-0 h-0.5 w-full bg-gradient-to-r ${item.gradient}`}></div>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       <div className="card space-y-4 !p-4 shadow-sm border-gray-100 relative z-50">
