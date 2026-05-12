@@ -1316,14 +1316,28 @@ export default function Customers() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {loading ? (
-                <tr><td colSpan="11" className="p-20 text-center text-gray-400 font-medium">
-                  <RefreshCw className="animate-spin mx-auto mb-3" size={32} />
-                  Đang truy vấn dữ liệu từ Server...
+                <tr><td colSpan="11" className="p-0">
+                  <div className="bg-white/50 backdrop-blur-sm">
+                    <Skeleton.Table rows={10} />
+                  </div>
                 </td></tr>
               ) : customers.length === 0 ? (
                 <tr><td colSpan="11" className="p-20 text-center text-gray-400 font-medium">
-                  <TableProperties size={48} className="mx-auto mb-4 text-gray-200" />
-                  Không tìm thấy khách hàng nào khớp với điều kiện lọc.
+                  <div className="flex flex-col items-center justify-center space-y-4 animate-in fade-in duration-500">
+                    <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center text-gray-200 border-2 border-dashed border-gray-100">
+                      <TableProperties size={40} />
+                    </div>
+                    <div>
+                      <p className="text-gray-800 font-black uppercase tracking-widest text-sm">Kho dữ liệu trống</p>
+                      <p className="text-[11px] text-gray-400 mt-1 italic">Không tìm thấy khách hàng nào khớp với điều kiện lọc hiện tại.</p>
+                    </div>
+                    <button 
+                      onClick={() => setFilters({ search: '', rfm_segment: '', lifecycle_status: '' })}
+                      className="px-6 py-2 bg-vnpost-blue text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-[#003E7E] transition-all shadow-lg shadow-blue-100"
+                    >
+                      Xoá bộ lọc & Thử lại
+                    </button>
+                  </div>
                 </td></tr>
               ) : (
                 customers.map(c => (
@@ -1583,7 +1597,9 @@ export default function Customers() {
             
             <div className="p-6 bg-gray-50/50">
               {loadingDetails ? (
-                <div className="text-center py-20 text-gray-500">Đang tải biểu đồ tỉ trọng và thông tin...</div>
+                <div className="p-10 animate-in fade-in duration-300">
+                  <Skeleton.Modal />
+                </div>
               ) : customerDetails ? (
                 <div className="space-y-6">
                    {/* Info header */}

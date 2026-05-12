@@ -589,9 +589,19 @@ const PotentialCustomers_V3 = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-50/50">
                   {loading ? (
-                    <tr><td colSpan="8" className="p-20 text-center animate-pulse font-black text-gray-300 uppercase tracking-widest">Đang kết nối trung tâm dữ liệu...</td></tr>
+                    <tr><td colSpan="8" className="p-0">
+                      <Skeleton.Table rows={pageSize} />
+                    </td></tr>
                   ) : data.items?.length === 0 ? (
-                    <tr><td colSpan="8" className="p-20 text-center font-bold text-gray-400 italic">Không có khách hàng nào trong phân khúc này.</td></tr>
+                    <tr><td colSpan="8" className="p-20 text-center">
+                      <div className="flex flex-col items-center justify-center space-y-3 animate-in fade-in duration-500">
+                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-200 border-2 border-dashed border-gray-100">
+                           <Target size={32} />
+                        </div>
+                        <p className="text-gray-800 font-black uppercase tracking-widest text-xs">Vùng dữ liệu trống</p>
+                        <p className="text-[11px] text-gray-400 italic">Hiện không có khách hàng vãng lai nào khớp với tiêu chí phân hạng {rfmSegment}.</p>
+                      </div>
+                    </td></tr>
                   ) : data.items?.map((item, index) => (
                     <tr key={index} className="hover:bg-blue-50/30 transition-all group">
                       <td className="p-2 text-gray-300 font-black text-center text-[13px]">{(page - 1) * pageSize + index + 1}</td>

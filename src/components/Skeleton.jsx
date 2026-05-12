@@ -54,9 +54,45 @@ export const SkeletonTable = ({ rows = 5 }) => (
   </div>
 );
 
+export const SkeletonKPIMini = () => (
+  <div className="card p-3 border-l-4 border-l-gray-200 bg-gray-50/30 flex justify-between items-end">
+    <div className="space-y-2">
+      <SkeletonBase className="w-16 h-3" />
+      <SkeletonBase className="w-24 h-6" />
+    </div>
+    <SkeletonBase className="w-6 h-6 rounded-full opacity-20" />
+  </div>
+);
+
+export const SkeletonModal = () => (
+  <div className="space-y-6">
+    <div className="bg-white p-6 rounded-[2rem] border border-gray-200 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="md:col-span-2 space-y-4">
+        <div className="space-y-2">
+          <SkeletonBase className="w-24 h-3" />
+          <SkeletonBase className="w-64 h-8" />
+        </div>
+        <div className="space-y-2">
+          <SkeletonBase className="w-32 h-3" />
+          <SkeletonBase className="w-full h-4" />
+        </div>
+      </div>
+      <div className="space-y-4">
+        <SkeletonBase className="w-full h-32 rounded-2xl" />
+      </div>
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <SkeletonBase className="w-full h-64 rounded-[2rem]" />
+      <SkeletonBase className="w-full h-64 rounded-[2rem]" />
+    </div>
+  </div>
+);
+
 export default {
   Base: SkeletonBase,
   Card: SkeletonCard,
   Chart: SkeletonChart,
-  Table: SkeletonTable
+  Table: SkeletonTable,
+  KPIMini: SkeletonKPIMini,
+  Modal: SkeletonModal
 };

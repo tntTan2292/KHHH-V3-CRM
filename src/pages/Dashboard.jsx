@@ -677,7 +677,7 @@ function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {(!summaryData && !stats.lifecycle?.["active"]) ? (
                 <>
-                  <Skeleton.Card /><Skeleton.Card /><Skeleton.Card />
+                  <Skeleton.KPIMini /><Skeleton.KPIMini /><Skeleton.KPIMini />
                 </>
               ) : (
                 <>
@@ -745,7 +745,7 @@ function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               {(!summaryData && !stats.lifecycle?.["active"]) ? (
                 <>
-                  <Skeleton.Card /><Skeleton.Card />
+                  <Skeleton.KPIMini /><Skeleton.KPIMini />
                 </>
               ) : (
                 <>
@@ -787,9 +787,16 @@ function Dashboard() {
               <Link to="/guidelines#potentials" className="text-vnpost-blue hover:underline cursor-pointer">Potentials</Link>
               )
             </h3>
-            <div className={`grid grid-cols-1 md:grid-cols-3 gap-3 transition-opacity duration-300 ${(!summaryData && !stats.potential_ranks?.["Kim Cương"]) ? 'opacity-50' : 'opacity-100'}`}>
-              <div 
-                className="card p-3 border-t-4 border-t-blue-600 bg-gradient-to-br from-blue-600/5 to-transparent relative overflow-hidden group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+            <div className={`grid grid-cols-1 md:grid-cols-3 gap-3 transition-opacity duration-300 ${(!summaryData && !stats.potential_ranks?.["Kim Cương"]) ? 'opacity-100' : 'opacity-100'}`}>
+              {(!summaryData && !stats.potential_ranks?.["Kim Cương"]) ? (
+                <>
+                  <Skeleton.Card /><Skeleton.Card /><Skeleton.Card />
+                </>
+              ) : (
+                <>
+                  <div 
+                    className="card p-3 border-t-4 border-t-blue-600 bg-gradient-to-br from-blue-600/5 to-transparent relative overflow-hidden group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+
                 onClick={() => {
                   const node = selectedNode;
                   if (node) saveNavigationContext(node);
@@ -854,7 +861,9 @@ function Dashboard() {
 
                 <p className="text-[11px] text-orange-800 font-bold mt-2 relative z-10 uppercase">&gt; 500K và &gt; 5 đơn/tháng</p>
               </div>
-            </div>
+            </>
+          )}
+        </div>
           </div>
           
           <div className="card flex flex-col items-center justify-center p-6 bg-white/40 shadow-sm border border-white/60">
