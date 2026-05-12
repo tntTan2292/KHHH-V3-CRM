@@ -53,26 +53,31 @@ class LifecycleService:
         
         stage_map = {
             # STATE Metrics (Population - 90d probationary or mature)
-            "new": "new",                   # 90-day New Population
-            "recovered": "recovered",       # 90-day Recovered Population
-            "active": "active",             # Mature Active Population
-            "at_risk": "at_risk",           # Population at risk
-            "churned": "churned_snapshot",  # Total Churned Population (Snapshot)
-            "churned_snapshot": "churned_snapshot",
+            "new": "new_pop",                   # 90-day New Population
+            "recovered": "recovered_pop",       # 90-day Recovered Population
+            "active": "active",                 # Mature Active Population
+            "at_risk": "at_risk",               # Population at risk
+            "churned": "churn_pop",             # Total Churned Population (Snapshot)
+            "churned_snapshot": "churn_pop",
             
             # TRANSITION Metrics (Flow/Event - Month-locked)
-            "new_transition": "discard",     # Already covered by 'new' state
-            "recovered_transition": "discard",# Already covered by 'recovered' state
-            "churn_transition": "churned"    # Churn event in month (KPI Card)
+            "new_transition": "new_event",
+            "recovered_transition": "recovered_event",
+            "churn_transition": "churn_event"
         }
         
         results = {
-            "active": 0, "new": 0, "recovered": 0, "at_risk": 0, "churned": 0, "churned_snapshot": 0, "total": 0
+            "active": 0, 
+            "new_event": 0, "new_pop": 0, 
+            "recovered_event": 0, "recovered_pop": 0, 
+            "at_risk": 0, 
+            "churn_event": 0, "churn_pop": 0, 
+            "total": 0
         }
 
         for stage, count in summary_rows:
             if not stage: continue
-            target_key = stage_map.get(stage.lower(), stage.lower())
+            target_key = stage_map.get(stage.lower(), "discard")
             if target_key in results:
                 results[target_key] += int(count or 0)
 
@@ -86,8 +91,22 @@ class LifecycleService:
             
             logger.info(f"SSOT: Partial or Latest range detected ({start_date} to {end_date}). Recalculating Transitions...")
                 
-            # Constitutional NEW (Population): First transaction ever was within the last 90 days of e_dt
-            new_count_query = db.query(func.count(Customer.id)).filter(
+            # NEW EVENT (Joined strictly within month)
+            new_event_query = db.query(func.count(Customer.id)).filter(
+                exists().where(
+                    (Transaction.ma_kh == Customer.ma_crm_cms) &
+                    (Transaction.ngay_chap_nhan.between(s_dt, e_dt))
+                ),
+                ~exists().where(
+                    (Transaction.ma_kh == Customer.ma_crm_cms) &
+                    (Transaction.ngay_chap_nhan < s_dt)
+                )
+            )
+            if scope_point_ids: new_event_query = new_event_query.filter(Customer.point_id.in_(scope_point_ids))
+            results['new_event'] = new_event_query.scalar() or 0
+
+            # NEW POPULATION (90-day window)
+            new_pop_query = db.query(func.count(Customer.id)).filter(
                 exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
                     (Transaction.ngay_chap_nhan >= e_dt - timedelta(days=90)) &
@@ -98,34 +117,47 @@ class LifecycleService:
                     (Transaction.ngay_chap_nhan < e_dt - timedelta(days=90))
                 )
             )
-            if scope_point_ids: new_count_query = new_count_query.filter(Customer.point_id.in_(scope_point_ids))
-            results['new'] = new_count_query.scalar() or 0
+            if scope_point_ids: new_pop_query = new_pop_query.filter(Customer.point_id.in_(scope_point_ids))
+            results['new_pop'] = new_pop_query.scalar() or 0
 
-            # Constitutional RECOVERED (Population): Recovered within the last 90 days and still active
-            # For simplicity in dynamic query, we check for a gap > 30 days followed by activity within last 90 days
-            recovered_query = db.query(func.count(Customer.id)).filter(
+            # RECOVERED EVENT (Recovered strictly within month)
+            recovered_event_query = db.query(func.count(Customer.id)).filter(
+                exists().where(
+                    (Transaction.ma_kh == Customer.ma_crm_cms) &
+                    (Transaction.ngay_chap_nhan.between(s_dt, e_dt))
+                ),
+                ~exists().where(
+                    (Transaction.ma_kh == Customer.ma_crm_cms) &
+                    (Transaction.ngay_chap_nhan.between(s_dt - timedelta(days=30), s_dt - timedelta(seconds=1)))
+                ),
+                exists().where(
+                    (Transaction.ma_kh == Customer.ma_crm_cms) &
+                    (Transaction.ngay_chap_nhan < s_dt - timedelta(days=30))
+                )
+            )
+            if scope_point_ids: recovered_event_query = recovered_event_query.filter(Customer.point_id.in_(scope_point_ids))
+            results['recovered_event'] = recovered_event_query.scalar() or 0
+
+            # RECOVERED POPULATION (90-day window)
+            recovered_pop_query = db.query(func.count(Customer.id)).filter(
                 exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
                     (Transaction.ngay_chap_nhan.between(e_dt - timedelta(days=90), e_dt))
                 ),
-                # There must have been a prior 30-day inactivity gap before the most recent active period
-                # (This is an approximation for real-time dynamic display)
                 exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
                     (Transaction.ngay_chap_nhan < e_dt - timedelta(days=30))
                 ),
-                # But NOT NEW
                 exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
                     (Transaction.ngay_chap_nhan < e_dt - timedelta(days=90))
                 )
             )
-            if scope_point_ids: recovered_query = recovered_query.filter(Customer.point_id.in_(scope_point_ids))
-            results['recovered'] = recovered_query.scalar() or 0
+            if scope_point_ids: recovered_pop_query = recovered_pop_query.filter(Customer.point_id.in_(scope_point_ids))
+            results['recovered_pop'] = recovered_pop_query.scalar() or 0
 
-            # Constitutional CHURN (Transition Event in Period)
-            churn_query = db.query(func.count(Customer.id)).filter(
-                # Reached 90 days inactivity exactly during [s_dt, e_dt]
+            # CHURN EVENT (Churn strictly within month)
+            churn_event_query = db.query(func.count(Customer.id)).filter(
                 ~exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) & 
                     (Transaction.ngay_chap_nhan.between(e_dt - timedelta(days=90), e_dt))
@@ -135,17 +167,15 @@ class LifecycleService:
                     (Transaction.ngay_chap_nhan.between(s_dt - timedelta(days=90), s_dt))
                 )
             )
-            if scope_point_ids: churn_query = churn_query.filter(Customer.point_id.in_(scope_point_ids))
-            results['churned'] = churn_query.scalar() or 0
+            if scope_point_ids: churn_event_query = churn_event_query.filter(Customer.point_id.in_(scope_point_ids))
+            results['churn_event'] = churn_event_query.scalar() or 0
 
-            # Constitutional ACTIVE (Mature Population): Active in last 30 days and first order > 90 days ago
+            # ACTIVE (Mature)
             active_mature_query = db.query(func.count(Customer.id)).filter(
-                # Active in last 30 days
                 exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
                     (Transaction.ngay_chap_nhan.between(e_dt - timedelta(days=30), e_dt))
                 ),
-                # Mature: First order was > 90 days ago
                 exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
                     (Transaction.ngay_chap_nhan < e_dt - timedelta(days=90))

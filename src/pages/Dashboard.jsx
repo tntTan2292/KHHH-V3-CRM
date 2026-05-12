@@ -806,15 +806,15 @@ function Dashboard() {
                           <p className="text-indigo-600 text-[9px] font-black uppercase tracking-widest">Mới</p>
                           <span className="text-[8px] opacity-40 font-bold uppercase">{selectedMonthLabel}</span>
                         </div>
-                        <h3 className="text-xl font-black">{(stats?.lifecycle?.["new"] || 0).toLocaleString()}</h3>
+                        <h3 className="text-xl font-black">{(stats?.lifecycle?.["new_event"] || 0).toLocaleString()}</h3>
                       </div>
                       <Sparkles size={16} className="text-indigo-300" />
                     </div>
                     
                     <div className="flex items-center justify-between mt-1">
                       <div className="flex items-center gap-1 opacity-40 hover:opacity-100 transition-opacity">
-                         <span className="text-[9px] font-black text-indigo-400 uppercase">Dân số 90 ngày:</span>
-                         <span className="text-[10px] font-black text-indigo-600">{(stats?.lifecycle?.["new"] || 0).toLocaleString()}</span>
+                         <span className="text-[9px] font-black text-indigo-400 uppercase">LK:</span>
+                         <span className="text-[10px] font-black text-indigo-600">{(stats?.lifecycle?.["new_pop"] || 0).toLocaleString()}</span>
                       </div>
                     </div>
                   </div>
@@ -834,15 +834,15 @@ function Dashboard() {
                           <p className="text-emerald-600 text-[9px] font-black uppercase tracking-widest">Tái bản</p>
                           <span className="text-[8px] opacity-40 font-bold uppercase">{selectedMonthLabel}</span>
                         </div>
-                        <h3 className="text-xl font-black">{(stats?.lifecycle?.["recovered"] || 0).toLocaleString()}</h3>
+                        <h3 className="text-xl font-black">{(stats?.lifecycle?.["recovered_event"] || 0).toLocaleString()}</h3>
                       </div>
                       <ArrowUpRight size={16} className="text-green-300" />
                     </div>
 
                     <div className="flex items-center justify-between mt-1">
                       <div className="flex items-center gap-1 opacity-40 hover:opacity-100 transition-opacity">
-                         <span className="text-[9px] font-black text-emerald-400 uppercase">Dân số 90 ngày:</span>
-                         <span className="text-[10px] font-black text-emerald-600">{(stats?.lifecycle?.["recovered"] || 0).toLocaleString()}</span>
+                         <span className="text-[9px] font-black text-emerald-400 uppercase">LK:</span>
+                         <span className="text-[10px] font-black text-emerald-600">{(stats?.lifecycle?.["recovered_pop"] || 0).toLocaleString()}</span>
                       </div>
                     </div>
                   </div>
@@ -902,15 +902,15 @@ function Dashboard() {
                           <p className="text-rose-600 text-[9px] font-black uppercase tracking-widest">Rời bỏ</p>
                           <span className="text-[8px] opacity-40 font-bold uppercase">{selectedMonthLabel}</span>
                         </div>
-                        <h3 className="text-xl font-black">{(stats?.lifecycle?.["churned"] || 0).toLocaleString()}</h3>
+                        <h3 className="text-xl font-black">{(stats?.lifecycle?.["churn_event"] || 0).toLocaleString()}</h3>
                       </div>
                       <UserMinus size={16} className="text-rose-300" />
                     </div>
 
                     <div className="flex items-center justify-between mt-1">
                       <div className="flex items-center gap-1 opacity-40 hover:opacity-100 transition-opacity">
-                         <span className="text-[9px] font-black text-rose-400 uppercase">Rời bỏ trong kỳ:</span>
-                         <span className="text-[10px] font-black text-rose-600">{(stats?.lifecycle?.["churned"] || 0).toLocaleString()}</span>
+                         <span className="text-[9px] font-black text-rose-400 uppercase">LK:</span>
+                         <span className="text-[10px] font-black text-rose-600">{(stats?.lifecycle?.["churn_pop"] || 0).toLocaleString()}</span>
                       </div>
                     </div>
                   </div>
