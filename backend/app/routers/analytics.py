@@ -164,14 +164,19 @@ async def get_dashboard_stats(
         tong_dt = 0.0
         # Optional: Trigger summary refresh logic here or return 425 Too Early
     
-    # 4. KPIs Lấy trực tiếp từ Lifecycle Engine (Sử dụng Slugs)
-    kh_moi = lifecycle_stats.get("new", 0)
-    kh_roi_bo = lifecycle_stats.get("churned", 0)
+    # 4. KPIs Lấy trực tiếp từ Lifecycle Engine (Sử dụng Slugs mới)
+    # [RF5C] Map to Constitutional Fields: Big Number = Event, Small Number = Population
+    kh_moi = lifecycle_stats.get("new_event", 0)
+    kh_moi_pop = lifecycle_stats.get("new_pop", 0)
+    kh_roi_bo = lifecycle_stats.get("churn_event", 0)
+    kh_roi_bo_pop = lifecycle_stats.get("churn_pop", 0)
     kh_hien_huu = lifecycle_stats.get("active", 0)
-    kh_tai_ban = lifecycle_stats.get("recovered", 0)
+    kh_tai_ban = lifecycle_stats.get("recovered_event", 0)
+    kh_tai_ban_pop = lifecycle_stats.get("recovered_pop", 0)
     kh_nguy_co = lifecycle_stats.get("at_risk", 0)
     
-    tong_kh = kh_moi + kh_hien_huu + kh_tai_ban + kh_nguy_co + kh_roi_bo
+    # [GOVERNANCE] tong_kh includes Active Mature + All Probationary/Snapshot states
+    tong_kh = kh_hien_huu + kh_moi_pop + kh_tai_ban_pop + kh_nguy_co
     
     # 5. KH Tiềm Năng (Vãng lai - Gọi trực tiếp từ Service để đảm bảo đồng bộ logic gom tên)
     _, kh_tiem_nang, potential_ranks, _ = PotentialService.get_potential_data(

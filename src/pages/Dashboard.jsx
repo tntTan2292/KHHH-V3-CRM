@@ -813,7 +813,7 @@ function Dashboard() {
                     
                     <div className="flex items-center justify-between mt-1">
                       <div className="flex items-center gap-1 opacity-40 hover:opacity-100 transition-opacity">
-                         <span className="text-[9px] font-black text-indigo-400 uppercase">LK:</span>
+                         <span className="text-[9px] font-black text-indigo-400 uppercase">Lũy kế:</span>
                          <span className="text-[10px] font-black text-indigo-600">{(stats?.lifecycle?.["new_pop"] || 0).toLocaleString()}</span>
                       </div>
                     </div>
@@ -841,7 +841,7 @@ function Dashboard() {
 
                     <div className="flex items-center justify-between mt-1">
                       <div className="flex items-center gap-1 opacity-40 hover:opacity-100 transition-opacity">
-                         <span className="text-[9px] font-black text-emerald-400 uppercase">LK:</span>
+                         <span className="text-[9px] font-black text-emerald-400 uppercase">Lũy kế:</span>
                          <span className="text-[10px] font-black text-emerald-600">{(stats?.lifecycle?.["recovered_pop"] || 0).toLocaleString()}</span>
                       </div>
                     </div>
@@ -909,7 +909,7 @@ function Dashboard() {
 
                     <div className="flex items-center justify-between mt-1">
                       <div className="flex items-center gap-1 opacity-40 hover:opacity-100 transition-opacity">
-                         <span className="text-[9px] font-black text-rose-400 uppercase">LK:</span>
+                         <span className="text-[9px] font-black text-rose-400 uppercase">Lũy kế:</span>
                          <span className="text-[10px] font-black text-rose-600">{(stats?.lifecycle?.["churn_pop"] || 0).toLocaleString()}</span>
                       </div>
                     </div>

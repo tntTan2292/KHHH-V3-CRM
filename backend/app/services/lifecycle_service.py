@@ -77,9 +77,12 @@ class LifecycleService:
 
         for stage, count in summary_rows:
             if not stage: continue
-            target_key = stage_map.get(stage.lower(), "discard")
+            clean_stage = stage.strip().lower()
+            target_key = stage_map.get(clean_stage, "discard")
             if target_key in results:
                 results[target_key] += int(count or 0)
+            else:
+                logger.warning(f"SSOT: Unmapped lifecycle stage detected: '{clean_stage}'")
 
         # 3. RF5C-HOTFIX: Dynamic Recalculation for Transitions
         # Transitions (New, Recovered, Churned in period) are period-bound.
