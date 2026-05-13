@@ -62,11 +62,14 @@ class CustomerService:
             is_partial = not (curr_start.day == 1 and (curr_end + timedelta(seconds=1)).day == 1)
             
             from ..models import CustomerMonthlySnapshot, Transaction
-            snapshot_sub = db.query(CustomerMonthlySnapshot).filter(CustomerMonthlySnapshot.year_month == month_str).subquery()
             
-            if is_partial and status_val in ['new', 'recovered', 'churned']:
-                if status_val == 'new':
-                    # First transaction ever falls within [curr_start, curr_end]
+            # [RF5C] Check if snapshot exists for this month to decide between Realtime vs Snapshot
+            snapshot_exists = db.query(exists().where(CustomerMonthlySnapshot.year_month == month_str)).scalar()
+            
+            if not snapshot_exists:
+                # REALTIME FALLBACK (For Current Month or missing snapshots)
+                # This must match the logic used by LifecycleService/Dashboard summary
+                if status_val == 'new_event':
                     filters.append(exists().where(
                         (Transaction.ma_kh == Customer.ma_crm_cms) &
                         (Transaction.ngay_chap_nhan.between(curr_start, curr_end))
@@ -75,8 +78,7 @@ class CustomerService:
                         (Transaction.ma_kh == Customer.ma_crm_cms) &
                         (Transaction.ngay_chap_nhan < curr_start)
                     ))
-                elif status_val == 'recovered':
-                    # Transaction in period, but none in previous 30 days
+                elif status_val == 'recovered_event':
                     filters.append(exists().where(
                         (Transaction.ma_kh == Customer.ma_crm_cms) &
                         (Transaction.ngay_chap_nhan.between(curr_start, curr_end))
@@ -85,51 +87,56 @@ class CustomerService:
                         (Transaction.ma_kh == Customer.ma_crm_cms) &
                         (Transaction.ngay_chap_nhan.between(curr_start - timedelta(days=30), curr_start - timedelta(seconds=1)))
                     ))
+                elif status_val == 'churn_event':
+                    # Governance: Churn Event in realtime is a 90-day gap relative to curr_end
                     filters.append(exists().where(
                         (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan < curr_start - timedelta(days=30))
-                    ))
-                elif status_val == 'churned':
-                    # Simplified 90-day churn rule within period
-                    filters.append(exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan <= curr_end)
+                        (Transaction.ngay_chap_nhan < curr_end - timedelta(days=90))
                     ))
                     filters.append(~exists().where(
                         (Transaction.ma_kh == Customer.ma_crm_cms) &
                         (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=90), curr_end))
                     ))
-            # [RF5C] Granular Lifecycle SSOT Mapping
-            # Maps dashboard metrics (Events vs Populations) to specific snapshot filters
-            if status_val == 'new_event':
-                filters.append(snapshot_sub.c.is_new_transition == True)
-            elif status_val == 'new_pop':
-                # Probationary population (New state in current month)
-                filters.append(snapshot_sub.c.lifecycle_state == 'NEW')
-            elif status_val == 'recovered_event':
-                filters.append(snapshot_sub.c.is_recovered_transition == True)
-            elif status_val == 'recovered_pop':
-                # Probationary population (Recovered state in current month)
-                filters.append(snapshot_sub.c.lifecycle_state == 'RECOVERED')
-            elif status_val == 'churn_event':
-                filters.append(snapshot_sub.c.is_churn_transition == True)
-            elif status_val == 'churn_pop' or status_val == 'churned_snapshot':
-                filters.append(snapshot_sub.c.lifecycle_state == 'CHURNED')
-            elif status_val == 'active':
-                filters.append(snapshot_sub.c.lifecycle_state == 'ACTIVE')
-            elif status_val == 'at_risk':
-                filters.append(snapshot_sub.c.lifecycle_state == 'AT_RISK')
-            elif status_val == 'new': # Legacy fallback -> Event
-                filters.append(snapshot_sub.c.is_new_transition == True)
-            elif status_val == 'recovered': # Legacy fallback -> Event
-                filters.append(snapshot_sub.c.is_recovered_transition == True)
-            elif status_val == 'churned': # Legacy fallback -> Event
-                filters.append(snapshot_sub.c.is_churn_transition == True)
+                elif status_val == 'total_pop':
+                    # Population = Everyone active in last 90 days
+                    filters.append(exists().where(
+                        (Transaction.ma_kh == Customer.ma_crm_cms) &
+                        (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=90), curr_end))
+                    ))
+                elif status_val == 'active':
+                    filters.append(func.lower(Customer.lifecycle_state) == 'active')
+                elif status_val == 'at_risk':
+                    filters.append(func.lower(Customer.lifecycle_state) == 'at_risk')
+                else:
+                    filters.append(func.lower(Customer.lifecycle_state) == status_val)
             else:
-                filters.append(func.lower(Customer.lifecycle_state) == status_val)
-            
-            # Join with snapshot for all cases using snapshot filters
-            filters.append(Customer.ma_crm_cms == snapshot_sub.c.ma_kh)
+                # SNAPSHOT LOGIC (For Historical Months)
+                snapshot_sub = db.query(CustomerMonthlySnapshot).filter(CustomerMonthlySnapshot.year_month == month_str).subquery()
+                
+                if status_val == 'total_pop':
+                    # [RF5C] TOTAL POPULATION = Everything except Churned
+                    filters.append(snapshot_sub.c.lifecycle_state.in_(['ACTIVE', 'NEW', 'RECOVERED', 'AT_RISK']))
+                elif status_val == 'new_event':
+                    filters.append(snapshot_sub.c.is_new_transition == True)
+                elif status_val == 'new_pop':
+                    filters.append(snapshot_sub.c.lifecycle_state == 'NEW')
+                elif status_val == 'recovered_event':
+                    filters.append(snapshot_sub.c.is_recovered_transition == True)
+                elif status_val == 'recovered_pop':
+                    filters.append(snapshot_sub.c.lifecycle_state == 'RECOVERED')
+                elif status_val == 'churn_event':
+                    filters.append(snapshot_sub.c.is_churn_transition == True)
+                elif status_val == 'churn_pop':
+                    filters.append(snapshot_sub.c.lifecycle_state == 'CHURNED')
+                elif status_val == 'active':
+                    filters.append(snapshot_sub.c.lifecycle_state == 'ACTIVE')
+                elif status_val == 'at_risk':
+                    filters.append(snapshot_sub.c.lifecycle_state == 'AT_RISK')
+                else:
+                    filters.append(func.lower(Customer.lifecycle_state) == status_val)
+                
+                # Ensure join with the correct month snapshot
+                filters.append(Customer.ma_crm_cms == snapshot_sub.c.ma_kh)
             
         if rfm_segment:
             filters.append(Customer.rfm_segment == rfm_segment)
