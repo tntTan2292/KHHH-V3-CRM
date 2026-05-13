@@ -441,36 +441,37 @@ async def get_revenue_monthly(
     scope_ids = ScopingService.get_effective_scope_ids(db, current_user, node_code)
     if scope_ids is not None and not scope_ids: return []
 
-    # 2. Xác định dải thời gian (Rolling 12 months + Current)
-    # [RF5C] Nếu có start_date/end_date, ưu tiên sử dụng dải ngày người dùng chọn
-    if start_date and end_date:
-        start_month_str = start_date[:7]
-        max_month_raw = end_date[:7]
-    else:
-        max_month_raw = db.query(func.max(MonthlyAnalyticsSummary.year_month)).scalar()
-        if not max_month_raw: return []
-        # Tính mốc bắt đầu (T-12)
-        end_dt = datetime.strptime(max_month_raw, "%Y-%m")
-        start_dt = end_dt - dateutil.relativedelta.relativedelta(months=12)
-        start_month_str = start_dt.strftime("%Y-%m")
+    # 2. Xác định dải thời gian (CỐ ĐỊNH: Tháng mới nhất trong DB lùi 14 tháng)
+    # [GOVERNANCE] Revenue Trend is a Global Context widget. It ignores temporal filters to provide fixed MoM/YoY trend.
+    max_db_month = db.query(func.max(MonthlyAnalyticsSummary.year_month)).scalar() or datetime.now().strftime("%Y-%m")
+    end_dt = datetime.strptime(max_db_month, "%Y-%m")
+    
+    # Tạo danh sách 14 tháng (T-13 -> T)
+    months_range = []
+    for i in range(13, -1, -1):
+        m = end_dt - dateutil.relativedelta.relativedelta(months=i)
+        months_range.append(m.strftime("%Y-%m"))
+    
+    start_month_str = months_range[0]
+    max_month_str = months_range[-1]
 
-    # Group by Tháng-Năm (YYYY-MM)
+    # 3. Query dữ liệu
     query = db.query(
         MonthlyAnalyticsSummary.year_month.label("month"),
         func.sum(MonthlyAnalyticsSummary.total_revenue).label("total")
     ).filter(
         MonthlyAnalyticsSummary.year_month >= start_month_str,
-        MonthlyAnalyticsSummary.year_month <= max_month_raw,
-        MonthlyAnalyticsSummary.lifecycle_stage.in_(['NEW', 'ACTIVE', 'RECOVERED'])
+        MonthlyAnalyticsSummary.year_month <= max_month_str
     )
     
     if scope_ids is not None:
         query = query.filter(MonthlyAnalyticsSummary.point_id.in_(scope_ids))
         
-    stats = query.group_by(MonthlyAnalyticsSummary.year_month)\
-                 .order_by(MonthlyAnalyticsSummary.year_month).all()
-     
-    return [{"month": r[0], "total": r[1] or 0} for r in stats]
+    stats = query.group_by(MonthlyAnalyticsSummary.year_month).all()
+    
+    # Mapping kết quả vào dải tháng (Điền 0 nếu khuyết dữ liệu)
+    data_map = {r[0]: (r[1] or 0) for r in stats}
+    return [{"month": m, "total": data_map.get(m, 0)} for m in months_range]
 
 @router.get("/revenue-by-service")
 # @cache_response(ttl_hours=12)

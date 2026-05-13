@@ -120,7 +120,7 @@ const AIAssistantInsights = ({ summary, stats, churnPrediction, heatmapData }) =
   else if (revGrowth > 5) type = "positive";
 
   return (
-    <div className={`relative overflow-hidden p-6 rounded-[2rem] border transition-all duration-500 shadow-2xl backdrop-blur-xl ${
+    <div className={`relative overflow-hidden p-4 rounded-2xl border transition-all duration-500 shadow-xl backdrop-blur-xl ${
       type === 'positive' ? 'bg-emerald-50/80 border-emerald-200 text-emerald-900 shadow-emerald-100' :
       type === 'warning' ? 'bg-amber-50/80 border-amber-200 text-amber-900 shadow-amber-100' :
       type === 'negative' ? 'bg-red-50/80 border-red-200 text-red-900 shadow-red-100' :
@@ -131,12 +131,12 @@ const AIAssistantInsights = ({ summary, stats, churnPrediction, heatmapData }) =
       }`}></div>
 
       <div className="relative z-10 flex flex-col lg:flex-row gap-6 items-start">
-        <div className={`p-4 rounded-2xl shadow-inner ${
+        <div className={`p-2 rounded-xl shadow-inner ${
           type === 'positive' ? 'bg-emerald-100 text-emerald-600' :
           type === 'warning' ? 'bg-amber-100 text-amber-600 animate-pulse' :
           type === 'negative' ? 'bg-red-100 text-red-600 animate-bounce-slow' : 'bg-indigo-100 text-indigo-600'
         }`}>
-          <Sparkles size={32} />
+          <Sparkles size={20} />
         </div>
 
         <div className="flex-1 space-y-4">
@@ -145,7 +145,7 @@ const AIAssistantInsights = ({ summary, stats, churnPrediction, heatmapData }) =
               <div className={`w-3 h-3 rounded-full ${type === 'negative' ? 'bg-red-500' : 'bg-current'}`}></div>
               Biệt đội Antigravity - Strategic Insights
             </div>
-            <h4 className="text-2xl font-black italic tracking-tight uppercase">
+            <h4 className="text-xl font-black italic tracking-tight uppercase">
               {type === 'negative' ? 'CẢNH BÁO RỦI RO HỆ THỐNG' : 
                type === 'warning' ? 'LƯU Ý BIẾN ĐỘNG CƠ CẤU' : 
                type === 'positive' ? 'TÍN HIỆU TĂNG TRƯỞNG ELITE' : 'PHÂN TÍCH DIỄN BIẾN THỊ TRƯỜNG'}
@@ -197,7 +197,7 @@ const AIAssistantInsights = ({ summary, stats, churnPrediction, heatmapData }) =
 
 const EliteMorningPulse = ({ report, loading }) => {
   if (loading) return (
-    <div className="bg-white rounded-[2.5rem] p-6 shadow-xl border border-gray-100 flex items-center justify-between animate-pulse">
+    <div className="bg-white rounded-2xl p-4 shadow-xl border border-gray-100 flex items-center justify-between animate-pulse">
       <div className="flex items-center gap-6">
         <div className="w-16 h-16 bg-gray-200 rounded-2xl"></div>
         <div className="space-y-2">
@@ -220,15 +220,15 @@ const EliteMorningPulse = ({ report, loading }) => {
   };
 
   return (
-    <div className="bg-white rounded-[2.5rem] p-6 shadow-xl border border-blue-50 relative overflow-hidden group hover:shadow-2xl transition-all duration-500">
+    <div className="bg-white rounded-2xl p-3 shadow-xl border border-blue-50 relative overflow-hidden group hover:shadow-2xl transition-all duration-500">
       <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity">
         <Sparkles size={120} className="text-vnpost-blue" />
       </div>
       
       <div className="flex flex-col lg:flex-row items-center justify-between gap-6 relative z-10">
         <div className="flex items-center gap-6">
-          <div className="w-16 h-16 bg-gradient-to-br from-vnpost-blue to-indigo-700 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-200 animate-bounce-slow">
-            <Zap size={32} />
+          <div className="w-12 h-12 bg-gradient-to-br from-vnpost-blue to-indigo-700 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200 animate-bounce-slow">
+            <Zap size={24} />
           </div>
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -433,7 +433,7 @@ function Dashboard() {
     if (scoringDataRes) setCustomerScoring(scoringDataRes);
     if (churnDataRes) setChurnPrediction(churnDataRes);
     if (healthDataRes) setSystemHealth(healthDataRes);
-  }, [summaryData, trendDataRes, heatmapDataRes, moversDataRes, coverageData, scoringDataRes, churnDataRes, healthDataRes]);
+  }, [summaryData, trendDataRes, heatmapDataRes, moversDataRes, coverageData, scoringDataRes, churnDataRes, healthDataRes, monthlyDataRes]);
 
   // AI Assistant Refresh (Simplified since others are on SWR)
   const analyticAbortRef = useRef(null);
@@ -636,38 +636,30 @@ function Dashboard() {
 
   return (
     <div className="flex bg-gray-50/50 min-h-screen">
-      {!isExporting && (
-        <div className="hidden lg:block">
-           {/* Sidebar is now replaced by Dropdown Filter inside Dashboard content */}
-        </div>
-      )}
-
-      <div className={`flex-1 p-4 space-y-4 ${isExporting ? 'is-exporting' : ''}`} ref={dashboardRef}>
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className={`flex-1 p-4 md:p-6 space-y-3 ${isExporting ? 'is-exporting' : ''}`} ref={dashboardRef}>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-3 rounded-2xl shadow-sm border border-gray-100 relative z-50">
           <div>
-            <h2 className="text-2xl font-black text-vnpost-blue uppercase tracking-tight">Kỷ Nguyên CRM 3.0 Dashboard</h2>
-            <div className="flex items-center gap-2 mt-1">
+            <h2 className="text-xl font-black text-vnpost-blue uppercase tracking-tight">CRM 3.0 Dashboard</h2>
+            <div className="flex items-center gap-2 mt-0.5">
               {selectedNode ? (
-                <span className="text-xs bg-vnpost-orange text-white px-3 py-1 rounded-full font-black uppercase shadow-sm">Đang soi: {selectedNode.title}</span>
+                <span className="text-[10px] bg-vnpost-orange text-white px-2 py-0.5 rounded-full font-black uppercase shadow-sm">Đang soi: {selectedNode.title}</span>
               ) : (
-                <span className="text-xs bg-vnpost-blue/10 text-vnpost-blue px-3 py-1 rounded-full font-bold uppercase border border-vnpost-blue/10">
+                <span className="text-[10px] bg-vnpost-blue/10 text-vnpost-blue px-2 py-0.5 rounded-full font-bold uppercase border border-vnpost-blue/10">
                   {user?.scope || "Toàn tỉnh"}
                 </span>
               )}
-              <span className="text-[11px] text-gray-400 font-bold uppercase tracking-widest bg-gray-100 px-2 py-1 rounded">Bản Nâng Cấp Elite</span>
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest bg-gray-100 px-1.5 py-0.5 rounded">Elite</span>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
              <div className={`logic-mode-badge ${selectedMonth ? 'mode-snapshot' : 'mode-realtime'}`}>
-               <div className={`w-2 h-2 rounded-full animate-pulse ${selectedMonth ? 'bg-slate-400' : 'bg-blue-500'}`}></div>
-               {selectedMonth ? `SNAPSHOT: ${selectedMonth}` : 'REALTIME MODE'}
+               <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${selectedMonth ? 'bg-slate-400' : 'bg-blue-500'}`}></div>
+               {selectedMonth ? `SN: ${selectedMonth}` : 'REALTIME'}
              </div>
-             <button onClick={() => window.location.reload()} className="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-vnpost-blue transition-all shadow-sm"><RefreshCw size={18} /></button>
-             <button onClick={handleExportPDF} className="bg-vnpost-blue text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase shadow-lg flex items-center gap-2 hover:scale-105 active:scale-95 transition-all"><DownloadCloud size={18} /> Xuất Báo Cáo</button>
+             <button onClick={() => window.location.reload()} className="p-2 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-vnpost-blue transition-all shadow-sm"><RefreshCw size={14} /></button>
+             <button onClick={handleExportPDF} className="bg-vnpost-blue text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase shadow-md flex items-center gap-2 hover:scale-105 active:scale-95 transition-all"><DownloadCloud size={14} /> Xuất Báo Cáo</button>
           </div>
         </div>
-
         {/* System Health Alert Banner */}
         {systemHealth?.has_alert && (
           <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white px-6 py-4 rounded-2xl shadow-xl flex items-center justify-between animate-pulse-slow border border-white/20">
@@ -751,16 +743,16 @@ function Dashboard() {
         </div>
 
         {/* SECTION: POPULATION (HIỆN TRẠNG) - TOP PRIORITY */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-black text-vnpost-blue uppercase tracking-[0.2em] flex items-center gap-2">
-              <Users size={18} /> 01. HIỆN TRẠNG TỆP KHÁCH HÀNG (POPULATION)
+            <h3 className="text-[11px] font-black text-vnpost-blue uppercase tracking-[0.2em] flex items-center gap-2">
+              <Users size={14} /> 01. HIỆN TRẠNG TỆP KHÁCH HÀNG (POPULATION)
             </h3>
-            <Link to="/guidelines#lifecycle" className="text-[10px] font-black text-vnpost-orange uppercase hover:underline">Hướng dẫn định nghĩa trạng thái</Link>
+            <Link to="/guidelines#lifecycle" className="text-[9px] font-black text-vnpost-orange uppercase hover:underline">Định nghĩa</Link>
           </div>
           
           {/* Row 1: Priority States */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {(!summaryData && !stats.lifecycle?.["active"]) ? (
               Array(3).fill(0).map((_, i) => <Skeleton.KPIMini key={i} />)
             ) : (
@@ -777,11 +769,11 @@ function Dashboard() {
                 >
                   <div className="flex flex-col h-full justify-between">
                     <div>
-                      <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center justify-between">
                         <span className="kpi-label" style={{ color: 'var(--crm-active-base)' }}>HIỆN HỮU (ACTIVE)</span>
-                        <Users size={24} style={{ color: 'var(--crm-active-base)', opacity: 0.15 }} />
+                        <Users size={18} style={{ color: 'var(--crm-active-base)', opacity: 0.15 }} />
                       </div>
-                      <div className="kpi-number text-4xl" style={{ color: 'var(--crm-active-base)' }}>{(stats?.lifecycle?.["active"] || 0).toLocaleString()}</div>
+                      <div className="kpi-number text-3xl" style={{ color: 'var(--crm-active-base)' }}>{(stats?.lifecycle?.["active"] || 0).toLocaleString()}</div>
                     </div>
                     {stats.lifecycle_growth?.active !== undefined && (
                       <div className={`text-xs font-black flex items-center gap-1 mt-2 ${stats.lifecycle_growth.active >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
@@ -804,11 +796,11 @@ function Dashboard() {
                 >
                   <div className="flex flex-col h-full justify-between">
                     <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="kpi-label" style={{ color: 'var(--crm-warning-base)' }}>NGUY CƠ (AT RISK)</span>
-                        <AlertCircle size={24} style={{ color: 'var(--crm-warning-base)', opacity: 0.15 }} />
+                      <div className="flex items-center justify-between">
+                        <span className="kpi-label" style={{ color: 'var(--crm-active-base)' }}>NGUY CƠ (AT RISK)</span>
+                        <AlertCircle size={18} style={{ color: 'var(--crm-warning-base)', opacity: 0.15 }} />
                       </div>
-                      <div className="kpi-number text-4xl" style={{ color: 'var(--crm-warning-base)' }}>{(stats?.lifecycle?.["at_risk"] || 0).toLocaleString()}</div>
+                      <div className="kpi-number text-3xl" style={{ color: 'var(--crm-warning-base)' }}>{(stats?.lifecycle?.["at_risk"] || 0).toLocaleString()}</div>
                     </div>
                     {stats.lifecycle_growth?.at_risk !== undefined && (
                       <div className={`text-xs font-black flex items-center gap-1 mt-2 ${stats.lifecycle_growth.at_risk <= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
@@ -831,11 +823,11 @@ function Dashboard() {
                 >
                   <div className="flex flex-col h-full justify-between">
                     <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="kpi-label" style={{ color: 'var(--crm-danger-base)' }}>RỜI BỎ (CHURNED POP)</span>
-                        <UserMinus size={24} style={{ color: 'var(--crm-danger-base)', opacity: 0.15 }} />
+                      <div className="flex items-center justify-between">
+                        <span className="kpi-label" style={{ color: 'var(--crm-active-base)' }}>RỜI BỎ (CHURNED POP)</span>
+                        <UserMinus size={18} style={{ color: 'var(--crm-danger-base)', opacity: 0.15 }} />
                       </div>
-                      <div className="kpi-number text-4xl" style={{ color: 'var(--crm-danger-base)' }}>{(stats?.lifecycle?.["churn_pop"] || 0).toLocaleString()}</div>
+                      <div className="kpi-number text-3xl" style={{ color: 'var(--crm-danger-base)' }}>{(stats?.lifecycle?.["churn_pop"] || 0).toLocaleString()}</div>
                     </div>
                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mt-2 italic">Dừng giao dịch &gt; 60 ngày</div>
                   </div>
@@ -845,7 +837,7 @@ function Dashboard() {
           </div>
 
           {/* Row 2: Challenge/Onboarding States */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full lg:w-2/3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full lg:w-2/3">
             {(!summaryData && !stats.lifecycle?.["new_pop"]) ? (
               Array(2).fill(0).map((_, i) => <Skeleton.KPIMini key={i} />)
             ) : (
@@ -862,11 +854,11 @@ function Dashboard() {
                 >
                   <div className="flex flex-col h-full justify-between">
                     <div>
-                      <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center justify-between">
                         <span className="kpi-label" style={{ color: 'var(--crm-onboarding-base)' }}>MỚI (NEW POP)</span>
-                        <Sparkles size={24} style={{ color: 'var(--crm-onboarding-base)', opacity: 0.15 }} />
+                        <Sparkles size={18} style={{ color: 'var(--crm-onboarding-base)', opacity: 0.15 }} />
                       </div>
-                      <div className="kpi-number text-3xl" style={{ color: 'var(--crm-onboarding-base)' }}>{(stats?.lifecycle?.["new_pop"] || 0).toLocaleString()}</div>
+                      <div className="kpi-number text-2xl" style={{ color: 'var(--crm-onboarding-base)' }}>{(stats?.lifecycle?.["new_pop"] || 0).toLocaleString()}</div>
                     </div>
                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mt-2 italic">Tệp đang thử thách (30d)</div>
                   </div>
@@ -884,11 +876,11 @@ function Dashboard() {
                 >
                   <div className="flex flex-col h-full justify-between">
                     <div>
-                      <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center justify-between">
                         <span className="kpi-label" style={{ color: 'var(--crm-recovery-base)' }}>TÁI BẢN (RECOVERED POP)</span>
-                        <RefreshCw size={24} style={{ color: 'var(--crm-recovery-base)', opacity: 0.15 }} />
+                        <RefreshCw size={18} style={{ color: 'var(--crm-recovery-base)', opacity: 0.15 }} />
                       </div>
-                      <div className="kpi-number text-3xl" style={{ color: 'var(--crm-recovery-base)' }}>{(stats?.lifecycle?.["recovered_pop"] || 0).toLocaleString()}</div>
+                      <div className="kpi-number text-2xl" style={{ color: 'var(--crm-recovery-base)' }}>{(stats?.lifecycle?.["recovered_pop"] || 0).toLocaleString()}</div>
                     </div>
                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mt-2 italic">Tệp quay lại đang thử thách</div>
                   </div>
@@ -899,12 +891,12 @@ function Dashboard() {
         </div>
 
         {/* SECTION: EVENTS (BIẾN ĐỘNG TRONG KỲ) - SECONDARY PRIORITY */}
-        <div className="space-y-4 pt-4">
+        <div className="space-y-3 pt-2">
           <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] flex items-center gap-2">
             <Zap size={14} /> 02. BIẾN ĐỘNG TRONG KỲ (MOVEMENT INDICATORS)
           </h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {(!summaryData && !stats.lifecycle?.["new_event"]) ? (
               Array(3).fill(0).map((_, i) => <Skeleton.KPIMini key={i} />)
             ) : (
@@ -926,7 +918,7 @@ function Dashboard() {
                       </div>
                       <div>
                         <span className="kpi-label block" style={{ color: 'var(--crm-onboarding-base)' }}>Mới phát sinh</span>
-                        <span className="kpi-number text-2xl" style={{ color: 'var(--crm-onboarding-base)' }}>{(stats?.lifecycle?.["new_event"] || 0).toLocaleString()}</span>
+                        <span className="kpi-number text-xl" style={{ color: 'var(--crm-onboarding-base)' }}>{(stats?.lifecycle?.["new_event"] || 0).toLocaleString()}</span>
                       </div>
                     </div>
                     <ChevronRight size={20} className="text-gray-200" />
@@ -950,7 +942,7 @@ function Dashboard() {
                       </div>
                       <div>
                         <span className="kpi-label block" style={{ color: 'var(--crm-recovery-base)' }}>Tái bản trong kỳ</span>
-                        <span className="kpi-number text-2xl" style={{ color: 'var(--crm-recovery-base)' }}>{(stats?.lifecycle?.["recovered_event"] || 0).toLocaleString()}</span>
+                        <span className="kpi-number text-xl" style={{ color: 'var(--crm-recovery-base)' }}>{(stats?.lifecycle?.["recovered_event"] || 0).toLocaleString()}</span>
                       </div>
                     </div>
                     <ChevronRight size={20} className="text-gray-200" />
@@ -974,7 +966,7 @@ function Dashboard() {
                       </div>
                       <div>
                         <span className="kpi-label block" style={{ color: 'var(--crm-danger-base)' }}>Rời bỏ trong kỳ</span>
-                        <span className="kpi-number text-2xl" style={{ color: 'var(--crm-danger-base)' }}>{(stats?.lifecycle?.["churn_event"] || 0).toLocaleString()}</span>
+                        <span className="kpi-number text-xl" style={{ color: 'var(--crm-danger-base)' }}>{(stats?.lifecycle?.["churn_event"] || 0).toLocaleString()}</span>
                       </div>
                     </div>
                     <ChevronRight size={20} className="text-gray-200" />
@@ -986,10 +978,10 @@ function Dashboard() {
         </div>
             
             {/* ELITE TIERS (Potentials) */}
-            <h3 className="text-sm font-black text-vnpost-orange uppercase tracking-widest flex items-center gap-2 mt-4 mb-4">
-              <ArrowUpRight size={18} /> 03. PHÂN HẠNG KHÁCH HÀNG TIỀM NĂNG (POTENTIALS)
+            <h3 className="text-[11px] font-black text-vnpost-orange uppercase tracking-widest flex items-center gap-2 mt-2 mb-2">
+              <ArrowUpRight size={14} /> 03. PHÂN HẠNG KHÁCH HÀNG TIỀM NĂNG (POTENTIALS)
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 transition-opacity duration-300">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 transition-opacity duration-300">
               {(!summaryData && !stats.potential_ranks?.["Kim Cương"]) ? (
                 <>
                   <Skeleton.Card /><Skeleton.Card /><Skeleton.Card />
@@ -997,7 +989,7 @@ function Dashboard() {
               ) : (
                 <>
                   <div 
-                    className="executive-card p-6 border-t-[6px] border-t-blue-600 relative overflow-hidden group cursor-pointer"
+                    className="executive-card p-4 border-t-4 border-t-blue-600 relative overflow-hidden group cursor-pointer"
                     onClick={() => {
                       const node = selectedNode;
                       if (node) saveNavigationContext(node);
@@ -1130,8 +1122,8 @@ function Dashboard() {
             </div>
           </div>
           
-          <div className="card p-6 overflow-hidden relative z-20 min-w-0">
-             <h3 className="text-sm font-bold text-gray-800 mb-4 flex justify-between items-center border-b border-gray-50 pb-3">
+          <div className="card p-4 overflow-hidden relative z-20 min-w-0">
+             <h3 className="text-sm font-bold text-gray-800 mb-2 flex justify-between items-center border-b border-gray-50 pb-2">
                <span className="flex items-center gap-2"><Target size={18} className="text-vnpost-orange" /> Bảng Quản trị Hiệu quả & Tăng trưởng Địa bàn ({comparisonType.toUpperCase()})</span> {selectedNode && <span className="text-[11px] font-bold text-gray-400 ml-2 normal-case tracking-normal">(Đang xem: {selectedNode.title})</span>}
                <span className="text-[11px] font-black bg-vnpost-orange/10 text-vnpost-orange px-2 py-1 rounded-full uppercase tracking-widest">PHÂN LOẠI CHIẾN LƯỢC 4 NHÓM</span>
              </h3>
@@ -1337,42 +1329,72 @@ function Dashboard() {
         </div>
 
         {/* Biến Động Doanh Thu & Tăng Trưởng MoM */}
-        <div className="card p-6 !col-span-full">
-          <h3 className="text-sm font-bold text-gray-800 mb-4 flex justify-between items-center border-b border-gray-50 pb-3">
-            <span className="flex items-center gap-2"><BarChart3 size={18} className="text-vnpost-orange" /> Hiệu Suất Doanh Thu & Tốc Độ Tăng Trưởng</span>
-            <div className="flex gap-3">
-               <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-vnpost-orange rounded-sm"></div> <span className="text-[11px] font-bold text-gray-500 uppercase">Doanh thu</span></div>
-               <div className="flex items-center gap-1.5"><div className="w-2.5 h-0.5 bg-blue-500"></div> <span className="text-[11px] font-bold text-gray-500 uppercase">Tăng trưởng (%)</span></div>
-            </div>
-          </h3>
-          <div className="h-[260px] w-full">
-            {monthlyDataRes && monthlyDataRes.length > 0 ? (() => {
-              // Tính toán dữ liệu tăng trưởng MoM từ dữ liệu hàng tháng thực tế
-              const chartData = monthlyDataRes.slice(-14).map((d, i, arr) => {
+        <div className="card p-4 !col-span-full">
+          <div className="h-[200px] w-full">
+            {(() => {
+              if (!monthlyDataRes || monthlyDataRes.length === 0) {
+                return (
+                  <div className="flex flex-col h-full">
+                    <h3 className="text-xs font-bold text-gray-800 mb-2 flex justify-between items-center border-b border-gray-50 pb-2">
+                      <span className="flex items-center gap-2"><BarChart3 size={14} className="text-vnpost-orange" /> Hiệu Suất & Tốc Độ Tăng Trưởng</span>
+                    </h3>
+                    <div className="flex-1 flex items-center justify-center text-gray-300 italic text-xs uppercase font-black tracking-widest animate-pulse">Đang nạp dữ liệu xu hướng tháng...</div>
+                  </div>
+                );
+              }
+              
+              const chartDataRaw = monthlyDataRes.slice(-14).map((d, i, arr) => {
                 const curr = d.total || d.value || 0;
                 if (i === 0) return { ...d, total: curr, growth: 0 };
                 const prev = arr[i-1].total || arr[i-1].value || 1;
                 const growth = ((curr - prev) / prev) * 100;
-                return { ...d, total: curr, growth: parseFloat(growth.toFixed(1)) };
-              }).slice(1);
+                return { ...d, total: curr, growth: isFinite(growth) ? parseFloat(growth.toFixed(1)) : 0 };
+              });
+              
+              const chartData = chartDataRaw.length > 1 ? chartDataRaw.slice(1) : chartDataRaw;
 
               return (
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                    <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(val) => `${((val || 0) / 1000000).toFixed(0)}M`} />
-                    <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#3b82f6', fontWeight: 'bold' }} tickFormatter={(val) => `${val}%`} />
-                    <RechartsTooltip 
-                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontWeight: 'bold' }}
-                      formatter={(val, name) => [name === 'growth' ? `${val}%` : formatCurrency(val), name === 'growth' ? 'Tăng trưởng' : 'Doanh thu']} 
-                    />
-                    <Bar yAxisId="left" dataKey="total" name="revenue" fill="#F9A51A" radius={[4, 4, 0, 0]} barSize={40} />
-                    <Line yAxisId="right" type="monotone" dataKey="growth" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
-                  </ComposedChart>
-                </ResponsiveContainer>
+                <div className="flex flex-col h-full">
+                  <h3 className="text-xs font-bold text-gray-800 mb-2 flex justify-between items-center border-b border-gray-50 pb-2">
+                    <span className="flex items-center gap-2">
+                      <BarChart3 size={14} className="text-vnpost-orange" /> 
+                      Hiệu Suất & Tốc Độ Tăng Trưởng 
+                      <span className="text-[10px] text-gray-400 font-normal ml-1">({chartData.length} tháng)</span>
+                    </span>
+                    <div className="flex gap-3">
+                       <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-vnpost-orange rounded-sm"></div> <span className="text-[11px] font-bold text-gray-500 uppercase">Doanh thu</span></div>
+                       <div className="flex items-center gap-1.5"><div className="w-2.5 h-0.5 bg-blue-500"></div> <span className="text-[11px] font-bold text-gray-500 uppercase">Tăng trưởng (%)</span></div>
+                    </div>
+                  </h3>
+                  <div className="flex-1 min-h-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={chartData}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                        <XAxis 
+                          dataKey="month" 
+                          axisLine={false} 
+                          tickLine={false} 
+                          tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 'bold' }} 
+                          tickFormatter={(val) => {
+                            if (!val) return "";
+                            const [y, m] = val.split('-');
+                            return `T${m}/${y.slice(2)}`;
+                          }}
+                        />
+                        <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(val) => val === 0 ? "0" : `${((val || 0) / 1000000).toFixed(0)}M`} />
+                        <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#3b82f6', fontWeight: 'bold' }} tickFormatter={(val) => `${val}%`} />
+                        <RechartsTooltip 
+                          contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontWeight: 'bold' }}
+                          formatter={(val, name) => [name === 'growth' ? `${val}%` : formatCurrency(val), name === 'growth' ? 'Tăng trưởng' : 'Doanh thu']} 
+                        />
+                        <Bar yAxisId="left" dataKey="total" name="revenue" fill="#F9A51A" radius={[4, 4, 0, 0]} barSize={40} />
+                        <Line yAxisId="right" type="monotone" dataKey="growth" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
               );
-            })() : <div className="h-full flex items-center justify-center text-gray-300 italic text-xs uppercase font-black tracking-widest animate-pulse">Đang nạp dữ liệu xu hướng tháng...</div>}
+            })()}
           </div>
         </div>
 
@@ -1398,10 +1420,10 @@ function Dashboard() {
           ];
 
           return (
-            <div className="space-y-6 !col-span-full">
-              <div className="flex flex-col md:flex-row md:items-end justify-between gap-2 mt-8 border-b border-gray-100 pb-4">
-                <h3 className="text-sm font-black text-vnpost-blue uppercase tracking-widest flex items-center gap-2">
-                  <RefreshCw className="w-4 h-4" /> Đối soát & Phân tích Hiệu quả
+            <div className="space-y-4 !col-span-full">
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-2 mt-4 border-b border-gray-100 pb-2">
+                <h3 className="text-[11px] font-black text-vnpost-blue uppercase tracking-widest flex items-center gap-2">
+                  <RefreshCw className="w-3 h-3" /> Đối soát & Phân tích Hiệu quả
                 </h3>
                 {(() => {
                   if (moversData?.period) {
@@ -1420,15 +1442,15 @@ function Dashboard() {
               </div>
               <AIAssistantInsights summary={moversData.summary} stats={stats} churnPrediction={churnPrediction} heatmapData={heatmapData} />
               
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Revenue Comparison */}
-                <div className="card p-6 bg-white border-l-4 border-l-vnpost-blue shadow-lg">
+                <div className="card p-4 bg-white border-l-4 border-l-vnpost-blue shadow-lg">
                   <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-2 mb-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className="p-1.5 bg-blue-50 rounded-lg text-vnpost-blue"><TrendingUp size={18} /></div>
-                          <h3 className="text-md font-bold text-gray-800 uppercase tracking-tight">Biến động Doanh thu</h3>
+                          <div className="p-1 bg-blue-50 rounded-lg text-vnpost-blue"><TrendingUp size={16} /></div>
+                          <h3 className="text-sm font-bold text-gray-800 uppercase tracking-tight">Biến động Doanh thu</h3>
                         </div>
                       </div>
                       {moversData?.period && (
@@ -1454,7 +1476,7 @@ function Dashboard() {
                         {Math.abs((((moversData?.summary?.revenue?.current || 0) - (moversData?.summary?.revenue?.previous || 0)) / (moversData?.summary?.revenue?.previous || 1) * 100)).toFixed(1)}%
                       </div>
                     </div>
-                    <div className="h-56">
+                    <div className="h-48">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={revData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }} barGap={5}>
                           <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
@@ -1472,13 +1494,13 @@ function Dashboard() {
                 </div>
 
                 {/* Volume Comparison */}
-                <div className="card p-6 bg-white border-l-4 border-l-vnpost-orange shadow-lg">
-                  <div className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-2 mb-2">
+                <div className="card p-4 bg-white border-l-4 border-l-vnpost-orange shadow-lg">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-1.5 mb-1">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className="p-1.5 bg-orange-50 rounded-lg text-vnpost-orange"><BarChart3 size={18} /></div>
-                          <h3 className="text-md font-bold text-gray-800 uppercase tracking-tight">Biến động Sản lượng</h3>
+                          <div className="p-1 bg-orange-50 rounded-lg text-vnpost-orange"><BarChart3 size={16} /></div>
+                          <h3 className="text-sm font-bold text-gray-800 uppercase tracking-tight">Biến động Sản lượng</h3>
                         </div>
                       </div>
                       {moversData?.period && (
@@ -1504,7 +1526,7 @@ function Dashboard() {
                         {Math.abs((((moversData?.summary?.volume?.current || 0) - (moversData?.summary?.volume?.previous || 0)) / (moversData?.summary?.volume?.previous || 1) * 100)).toFixed(1)}%
                       </div>
                     </div>
-                    <div className="h-56">
+                    <div className="h-48">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={volData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }} barGap={5}>
                           <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
@@ -1527,14 +1549,14 @@ function Dashboard() {
 
         {/* Top 20 Stars & Risks */}
         {loadingMovers && !moversData.summary ? (
-           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
              <Skeleton.Table rows={10} />
              <Skeleton.Table rows={10} />
            </div>
         ) : moversData.movers && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
             <div className="card !p-0 overflow-hidden border-t-4 border-t-green-500 shadow-xl bg-white group/card">
-              <div className="p-4 border-b border-gray-100 bg-green-50/30 flex justify-between items-center relative overflow-hidden">
+              <div className="p-3 border-b border-gray-100 bg-green-50/30 flex justify-between items-center relative overflow-hidden">
                 <div className="absolute -right-2 -top-2 text-green-100 opacity-20 transform rotate-12 select-none group-hover/card:scale-110 transition-transform duration-700">
                   <TrendingUp size={80} />
                 </div>

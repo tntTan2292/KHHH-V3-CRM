@@ -891,11 +891,11 @@ export default function Customers() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Assign Staff Modal */}
       {showAssignModal && (
-        <div className="fixed inset-0 bg-[#003E7E]/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] w-full max-w-md shadow-2xl flex flex-col max-h-[90vh] animate-scale-up border-8 border-white">
+        <div className="fixed inset-0 bg-[#003E7E]/40 backdrop-blur-sm z-[100] flex items-center justify-center p-2">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[95vh] animate-scale-up border-4 border-white">
             {!showZaloDispatch ? (
               <>
                 <div className={`bg-gradient-to-r ${getTaskFlow(assignTarget).color} p-6 text-white flex justify-between items-center rounded-t-2xl flex-shrink-0 transition-colors duration-500`}>
@@ -1111,7 +1111,7 @@ export default function Customers() {
                 </div>
               </>
             ) : (
-              <div className="p-6 text-center animate-in fade-in zoom-in duration-300">
+              <div className="p-4 text-center animate-in fade-in zoom-in duration-300">
                 <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Send size={32} />
                 </div>
@@ -1172,54 +1172,37 @@ export default function Customers() {
           </div>
         </div>
       )}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Quản Lý Vòng Đời Khách Hàng (V3)</h2>
-          <div className="flex items-center gap-2 mt-1">
-             <span className="text-xs bg-vnpost-blue/10 text-vnpost-blue px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter">Bưu điện TP Huế</span>
-             <span className="text-xs bg-vnpost-blue text-white px-2 py-0.5 rounded-full font-black uppercase border border-vnpost-blue shadow-sm">Bản Nâng Cấp 3.0</span>
+          <h2 className="text-xl font-bold text-gray-800">Quản Lý Vòng Đời Khách Hàng</h2>
+          <div className="flex items-center gap-2 mt-0.5">
+             <span className="text-[10px] bg-vnpost-blue/10 text-vnpost-blue px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter">Bưu điện TP Huế</span>
+             <span className="text-[10px] bg-vnpost-blue text-white px-2 py-0.5 rounded-full font-black uppercase border border-vnpost-blue shadow-sm">CRM 3.0</span>
              {selectedNode ? (
-                <span className="text-[11px] bg-vnpost-orange text-white px-3 py-1 rounded-full font-black uppercase shadow-sm">Phạm vi: {selectedNode.title}</span>
+                <span className="text-[10px] bg-vnpost-orange text-white px-2 py-0.5 rounded-full font-black uppercase shadow-sm">Phạm vi: {selectedNode.title}</span>
               ) : (
-                <span className="text-[11px] bg-vnpost-blue/10 text-vnpost-blue px-3 py-1 rounded-full font-bold uppercase border border-vnpost-blue/10 tracking-tighter">Bưu điện thành phố Huế</span>
+                <span className="text-[10px] bg-vnpost-blue/10 text-vnpost-blue px-2 py-0.5 rounded-full font-bold uppercase border border-vnpost-blue/10 tracking-tighter">Toàn tỉnh</span>
               )}
-             {(startDate || endDate) && (
-                <span className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full text-[11px] font-black flex items-center gap-1 border border-indigo-100 uppercase tracking-tighter">
-                  <Calendar size={12} /> BÁO CÁO: {startDate || '?'} → {endDate || '?'}
-                  {coverage.max_date && (
-                    <span className="ml-1 text-green-700 opacity-60">
-                      (Nạp đến: {new Date(coverage.max_date).toLocaleDateString('vi-VN')})
-                    </span>
-                  )}
-                </span>
-             )}
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-1.5">
           <button 
             onClick={() => { setShowSyncModal(true); handleCheckSftp(); }} 
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-all font-bold text-sm border border-indigo-100 active:scale-95 shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-all font-bold text-xs border border-indigo-100 active:scale-95 shadow-sm"
           >
-            <RefreshCw size={18} className={syncCheck.loading ? 'animate-spin' : ''} />
-            <span>Đồng bộ TCT</span>
+            <RefreshCw size={14} className={syncCheck.loading ? 'animate-spin' : ''} />
+            <span>Đồng bộ</span>
           </button>
           <button 
             onClick={() => setShowBulkModal(true)} 
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-all font-bold text-sm border border-emerald-100 active:scale-95 shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-all font-bold text-xs border border-emerald-100 active:scale-95 shadow-sm"
           >
-            <UploadCloud size={18} />
-            <span>Import thông tin KH</span>
+            <UploadCloud size={14} />
+            <span>Import</span>
           </button>
-          <button onClick={handleExportExcel} className="flex items-center gap-2 px-4 py-2 bg-vnpost-orange text-white rounded-lg hover:bg-[#E88900] transition-all font-bold text-sm shadow-md active:scale-95">
-            <DownloadX size={18} />
+          <button onClick={handleExportExcel} className="flex items-center gap-1.5 px-3 py-1.5 bg-vnpost-orange text-white rounded-lg hover:bg-[#E88900] transition-all font-bold text-xs shadow-md active:scale-95">
+            <DownloadX size={14} />
             <span>Xuất Excel</span>
-          </button>
-          <button 
-            onClick={handleExportMinimal} 
-            className="flex items-center gap-2 px-2 py-2 bg-gray-100 text-gray-400 rounded-lg hover:bg-gray-200 transition-all font-bold text-[11px] uppercase border border-gray-200 active:scale-95"
-            title="Debug: Xuất 10 dòng (Không style) để test Network"
-          >
-            Minimal
           </button>
         </div>
       </div>
