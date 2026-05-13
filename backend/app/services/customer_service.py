@@ -65,6 +65,7 @@ class CustomerService:
             
             # [RF5C] Check if snapshot exists for this month to decide between Realtime vs Snapshot
             snapshot_exists = db.query(exists().where(CustomerMonthlySnapshot.year_month == month_str)).scalar()
+            snapshot_sub = None
             
             if not snapshot_exists:
                 # REALTIME FALLBACK (For Current Month or missing snapshots)
@@ -163,7 +164,7 @@ class CustomerService:
 
         # 4. Total Count (Deterministic - Must match results)
         base_query = db.query(Customer)
-        if lifecycle_status:
+        if lifecycle_status and snapshot_exists:
             base_query = base_query.join(snapshot_sub, Customer.ma_crm_cms == snapshot_sub.c.ma_kh)
         
         base_query = base_query.filter(*filters)
@@ -187,10 +188,10 @@ class CustomerService:
             func.coalesce(metrics_sub.c.transaction_count, 0).label("transaction_count"),
             metrics_sub.c.last_shipped_absolute,
             NhanSu.full_name.label("assigned_staff_name"),
-            (snapshot_sub.c.lifecycle_state if lifecycle_status else literal("NONE")).label("snapshot_stage")
+            (snapshot_sub.c.lifecycle_state if (lifecycle_status and snapshot_exists) else Customer.lifecycle_state).label("snapshot_stage")
         ).select_from(Customer)
         
-        if lifecycle_status:
+        if lifecycle_status and snapshot_exists:
             final_query = final_query.join(snapshot_sub, Customer.ma_crm_cms == snapshot_sub.c.ma_kh)
             
         final_query = final_query.outerjoin(metrics_sub, Customer.ma_crm_cms == metrics_sub.c.ma_kh)\
