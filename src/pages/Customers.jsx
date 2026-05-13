@@ -1468,7 +1468,6 @@ export default function Customers() {
               Xóa lọc
             </button>
         </div>
-      </div>
 
         {/* METRIC INTELLIGENCE LEGEND */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-2 py-4 bg-indigo-50/30 rounded-2xl border border-indigo-100/50">
