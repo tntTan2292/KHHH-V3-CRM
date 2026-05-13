@@ -141,19 +141,21 @@ class LifecycleService:
             if scope_point_ids: recovered_event_query = recovered_event_query.filter(Customer.point_id.in_(scope_point_ids))
             results['recovered_event'] = recovered_event_query.scalar() or 0
 
-            # RECOVERED POPULATION (90-day window) - [RF5C] FIXED: Include active probationary
+            # [RF5H] RECOVERED POPULATION (REACTIVATED POP - 90-day Probation)
+            # Logic: Has Tx in last 90 days AND (First Tx < e_dt - 90) 
+            #        AND Had a 90-day gap in history that ended within the last 90 days.
             recovered_pop_query = db.query(func.count(Customer.id)).filter(
                 exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
                     (Transaction.ngay_chap_nhan.between(e_dt - timedelta(days=90), e_dt))
                 ),
-                exists().where(
+                ~exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan < e_dt - timedelta(days=30))
+                    (Transaction.ngay_chap_nhan.between(e_dt - timedelta(days=180), e_dt - timedelta(days=90)))
                 ),
                 exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan < e_dt - timedelta(days=90))
+                    (Transaction.ngay_chap_nhan < e_dt - timedelta(days=180))
                 )
             )
             if scope_point_ids: recovered_pop_query = recovered_pop_query.filter(Customer.point_id.in_(scope_point_ids))
@@ -173,7 +175,9 @@ class LifecycleService:
             if scope_point_ids: churn_event_query = churn_event_query.filter(Customer.point_id.in_(scope_point_ids))
             results['churn_event'] = churn_event_query.scalar() or 0
 
-            # ACTIVE (Mature)
+            # [RF5H] ACTIVE (Mature & Stable)
+            # Logic: Has Tx in last 30 days AND Mature (First Tx < e_dt - 90)
+            #        AND NOT in Recovered Probation (Had Tx in [e_dt-180, e_dt-90])
             active_mature_query = db.query(func.count(Customer.id)).filter(
                 exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
@@ -182,12 +186,18 @@ class LifecycleService:
                 exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
                     (Transaction.ngay_chap_nhan < e_dt - timedelta(days=90))
+                ),
+                exists().where(
+                    (Transaction.ma_kh == Customer.ma_crm_cms) &
+                    (Transaction.ngay_chap_nhan.between(e_dt - timedelta(days=180), e_dt - timedelta(days=90)))
                 )
             )
             if scope_point_ids: active_mature_query = active_mature_query.filter(Customer.point_id.in_(scope_point_ids))
             results['active'] = active_mature_query.scalar() or 0
 
-            # AT RISK (Realtime) - [RF5C] FIXED: Current month realtime
+            # [RF5H] AT RISK (Mature)
+            # Logic: No Tx in last 30 days AND Mature (First Tx < e_dt - 90)
+            #        AND NOT in Recovered Probation (Had Tx in [e_dt-180, e_dt-90])
             at_risk_query = db.query(func.count(Customer.id)).filter(
                 exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
@@ -200,6 +210,10 @@ class LifecycleService:
                 exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
                     (Transaction.ngay_chap_nhan < e_dt - timedelta(days=90))
+                ),
+                exists().where(
+                    (Transaction.ma_kh == Customer.ma_crm_cms) &
+                    (Transaction.ngay_chap_nhan.between(e_dt - timedelta(days=180), e_dt - timedelta(days=90)))
                 )
             )
             if scope_point_ids: at_risk_query = at_risk_query.filter(Customer.point_id.in_(scope_point_ids))

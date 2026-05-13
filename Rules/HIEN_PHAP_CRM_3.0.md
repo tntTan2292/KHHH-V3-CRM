@@ -53,6 +53,30 @@ Dành cho khách hàng đã có mã CMS cố định. Tuân thủ 5 trạng thá
 ### 5. KHÁCH HÀNG TÁI BÁN (Re-activated) 🔄
 - **Điều kiện**: Khách từng RỜI BỎ nay quay lại phát sinh đơn hàng. Kéo dài trạng thái này trong 03 tháng đầu quay lại.
 
+### 6. QUY CHUẨN SEMANTIC: POPULATION VS. EVENTS 🏗️
+Để đảm bảo tính nhất quán SSOT và khả năng đối soát (Auditability), hệ thống phân tách Vòng đời khách hàng thành 2 lớp dữ liệu độc lập:
+
+#### A. Lớp Dân số (Population States) - SSOT Chính
+- Mỗi khách hàng tại một thời điểm snapshot chỉ thuộc về **DUY NHẤT MỘT** trạng thái dân số.
+- **Quy tắc Mutually Exclusive**: Không có sự chồng lấn giữa các nhóm dân số. Trạng thái ACTIVE phải loại trừ các nhóm đang trong diện Probation (NEW, REACTIVATED).
+- **Công thức tính Tổng**:
+  `TỔNG KHÁCH HÀNG = NEW_POP + ACTIVE + AT_RISK + CHURN_POP + REACTIVATED_POP`
+- **Dashboard Compliance**: Số tổng hiển thị trên Dashboard phải bằng tổng đại số của 5 thẻ dân số thành phần.
+
+#### B. Lớp Biến động (Event Layer) - Biến động tháng
+- Ghi nhận các sự kiện phát sinh trong kỳ báo cáo để phục vụ phân tích xu hướng.
+- **Các sự kiện chuẩn**:
+  - `NEW_EVENT`: Phát sinh giao dịch đầu tiên trong tháng.
+  - `REACTIVATED_EVENT`: Khách hàng từ trạng thái Churn quay lại giao dịch trong tháng.
+  - `CHURN_EVENT`: Khách hàng chính thức chuyển sang trạng thái Churn trong tháng.
+- **Tính chất**: Sự kiện ghi nhận biến động trong kỳ, không thay đổi nguyên tắc "Một khách hàng = Một trạng thái dân số". 
+
+#### C. Quy tắc Chuyển đổi & Trưởng thành (Maturation Governance)
+1.  **Giai đoạn Probation (Tập sự)**: Khách hàng thuộc `NEW_POP` hoặc `REACTIVATED_POP` được theo dõi trong 90 ngày.
+2.  **Maturation (Trưởng thành)**: Sau 90 ngày, nếu vẫn hoạt động ổn định (có giao dịch trong 30 ngày gần nhất), khách hàng tự động chuyển sang trạng thái `ACTIVE`.
+3.  **Dormancy (Ngủ đông)**: Khách hàng `ACTIVE` không có giao dịch > 30 ngày chuyển sang `AT_RISK`.
+4.  **Final Churn (Rời bỏ)**: Khách hàng `AT_RISK` tiếp tục không có giao dịch > 90 ngày chuyển sang `CHURN_POP`.
+
 ### 🚫 No Manual Lifecycle Override
 - Các trạng thái Lifecycle (Mới, Hiện hữu, Nguy cơ, Rời bỏ, Tái bán) **KHÔNG** được phép chỉnh sửa thủ công.
 - Mọi thay đổi Lifecycle phải được xác định tự động từ: Transaction Truth, Lifecycle Engine và Rule Engine.
