@@ -441,10 +441,13 @@ async def get_revenue_monthly(
     scope_ids = ScopingService.get_effective_scope_ids(db, current_user, node_code)
     if scope_ids is not None and not scope_ids: return []
 
-    # 2. Xác định dải thời gian (CỐ ĐỊNH: Tháng mới nhất trong DB lùi 14 tháng)
-    # [GOVERNANCE] Revenue Trend is a Global Context widget. It ignores temporal filters to provide fixed MoM/YoY trend.
-    max_db_month = db.query(func.max(MonthlyAnalyticsSummary.year_month)).scalar() or datetime.now().strftime("%Y-%m")
-    end_dt = datetime.strptime(max_db_month, "%Y-%m")
+    # 2. Xác định dải thời gian (Rolling 13-month Window dựa trên filter tháng)
+    # [GOVERNANCE] Trend charts show 13 months leading UP to the selected month.
+    target_month = (end_date[:7] if end_date else None) or \
+                   db.query(func.max(MonthlyAnalyticsSummary.year_month)).scalar() or \
+                   datetime.now().strftime("%Y-%m")
+    
+    end_dt = datetime.strptime(target_month, "%Y-%m")
     
     # Tạo danh sách 14 tháng (T-13 -> T)
     months_range = []

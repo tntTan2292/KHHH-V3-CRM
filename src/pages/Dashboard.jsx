@@ -1359,7 +1359,6 @@ function Dashboard() {
                     <span className="flex items-center gap-2">
                       <BarChart3 size={14} className="text-vnpost-orange" /> 
                       Hiệu Suất & Tốc Độ Tăng Trưởng 
-                      <span className="text-[10px] text-gray-400 font-normal ml-1">({chartData.length} tháng)</span>
                     </span>
                     <div className="flex gap-3">
                        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-vnpost-orange rounded-sm"></div> <span className="text-[11px] font-bold text-gray-500 uppercase">Doanh thu</span></div>
