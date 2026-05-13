@@ -1273,48 +1273,47 @@ export default function Customers() {
         </div>
       )}
 
-      {/* RF5C - STEP 4A: COMPACT LIFECYCLE UX REFINEMENT */}
-      <div className="flex flex-col gap-2 mb-3">
-        {/* BLOCK 1: BIẾN ĐỘNG TRONG KỲ (EVENT) */}
-        <div className="space-y-1 p-2 bg-white/40 rounded-xl border border-white/60 shadow-sm">
-          <div className="flex items-center gap-2 mb-1 px-1">
-             <span className="w-1 h-3 bg-rose-500 rounded-full"></span>
-             <h3 className="text-[9px] font-black text-rose-600 uppercase tracking-widest">Biến động trong kỳ (Event)</h3>
-             <span className="text-[8px] text-gray-400 font-bold opacity-40 uppercase tracking-tighter">Phát sinh riêng trong tháng</span>
+      {/* RF5C - STEP 3D: CLEAN SEPARATION BETWEEN EVENT vs POPULATION UI */}
+      <div className="flex flex-col gap-1 mb-2">
+        {/* BLOCK 1: BIẾN ĐỘNG TRONG KỲ (EVENT) - CHỈ DÒNG CHẢY TRONG THÁNG */}
+        <div className="p-1 bg-white/40 rounded-xl border border-white/60 shadow-sm">
+          <div className="flex items-center gap-2 mb-0.5 px-1">
+             <span className="w-1 h-2.5 bg-rose-500 rounded-full"></span>
+             <h3 className="text-[7px] font-black text-rose-600 uppercase tracking-widest">Biến động trong kỳ (Event)</h3>
+             <span className="text-[6px] text-gray-400 font-bold opacity-30 uppercase tracking-tighter">Chỉ bao gồm các biến động phát sinh riêng trong tháng</span>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+          <div className="grid grid-cols-3 gap-1">
             {[
-              { label: "Tất cả khách hàng", value: "", icon: Users, color: "blue", subtext: "Tổng định danh" },
-              { label: "Mới trong kỳ", value: "new_event", icon: Star, color: "sky", subtext: "Phát sinh mới" },
-              { label: "Tái bản trong kỳ", value: "recovered_event", icon: RefreshCw, color: "emerald", subtext: "Phục hồi" },
-              { label: "Rời bỏ trong kỳ", value: "churn_event", icon: UserMinus, color: "rose", subtext: "Ngừng hoạt động" },
+              { label: "Mới trong kỳ", value: "new_event", icon: Star, color: "sky" },
+              { label: "Tái bản trong kỳ", value: "recovered_event", icon: RefreshCw, color: "emerald" },
+              { label: "Rời bỏ trong kỳ", value: "churn_event", icon: UserMinus, color: "rose" },
             ].map((item) => {
               const isActive = filters.lifecycle_status === item.value;
-              const count = lifecycleStats[item.value === "" ? "Tất cả" : item.value] || 0;
+              const count = lifecycleStats[item.value] || 0;
               const config = lifecycleConfig.find(c => c.value === item.value) || { color: item.color, borderCol: "border-gray-200", bgLight: "bg-gray-50/50" };
               
               return (
                 <button
                   key={item.label}
                   onClick={() => { setFilters(prev => ({ ...prev, lifecycle_status: item.value })); setPage(1); }}
-                  className={`group relative p-1.5 pl-3 rounded-xl transition-all flex flex-col items-start gap-0 text-left border ${
+                  className={`group relative p-1 pl-2 rounded-lg transition-all flex flex-col items-start gap-0 text-left border ${
                     isActive 
-                      ? `bg-white shadow-md scale-[1.01] z-10 ${config.borderCol} border-l-4` 
-                      : `${config.bgLight} border-gray-100 hover:bg-white border-l-4 opacity-80 hover:opacity-100`
+                      ? `bg-white shadow-sm scale-[1.01] z-10 ${config.borderCol} border-l-4` 
+                      : `${config.bgLight} border-gray-100 hover:bg-white border-l-4 opacity-80`
                   }`}
                 >
                   <div className="flex items-center justify-between w-full">
-                    <span className={`text-[8px] font-black uppercase tracking-tight truncate ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>
+                    <span className={`text-[7px] font-black uppercase tracking-tighter truncate ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>
                       {item.label}
                     </span>
-                    <item.icon size={10} className={isActive ? `text-${item.color}-600` : "text-gray-300"} />
+                    <item.icon size={8} className={isActive ? `text-${item.color}-600` : "text-gray-300"} />
                   </div>
                   <div className="flex items-baseline gap-1">
-                    <span className={`text-base font-black tracking-tighter ${isActive ? `text-${item.color}-600` : `text-${item.color}-700`}`}>
+                    <span className={`text-xs font-black tracking-tighter ${isActive ? `text-${item.color}-600` : `text-${item.color}-700`}`}>
                       {count.toLocaleString()}
                     </span>
-                    <span className="text-[7px] text-gray-400 font-bold uppercase opacity-50">KH</span>
+                    <span className="text-[6px] text-gray-400 font-bold uppercase opacity-50">KH</span>
                   </div>
                 </button>
               );
@@ -1322,22 +1321,22 @@ export default function Customers() {
           </div>
         </div>
 
-        {/* BLOCK 2: LŨY KẾ (POPULATION) */}
-        <div className="space-y-1 p-2 bg-blue-50/20 rounded-xl border border-blue-100/50 shadow-sm">
-          <div className="flex items-center gap-2 mb-1 px-1">
-             <span className="w-1 h-3 bg-blue-500 rounded-full"></span>
-             <h3 className="text-[9px] font-black text-blue-600 uppercase tracking-widest">Lũy kế (POP)</h3>
-             <span className="text-[8px] text-gray-400 font-bold opacity-40 uppercase tracking-tighter">Số lượng snapshot cuối kỳ</span>
+        {/* BLOCK 2: LŨY KẾ (POPULATION) - QUY MÔ TỆP KHÁCH HÀNG SNAPSHOT */}
+        <div className="p-1 bg-blue-50/20 rounded-xl border border-blue-100/50 shadow-sm">
+          <div className="flex items-center gap-2 mb-0.5 px-1">
+             <span className="w-1 h-2.5 bg-blue-500 rounded-full"></span>
+             <h3 className="text-[7px] font-black text-blue-600 uppercase tracking-widest">Lũy kế (Population)</h3>
+             <span className="text-[6px] text-gray-400 font-bold opacity-30 uppercase tracking-tighter">Tổng dân số đang ở trạng thái tại thời điểm snapshot</span>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-1">
             {[
-              { label: "Tổng Population", value: "total_pop", icon: Users, color: "blue", subtext: "Lũy kế" },
-              { label: "Mới (Lũy kế)", value: "new_pop", icon: Sparkles, color: "indigo", subtext: "Thử thách" },
-              { label: "Tái bản (Lũy kế)", value: "recovered_pop", icon: Activity, color: "emerald", subtext: "Hồi sinh" },
-              { label: "Hiện hữu", value: "active", icon: CheckCircle2, color: "green", subtext: "Ổn định" },
-              { label: "Nguy cơ", value: "at_risk", icon: AlertCircle, color: "orange", subtext: "Cảnh báo" },
-              { label: "Rời bỏ (Lũy kế)", value: "churn_pop", icon: History, color: "slate", subtext: "Tổng mất" }
+              { label: "Tổng Population", value: "total_pop", icon: Users, color: "blue" },
+              { label: "Hiện hữu", value: "active", icon: CheckCircle2, color: "green" },
+              { label: "Nguy cơ", value: "at_risk", icon: AlertCircle, color: "orange" },
+              { label: "Mới (Lũy kế)", value: "new_pop", icon: Sparkles, color: "indigo" },
+              { label: "Tái bản (Lũy kế)", value: "recovered_pop", icon: Activity, color: "emerald" },
+              { label: "Rời bỏ (Lũy kế)", value: "churn_pop", icon: History, color: "slate" }
             ].map((item) => {
               const isActive = filters.lifecycle_status === item.value;
               const countKey = item.value === "total_pop" ? "Tất cả" : item.value;
@@ -1348,23 +1347,23 @@ export default function Customers() {
                 <button
                   key={item.label}
                   onClick={() => { setFilters(prev => ({ ...prev, lifecycle_status: item.value })); setPage(1); }}
-                  className={`group relative p-1.5 pl-3 rounded-xl transition-all flex flex-col items-start gap-0 text-left border ${
+                  className={`group relative p-1 pl-2 rounded-lg transition-all flex flex-col items-start gap-0 text-left border ${
                     isActive 
-                      ? `bg-white shadow-md scale-[1.01] z-10 ${config.borderCol} border-l-4` 
-                      : `${config.bgLight} border-gray-100 hover:bg-white border-l-4 opacity-80 hover:opacity-100`
+                      ? `bg-white shadow-sm scale-[1.01] z-10 ${config.borderCol} border-l-4` 
+                      : `${config.bgLight} border-gray-100 hover:bg-white border-l-4 opacity-80`
                   }`}
                 >
                   <div className="flex items-center justify-between w-full">
-                    <span className={`text-[8px] font-black uppercase tracking-tight truncate ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>
+                    <span className={`text-[7px] font-black uppercase tracking-tighter truncate ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>
                       {item.label}
                     </span>
-                    <item.icon size={10} className={isActive ? `text-${item.color}-600` : "text-gray-300"} />
+                    <item.icon size={8} className={isActive ? `text-${item.color}-600` : "text-gray-300"} />
                   </div>
                   <div className="flex items-baseline gap-1">
-                    <span className={`text-base font-black tracking-tighter ${isActive ? `text-${item.color}-600` : `text-${item.color}-700`}`}>
+                    <span className={`text-xs font-black tracking-tighter ${isActive ? `text-${item.color}-600` : `text-${item.color}-700`}`}>
                       {count.toLocaleString()}
                     </span>
-                    <span className="text-[7px] text-gray-400 font-bold uppercase opacity-50">KH</span>
+                    <span className="text-[6px] text-gray-400 font-bold uppercase opacity-50">KH</span>
                   </div>
                 </button>
               );
