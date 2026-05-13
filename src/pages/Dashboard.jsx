@@ -400,7 +400,8 @@ function Dashboard() {
   // 6. Monthly Trend Data (New)
   const { data: monthlyDataRes, isValidating: loadingMonthly } = useSWR(
     !waitingForDefaultDate ? ['/api/analytics/revenue-monthly', queryParams] : null,
-    fetcherWithParams
+    fetcherWithParams,
+    { revalidateOnFocus: false, revalidateIfStale: false }
   );
 
   // 7. Scoring & Prediction (Transitioned to SWR for Race Condition Protection)
@@ -1343,6 +1344,10 @@ function Dashboard() {
                 );
               }
               
+              console.log("[DEBUG CHART] API raw data:", monthlyDataRes);
+              console.log("[DEBUG CHART] API months:", monthlyDataRes.map(x => x.month));
+              console.log("[DEBUG CHART] API length:", monthlyDataRes.length);
+
               const chartDataRaw = monthlyDataRes.slice(-14).map((d, i, arr) => {
                 const curr = d.total || d.value || 0;
                 if (i === 0) return { ...d, total: curr, growth: 0 };
@@ -1352,6 +1357,9 @@ function Dashboard() {
               });
               
               const chartData = chartDataRaw.length > 1 ? chartDataRaw.slice(1) : chartDataRaw;
+              
+              console.log("[DEBUG CHART] Chart months rendered:", chartData.map(x => x.month));
+              console.log("[DEBUG CHART] Chart length rendered:", chartData.length);
 
               return (
                 <div className="flex flex-col h-full">

@@ -429,7 +429,7 @@ async def get_revenue_trend(
     return [{"date": str(r[0]), "value": r[1] or 0} for r in stats]
 
 @router.get("/revenue-monthly")
-@cache_response(ttl_hours=4)
+# @cache_response(ttl_hours=4)
 async def get_revenue_monthly(
     start_date: str = None,
     end_date: str = None,
@@ -441,13 +441,12 @@ async def get_revenue_monthly(
     scope_ids = ScopingService.get_effective_scope_ids(db, current_user, node_code)
     if scope_ids is not None and not scope_ids: return []
 
-    # 2. Xác định dải thời gian (Rolling 13-month Window dựa trên filter tháng)
-    # [GOVERNANCE] Trend charts show 13 months leading UP to the selected month.
-    target_month = (end_date[:7] if end_date else None) or \
-                   db.query(func.max(MonthlyAnalyticsSummary.year_month)).scalar() or \
-                   datetime.now().strftime("%Y-%m")
+    # 2. Xác định dải thời gian (CỐ ĐỊNH: Tháng dữ liệu cuối cùng lùi 13 tháng)
+    # [GOVERNANCE] Global Financial Trend ignores temporal filters to show historical context.
+    target_month = db.query(func.max(MonthlyAnalyticsSummary.year_month)).scalar() or datetime.now().strftime("%Y-%m")
     
     end_dt = datetime.strptime(target_month, "%Y-%m")
+    print(f"[DEBUG BACKEND] target_month: {target_month}, start_date_param: {start_date}, end_date_param: {end_date}")
     
     # Tạo danh sách 14 tháng (T-13 -> T)
     months_range = []
