@@ -1,5 +1,6 @@
 @echo off
 setlocal enabledelayedexpansion
+set PY_PATH=C:\Users\Admin\AppData\Local\Programs\Python\Python311\python.exe
 title KHHH ANTIGRAVITY V3.0 - ELITE CONTROL CENTER
 mode con: cols=80 lines=25
 color 0B
@@ -7,7 +8,7 @@ color 0B
 :MENU
 cls
 echo =======================================================================
-echo           KHHH ANTIGRAVITY V3.0 - TRUNG TAM DIEU KHAN ELITE
+echo           KHHH ANTIGRAVITY V3.0 - TRUNG TAM DIEU KHIEN ELITE
 echo =======================================================================
 echo.
 echo    [1] KHOI DONG HE THONG (CHAY NGAM)
@@ -37,7 +38,7 @@ goto MENU
 :START_APP
 echo.
 echo [+] Dang kiem tra quan tri (Governance Check)...
-python "%~dp0backend\scripts\governance_cleanup.py"
+"%PY_PATH%" "%~dp0backend\scripts\governance_cleanup.py"
 echo [+] Dang khoi dong cac dich vu ngam...
 wscript.exe //B "%~dp0START_SERVICE_V3.0.vbs"
 echo [OK] He thong dang duoc kich hoat. Vui long cho 5-10 giay.
@@ -118,7 +119,7 @@ goto MENU
 echo.
 echo [+] Dang thuc hien tai cau truc du lieu summary...
 echo [!] Canh bao: Qua trinh nay co the mat 1-3 phut tuy vao khoi luong data.
-python "%~dp0scratch\full_rebuild_enhanced.py"
+"%PY_PATH%" "%~dp0scratch\full_rebuild_enhanced.py"
 echo [OK] Da cap nhat lai toan bo du lieu Summary.
 pause
 goto MENU

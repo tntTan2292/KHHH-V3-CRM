@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_, func, desc, asc, text, case, literal, exists
 from datetime import datetime, timedelta
 import dateutil.relativedelta
-from ..models import User, NhanSu, HierarchyNode, Customer, Transaction
+from ..models import User, NhanSu, HierarchyNode, Customer, Transaction, CustomerMonthlySnapshot
 from ..services.scoping_service import ScopingService
 from ..core.config_segments import (
     MONTHS_UNTIL_CHURN, MONTHS_FOR_NEW, THRESHOLD_DIAMOND_REV, THRESHOLD_GOLD_REV, 
@@ -61,15 +61,20 @@ class CustomerService:
             # Full month check (simplified)
             is_partial = not (curr_start.day == 1 and (curr_end + timedelta(seconds=1)).day == 1)
             
-            from ..models import CustomerMonthlySnapshot, Transaction
+            # [RF5C] Determine if we should use Realtime vs Snapshot
+            # Governance: Current Month or Partial Range MUST use Realtime to match Dashboard
+            max_ts = db.query(func.max(Transaction.ngay_chap_nhan)).scalar()
+            max_month_str = max_ts[:7] if isinstance(max_ts, str) else max_ts.strftime("%Y-%m")
+            is_latest_month = (month_str == max_month_str)
             
-            # [RF5C] Check if snapshot exists for this month to decide between Realtime vs Snapshot
             snapshot_exists = db.query(exists().where(CustomerMonthlySnapshot.year_month == month_str)).scalar()
             snapshot_sub = None
             
-            if not snapshot_exists:
-                # REALTIME FALLBACK (For Current Month or missing snapshots)
-                # This must match the logic used by LifecycleService/Dashboard summary
+            # Use Realtime if snapshot missing OR if it's the current/partial month (to ensure consistency with Dashboard)
+            use_realtime = (not snapshot_exists) or is_latest_month or is_partial
+            
+            if use_realtime:
+                # REALTIME FALLBACK (Current Month) - MUST MATCH LifecycleService EXACTLY
                 if status_val == 'new_event':
                     filters.append(exists().where(
                         (Transaction.ma_kh == Customer.ma_crm_cms) &
@@ -80,6 +85,7 @@ class CustomerService:
                         (Transaction.ngay_chap_nhan < curr_start)
                     ))
                 elif status_val == 'recovered_event':
+                    # Logic: Tx in period, NO Tx in last 30 days before period, HAD Tx before that
                     filters.append(exists().where(
                         (Transaction.ma_kh == Customer.ma_crm_cms) &
                         (Transaction.ngay_chap_nhan.between(curr_start, curr_end))
@@ -88,34 +94,88 @@ class CustomerService:
                         (Transaction.ma_kh == Customer.ma_crm_cms) &
                         (Transaction.ngay_chap_nhan.between(curr_start - timedelta(days=30), curr_start - timedelta(seconds=1)))
                     ))
+                    filters.append(exists().where(
+                        (Transaction.ma_kh == Customer.ma_crm_cms) &
+                        (Transaction.ngay_chap_nhan < curr_start - timedelta(days=30))
+                    ))
                 elif status_val == 'churn_event':
-                    # Governance: Churn Event in realtime is a 90-day gap relative to curr_end
+                    # CHURN EVENT (Realtime) - [RF5F] STRICT ALIGNMENT
+                    # Logic: NO Tx in last 90 days, HAD Tx in the 90 days before that
+                    # ALWAYS USE REALTIME FOR CURRENT MONTH TRANSITIONS
+                    filters.append(~exists().where(
+                        (Transaction.ma_kh == Customer.ma_crm_cms) & 
+                        (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=90), curr_end))
+                    ))
+                    filters.append(exists().where(
+                        (Transaction.ma_kh == Customer.ma_crm_cms) & 
+                        (Transaction.ngay_chap_nhan.between(curr_start - timedelta(days=90), curr_start))
+                    ))
+                    use_realtime = True # FORCE REALTIME
+                elif status_val == 'new_pop':
+                    # NEW POPULATION (Realtime) - [RF5C] FIXED: Include active probationary
+                    filters.append(exists().where(
+                        (Transaction.ma_kh == Customer.ma_crm_cms) &
+                        (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=90), curr_end))
+                    ))
+                    filters.append(~exists().where(
+                        (Transaction.ma_kh == Customer.ma_crm_cms) &
+                        (Transaction.ngay_chap_nhan < curr_end - timedelta(days=90))
+                    ))
+                elif status_val == 'recovered_pop':
+                    # RECOVERED POPULATION (Realtime) - [RF5C] FIXED: Include active probationary
+                    filters.append(exists().where(
+                        (Transaction.ma_kh == Customer.ma_crm_cms) &
+                        (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=90), curr_end))
+                    ))
+                    filters.append(exists().where(
+                        (Transaction.ma_kh == Customer.ma_crm_cms) &
+                        (Transaction.ngay_chap_nhan < curr_end - timedelta(days=30))
+                    ))
                     filters.append(exists().where(
                         (Transaction.ma_kh == Customer.ma_crm_cms) &
                         (Transaction.ngay_chap_nhan < curr_end - timedelta(days=90))
                     ))
-                    filters.append(~exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=90), curr_end))
-                    ))
-                elif status_val == 'total_pop':
-                    # Population = Everyone active in last 90 days
+                elif status_val == 'active':
+                    # Mature Active (Realtime): Tx in last 30 days AND Tx older than 90 days
                     filters.append(exists().where(
                         (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=90), curr_end))
+                        (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=30), curr_end))
                     ))
-                elif status_val == 'active':
-                    filters.append(func.lower(Customer.lifecycle_state) == 'active')
-                elif status_val == 'at_risk':
-                    filters.append(func.lower(Customer.lifecycle_state) == 'at_risk')
+                    filters.append(exists().where(
+                        (Transaction.ma_kh == Customer.ma_crm_cms) &
+                        (Transaction.ngay_chap_nhan < curr_end - timedelta(days=90))
+                    ))
+                elif status_val == 'churn_pop':
+                    # CHURN POPULATION (Realtime) - [RF5F] STRICT ALIGNMENT
+                    # Logic: No transactions in the last 90 days
+                    filters.append(~exists().where(
+                        (Transaction.ma_kh == Customer.ma_crm_cms) &
+                        (Transaction.ngay_chap_nhan >= curr_end - timedelta(days=90))
+                    ))
+                    filters.append(exists().where(
+                        (Transaction.ma_kh == Customer.ma_crm_cms) &
+                        (Transaction.ngay_chap_nhan < curr_end - timedelta(days=90))
+                    ))
+                    use_realtime = True
+                elif status_val in ['at_risk'] and snapshot_exists:
+                    # [HYBRID] Match Dashboard's behavior for these categories
+                    snapshot_sub = db.query(CustomerMonthlySnapshot).filter(CustomerMonthlySnapshot.year_month == month_str).subquery()
+                    if status_val == 'at_risk':
+                        filters.append(snapshot_sub.c.lifecycle_state == 'AT_RISK')
+                    
+                    filters.append(Customer.ma_crm_cms == snapshot_sub.c.ma_kh)
+                    use_realtime = False 
+                elif status_val == 'total_pop':
+                    # [RF5F] UNIVERSE: Everyone with at least one transaction (Distinct ma_kh)
+                    filters.append(exists().where(Transaction.ma_kh == Customer.ma_crm_cms))
+                    use_realtime = True # ALWAYS REALTIME
                 else:
                     filters.append(func.lower(Customer.lifecycle_state) == status_val)
             else:
-                # SNAPSHOT LOGIC (For Historical Months)
+                # SNAPSHOT LOGIC (Historical Month)
                 snapshot_sub = db.query(CustomerMonthlySnapshot).filter(CustomerMonthlySnapshot.year_month == month_str).subquery()
                 
                 if status_val == 'total_pop':
-                    # [RF5C] TOTAL POPULATION = Everything except Churned
                     filters.append(snapshot_sub.c.lifecycle_state.in_(['ACTIVE', 'NEW', 'RECOVERED', 'AT_RISK']))
                 elif status_val == 'new_event':
                     filters.append(snapshot_sub.c.is_new_transition == True)
@@ -136,7 +196,7 @@ class CustomerService:
                 else:
                     filters.append(func.lower(Customer.lifecycle_state) == status_val)
                 
-                # Ensure join with the correct month snapshot
+                # Join with snapshot (Using filter for join integrity)
                 filters.append(Customer.ma_crm_cms == snapshot_sub.c.ma_kh)
             
         if rfm_segment:
@@ -157,20 +217,20 @@ class CustomerService:
             )
 
         if scope_ids is not None:
-            # Lấy list ma_bc từ scope_ids để filter
             scope_nodes = db.query(HierarchyNode.code).filter(HierarchyNode.id.in_(scope_ids)).all()
             scope_codes = [n.code for n in scope_nodes]
             filters.append(Customer.ma_bc_phu_trach.in_(scope_codes))
 
-        # 4. Total Count (Deterministic - Must match results)
+        # 4. Total Count (Deterministic)
+        # Use Outerjoin for snapshot to ensure population views don't collapse if some fields are null
         base_query = db.query(Customer)
-        if lifecycle_status and snapshot_exists:
-            base_query = base_query.join(snapshot_sub, Customer.ma_crm_cms == snapshot_sub.c.ma_kh)
+        if lifecycle_status and not use_realtime:
+            base_query = base_query.outerjoin(snapshot_sub, Customer.ma_crm_cms == snapshot_sub.c.ma_kh)
         
         base_query = base_query.filter(*filters)
         total = base_query.count()
 
-        # 5. Metrics Subquery - CHỈ tính cho tháng hiện tại (Dynamic Metrics)
+        # 5. Metrics Subquery (Revenue month-locked)
         metrics_sub = db.query(
             Transaction.ma_kh.label("ma_kh"),
             func.sum(Transaction.doanh_thu).label("dynamic_revenue"),
@@ -181,18 +241,19 @@ class CustomerService:
             Transaction.ma_kh.isnot(None)
         ).group_by(Transaction.ma_kh).subquery()
 
-        # 6. Final Query Assembly (Reuse same filters)
+        # 6. Final Query Assembly
+        # [GOVERNANCE] Ensure snapshot_stage fallback to Customer.lifecycle_state when not in snapshot mode
         final_query = db.query(
             Customer,
             func.coalesce(metrics_sub.c.dynamic_revenue, 0).label("dynamic_revenue"),
             func.coalesce(metrics_sub.c.transaction_count, 0).label("transaction_count"),
             metrics_sub.c.last_shipped_absolute,
             NhanSu.full_name.label("assigned_staff_name"),
-            (snapshot_sub.c.lifecycle_state if (lifecycle_status and snapshot_exists) else Customer.lifecycle_state).label("snapshot_stage")
+            (snapshot_sub.c.lifecycle_state if (lifecycle_status and not use_realtime) else Customer.lifecycle_state).label("snapshot_stage")
         ).select_from(Customer)
         
-        if lifecycle_status and snapshot_exists:
-            final_query = final_query.join(snapshot_sub, Customer.ma_crm_cms == snapshot_sub.c.ma_kh)
+        if lifecycle_status and not use_realtime:
+            final_query = final_query.outerjoin(snapshot_sub, Customer.ma_crm_cms == snapshot_sub.c.ma_kh)
             
         final_query = final_query.outerjoin(metrics_sub, Customer.ma_crm_cms == metrics_sub.c.ma_kh)\
           .outerjoin(NhanSu, Customer.assigned_staff_id == NhanSu.id)\

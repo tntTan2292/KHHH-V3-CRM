@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func, exists
+from sqlalchemy import func, exists, or_, and_
 from ..models import MonthlyAnalyticsSummary, Customer, Transaction
 from .lifecycle_engine import LifecycleEngine
 import logging
@@ -108,7 +108,7 @@ class LifecycleService:
             if scope_point_ids: new_event_query = new_event_query.filter(Customer.point_id.in_(scope_point_ids))
             results['new_event'] = new_event_query.scalar() or 0
 
-            # NEW POPULATION (90-day window)
+            # NEW POPULATION (90-day window) - [RF5C] FIXED: Include active probationary
             new_pop_query = db.query(func.count(Customer.id)).filter(
                 exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
@@ -141,7 +141,7 @@ class LifecycleService:
             if scope_point_ids: recovered_event_query = recovered_event_query.filter(Customer.point_id.in_(scope_point_ids))
             results['recovered_event'] = recovered_event_query.scalar() or 0
 
-            # RECOVERED POPULATION (90-day window)
+            # RECOVERED POPULATION (90-day window) - [RF5C] FIXED: Include active probationary
             recovered_pop_query = db.query(func.count(Customer.id)).filter(
                 exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
@@ -186,8 +186,48 @@ class LifecycleService:
             )
             if scope_point_ids: active_mature_query = active_mature_query.filter(Customer.point_id.in_(scope_point_ids))
             results['active'] = active_mature_query.scalar() or 0
+
+            # AT RISK (Realtime) - [RF5C] FIXED: Current month realtime
+            at_risk_query = db.query(func.count(Customer.id)).filter(
+                exists().where(
+                    (Transaction.ma_kh == Customer.ma_crm_cms) &
+                    (Transaction.ngay_chap_nhan.between(e_dt - timedelta(days=90), e_dt - timedelta(days=30)))
+                ),
+                ~exists().where(
+                    (Transaction.ma_kh == Customer.ma_crm_cms) &
+                    (Transaction.ngay_chap_nhan > e_dt - timedelta(days=30))
+                ),
+                exists().where(
+                    (Transaction.ma_kh == Customer.ma_crm_cms) &
+                    (Transaction.ngay_chap_nhan < e_dt - timedelta(days=90))
+                )
+            )
+            if scope_point_ids: at_risk_query = at_risk_query.filter(Customer.point_id.in_(scope_point_ids))
+            results['at_risk'] = at_risk_query.scalar() or 0
+
+            # CHURN POPULATION (Realtime) - [RF5C] FIXED: Current month realtime
+            churn_pop_query = db.query(func.count(Customer.id)).filter(
+                ~exists().where(
+                    (Transaction.ma_kh == Customer.ma_crm_cms) &
+                    (Transaction.ngay_chap_nhan >= e_dt - timedelta(days=90))
+                ),
+                exists().where(
+                    (Transaction.ma_kh == Customer.ma_crm_cms) &
+                    (Transaction.ngay_chap_nhan < e_dt - timedelta(days=90))
+                )
+            )
+            if scope_point_ids: churn_pop_query = churn_pop_query.filter(Customer.point_id.in_(scope_point_ids))
+            results['churn_pop'] = churn_pop_query.scalar() or 0
+
+        # TOTAL KHÁCH HÀNG - [RF5F] Unified Universe
+        # COUNT DISTINCT toàn bộ customer_id tồn tại trong lifecycle universe (Universe thực tế)
+        total_universe_query = db.query(func.count(Customer.id)).filter(
+            exists().where(Transaction.ma_kh == Customer.ma_crm_cms)
+        )
+        if scope_point_ids: 
+            total_universe_query = total_universe_query.filter(Customer.point_id.in_(scope_point_ids))
         
-        results["total"] = results["active"] + results["at_risk"]
+        results["total"] = total_universe_query.scalar() or 0
         return results
 
     @staticmethod

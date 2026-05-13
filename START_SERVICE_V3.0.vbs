@@ -13,7 +13,7 @@ backendDir = baseDir & "\backend"
 logDir = baseDir & "\data\logs"
 
 ' Paths - Hardened for Portable Node.js (V3.0 Elite)
-pyPath = "python"
+pyPath = "C:\Users\Admin\AppData\Local\Programs\Python\Python311\python.exe"
 nodeRoot = "C:\Users\Admin\nodejs_portable_v22\node-v22.12.0-win-x64"
 npmPath = nodeRoot & "\npm.cmd"
 comspecPath = shell.ExpandEnvironmentStrings("%ComSpec%")

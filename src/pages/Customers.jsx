@@ -1279,13 +1279,13 @@ export default function Customers() {
         <div className="flex flex-col gap-1 p-1.5 bg-blue-50/20 rounded-xl border border-blue-100/50 shadow-sm">
           <div className="flex items-center gap-2 mb-0.5 px-1">
              <span className="w-1 h-3 bg-blue-500 rounded-full"></span>
-             <h3 className="text-[8px] font-black text-blue-700 uppercase tracking-widest">Quy mô dân số (Population)</h3>
+             <h3 className="text-[8px] font-black text-blue-700 uppercase tracking-widest">Lũy kế vòng đời khách hàng</h3>
           </div>
           
           {/* Row 1: Primary Stocks */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
             {[
-              { label: "Tổng Population", value: "total_pop", icon: Users, color: "blue" },
+              { label: "Tổng Khách hàng", value: "total_pop", icon: Users, color: "blue" },
               { label: "Hiện hữu (Mature)", value: "active", icon: CheckCircle2, color: "purple" },
               { label: "Nguy cơ", value: "at_risk", icon: AlertCircle, color: "orange" },
               { label: "Rời bỏ (Lũy kế)", value: "churn_pop", icon: History, color: "slate" }
