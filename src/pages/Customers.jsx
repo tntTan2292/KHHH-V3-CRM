@@ -1273,17 +1273,101 @@ export default function Customers() {
         </div>
       )}
 
-      {/* RF5C - STEP 3D: CLEAN SEPARATION BETWEEN EVENT vs POPULATION UI */}
-      <div className="flex flex-col gap-1 mb-2">
-        {/* BLOCK 1: BIẾN ĐỘNG TRONG KỲ (EVENT) - CHỈ DÒNG CHẢY TRONG THÁNG */}
-        <div className="p-1 bg-white/40 rounded-xl border border-white/60 shadow-sm">
+      {/* RF5C - STEP 3D: OPERATIONAL COCKPIT LAYOUT REFACTOR */}
+      <div className="flex flex-col gap-1.5 mb-2">
+        {/* TIER 1: POPULATION (The Stock - Most Important) */}
+        <div className="flex flex-col gap-1 p-1.5 bg-blue-50/20 rounded-xl border border-blue-100/50 shadow-sm">
           <div className="flex items-center gap-2 mb-0.5 px-1">
-             <span className="w-1 h-2.5 bg-rose-500 rounded-full"></span>
-             <h3 className="text-[7px] font-black text-rose-600 uppercase tracking-widest">Biến động trong kỳ (Event)</h3>
-             <span className="text-[6px] text-gray-400 font-bold opacity-30 uppercase tracking-tighter">Chỉ bao gồm các biến động phát sinh riêng trong tháng</span>
+             <span className="w-1 h-3 bg-blue-500 rounded-full"></span>
+             <h3 className="text-[8px] font-black text-blue-700 uppercase tracking-widest">Quy mô dân số (Population)</h3>
           </div>
           
-          <div className="grid grid-cols-3 gap-1">
+          {/* Row 1: Primary Stocks */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
+            {[
+              { label: "Tổng Population", value: "total_pop", icon: Users, color: "blue" },
+              { label: "Hiện hữu (Mature)", value: "active", icon: CheckCircle2, color: "purple" },
+              { label: "Nguy cơ", value: "at_risk", icon: AlertCircle, color: "orange" },
+              { label: "Rời bỏ (Lũy kế)", value: "churn_pop", icon: History, color: "slate" }
+            ].map((item) => {
+              const isActive = filters.lifecycle_status === item.value;
+              const countKey = item.value === "total_pop" ? "Tất cả" : item.value;
+              const count = lifecycleStats[countKey] || 0;
+              const config = lifecycleConfig.find(c => c.value === item.value) || { color: item.color, borderCol: "border-gray-200", bgLight: "bg-white" };
+              
+              return (
+                <button
+                  key={item.label}
+                  onClick={() => { setFilters(prev => ({ ...prev, lifecycle_status: item.value })); setPage(1); }}
+                  className={`group relative p-1.5 pl-3 rounded-lg transition-all flex flex-col items-start gap-0 text-left border ${
+                    isActive 
+                      ? `bg-white shadow-md scale-[1.01] z-10 ${config.borderCol} border-l-4` 
+                      : `bg-white/60 border-gray-100 hover:bg-white border-l-4 opacity-90`
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span className={`text-[8px] font-black uppercase tracking-tight truncate ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
+                      {item.label}
+                    </span>
+                    <item.icon size={10} className={isActive ? `text-${item.color}-600` : "text-gray-400"} />
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className={`text-base font-black tracking-tighter ${isActive ? `text-${item.color}-600` : `text-${item.color}-700`}`}>
+                      {count.toLocaleString()}
+                    </span>
+                    <span className="text-[7px] text-gray-400 font-bold uppercase opacity-50">KH</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Row 2: Probationary Stocks */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
+            {[
+              { label: "Mới (Lũy kế)", value: "new_pop", icon: Sparkles, color: "indigo" },
+              { label: "Tái bản (Lũy kế)", value: "recovered_pop", icon: Activity, color: "emerald" }
+            ].map((item) => {
+              const isActive = filters.lifecycle_status === item.value;
+              const count = lifecycleStats[item.value] || 0;
+              const config = lifecycleConfig.find(c => c.value === item.value) || { color: item.color, borderCol: "border-gray-200", bgLight: "bg-white" };
+              
+              return (
+                <button
+                  key={item.label}
+                  onClick={() => { setFilters(prev => ({ ...prev, lifecycle_status: item.value })); setPage(1); }}
+                  className={`group relative p-1 pl-3 rounded-lg transition-all flex flex-col items-start gap-0 text-left border ${
+                    isActive 
+                      ? `bg-white shadow-sm scale-[1.01] z-10 ${config.borderCol} border-l-4` 
+                      : `bg-white/40 border-gray-50 hover:bg-white border-l-4 opacity-80`
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span className={`text-[7px] font-black uppercase tracking-tight truncate ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>
+                      {item.label}
+                    </span>
+                    <item.icon size={8} className={isActive ? `text-${item.color}-600` : "text-gray-300"} />
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className={`text-sm font-black tracking-tighter ${isActive ? `text-${item.color}-600` : `text-${item.color}-700`}`}>
+                      {count.toLocaleString()}
+                    </span>
+                    <span className="text-[6px] text-gray-400 font-bold uppercase opacity-50">KH</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* TIER 2: EVENT STRIP (The Flow - Month Volatility) */}
+        <div className="p-1 px-2 bg-rose-50/30 rounded-lg border border-rose-100/50 flex items-center gap-3">
+          <div className="flex items-center gap-1.5 pr-3 border-r border-rose-200/50">
+             <span className="w-1 h-2 bg-rose-500 rounded-full"></span>
+             <h3 className="text-[7px] font-black text-rose-600 uppercase tracking-widest whitespace-nowrap">Biến động kỳ (Event)</h3>
+          </div>
+          
+          <div className="flex flex-1 items-center gap-4">
             {[
               { label: "Mới trong kỳ", value: "new_event", icon: Star, color: "sky" },
               { label: "Tái bản trong kỳ", value: "recovered_event", icon: RefreshCw, color: "emerald" },
@@ -1291,212 +1375,100 @@ export default function Customers() {
             ].map((item) => {
               const isActive = filters.lifecycle_status === item.value;
               const count = lifecycleStats[item.value] || 0;
-              const config = lifecycleConfig.find(c => c.value === item.value) || { color: item.color, borderCol: "border-gray-200", bgLight: "bg-gray-50/50" };
               
               return (
                 <button
                   key={item.label}
                   onClick={() => { setFilters(prev => ({ ...prev, lifecycle_status: item.value })); setPage(1); }}
-                  className={`group relative p-1 pl-2 rounded-lg transition-all flex flex-col items-start gap-0 text-left border ${
+                  className={`flex items-center gap-2 px-2 py-0.5 rounded-md transition-all border ${
                     isActive 
-                      ? `bg-white shadow-sm scale-[1.01] z-10 ${config.borderCol} border-l-4` 
-                      : `${config.bgLight} border-gray-100 hover:bg-white border-l-4 opacity-80`
+                      ? `bg-white border-${item.color}-500 shadow-sm ring-1 ring-${item.color}-500/20` 
+                      : `border-transparent hover:bg-white/60`
                   }`}
                 >
-                  <div className="flex items-center justify-between w-full">
-                    <span className={`text-[7px] font-black uppercase tracking-tighter truncate ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>
-                      {item.label}
-                    </span>
-                    <item.icon size={8} className={isActive ? `text-${item.color}-600` : "text-gray-300"} />
-                  </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className={`text-xs font-black tracking-tighter ${isActive ? `text-${item.color}-600` : `text-${item.color}-700`}`}>
-                      {count.toLocaleString()}
-                    </span>
-                    <span className="text-[6px] text-gray-400 font-bold uppercase opacity-50">KH</span>
-                  </div>
+                  <span className={`text-[7px] font-black uppercase tracking-tight ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>{item.label}</span>
+                  <span className={`text-xs font-black tracking-tighter ${isActive ? `text-${item.color}-600` : `text-gray-600`}`}>
+                    {count.toLocaleString()}
+                  </span>
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* BLOCK 2: LŨY KẾ (POPULATION) - QUY MÔ TỆP KHÁCH HÀNG SNAPSHOT */}
-        <div className="p-1 bg-blue-50/20 rounded-xl border border-blue-100/50 shadow-sm">
-          <div className="flex items-center gap-2 mb-0.5 px-1">
-             <span className="w-1 h-2.5 bg-blue-500 rounded-full"></span>
-             <h3 className="text-[7px] font-black text-blue-600 uppercase tracking-widest">Lũy kế (Population)</h3>
-             <span className="text-[6px] text-gray-400 font-bold opacity-30 uppercase tracking-tighter">Tổng dân số đang ở trạng thái tại thời điểm snapshot</span>
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-1">
-            {[
-              { label: "Tổng Population", value: "total_pop", icon: Users, color: "blue" },
-              { label: "Hiện hữu", value: "active", icon: CheckCircle2, color: "green" },
-              { label: "Nguy cơ", value: "at_risk", icon: AlertCircle, color: "orange" },
-              { label: "Mới (Lũy kế)", value: "new_pop", icon: Sparkles, color: "indigo" },
-              { label: "Tái bản (Lũy kế)", value: "recovered_pop", icon: Activity, color: "emerald" },
-              { label: "Rời bỏ (Lũy kế)", value: "churn_pop", icon: History, color: "slate" }
-            ].map((item) => {
-              const isActive = filters.lifecycle_status === item.value;
-              const countKey = item.value === "total_pop" ? "Tất cả" : item.value;
-              const count = lifecycleStats[countKey] || 0;
-              const config = lifecycleConfig.find(c => c.value === item.value) || { color: item.color, borderCol: "border-gray-200", bgLight: "bg-gray-50/50" };
-              
-              return (
-                <button
-                  key={item.label}
-                  onClick={() => { setFilters(prev => ({ ...prev, lifecycle_status: item.value })); setPage(1); }}
-                  className={`group relative p-1 pl-2 rounded-lg transition-all flex flex-col items-start gap-0 text-left border ${
-                    isActive 
-                      ? `bg-white shadow-sm scale-[1.01] z-10 ${config.borderCol} border-l-4` 
-                      : `${config.bgLight} border-gray-100 hover:bg-white border-l-4 opacity-80`
-                  }`}
-                >
-                  <div className="flex items-center justify-between w-full">
-                    <span className={`text-[7px] font-black uppercase tracking-tighter truncate ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>
-                      {item.label}
-                    </span>
-                    <item.icon size={8} className={isActive ? `text-${item.color}-600` : "text-gray-300"} />
-                  </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className={`text-xs font-black tracking-tighter ${isActive ? `text-${item.color}-600` : `text-${item.color}-700`}`}>
-                      {count.toLocaleString()}
-                    </span>
-                    <span className="text-[6px] text-gray-400 font-bold uppercase opacity-50">KH</span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      <div className="card space-y-4 !p-4 shadow-sm border-gray-100 relative z-50">
-        <div className="flex flex-wrap gap-4 items-center">
-          {/* Admin Hierarchy Filter */}
-          <div className="w-72">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-1"><MapPin size={12} /> Phạm vi dữ liệu</label>
-            <div className="relative">
+        {/* TIER 3: COMPACT OPERATIONAL TOOLBAR */}
+        <div className="card !p-1.5 !rounded-xl shadow-sm border-gray-100 bg-white flex flex-wrap items-center gap-2">
+            {/* 3.1: Scope Selector */}
+            <div className="relative min-w-[180px]">
                 <button 
                   onClick={() => setIsTreeOpen(!isTreeOpen)}
-                  className={`w-full bg-gray-50 border rounded-2xl px-4 py-2.5 text-xs font-bold text-vnpost-blue flex justify-between items-center transition-all shadow-inner ${isTreeOpen ? 'bg-white ring-2 ring-vnpost-blue/20 border-vnpost-blue/30' : 'border-gray-100 hover:bg-white'}`}
+                  className={`w-full bg-gray-50 border rounded-lg px-2 py-1.5 text-[10px] font-bold text-vnpost-blue flex justify-between items-center transition-all ${isTreeOpen ? 'bg-white ring-1 ring-vnpost-blue/20' : 'border-gray-100'}`}
                 >
-                  <span className="truncate">{selectedNode ? selectedNode.title : "Bưu điện thành phố Huế"}</span>
-                  <ArrowUpRight size={14} className={`transition-transform duration-300 ${isTreeOpen ? 'rotate-180 opacity-100' : 'rotate-90 opacity-40'}`} />
+                  <MapPin size={12} className="shrink-0 mr-1 opacity-50" />
+                  <span className="truncate flex-1 text-left">{selectedNode ? selectedNode.title : "Phạm vi dữ liệu"}</span>
+                  <ArrowUpRight size={10} className="ml-1 opacity-40" />
                 </button>
-
                 {isTreeOpen && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setIsTreeOpen(false)}></div>
-                    <div className="absolute top-full left-0 w-80 mt-2 bg-white/95 backdrop-blur-xl border border-gray-200 rounded-2xl shadow-2xl p-4 z-20 max-h-[400px] overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-top-2 duration-300">
-                      <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg mb-4">
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Chọn Cụm / Bưu cục / Điểm</span>
-                        <button onClick={() => setIsTreeOpen(false)} className="text-[10px] font-black text-vnpost-blue uppercase hover:underline">Đóng</button>
-                      </div>
-                      <TreeExplorer onSelect={(node) => { 
-                        setSelectedNode(node); 
-                        setPage(1); 
-                        setIsTreeOpen(false); 
-                        saveNavigationContext(node);
-                        syncUrlWithContext(node, searchParams, setSearchParams);
-                      }} selectedNode={selectedNode} />
-                      <div className="mt-4 pt-4 border-t border-gray-100">
-                          <button onClick={() => { 
-                            setSelectedNode(null); 
-                            setPage(1); 
-                            setIsTreeOpen(false); 
-                            saveNavigationContext(null);
-                            syncUrlWithContext(null, searchParams, setSearchParams);
-                          }} className="w-full py-2 bg-vnpost-blue/5 text-vnpost-blue rounded-lg text-[10px] font-black uppercase hover:bg-vnpost-blue hover:text-white transition-all">Đặt lại Bưu điện thành phố Huế</button>
-                      </div>
-                    </div>
-                  </>
+                  <div className="absolute top-full left-0 w-80 mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl p-3 z-[100] max-h-[350px] overflow-y-auto custom-scrollbar">
+                    <TreeExplorer onSelect={(node) => { setSelectedNode(node); setPage(1); setIsTreeOpen(false); }} selectedNode={selectedNode} />
+                  </div>
                 )}
             </div>
-          </div>
 
-          <div className="relative flex-1 min-w-[300px] mt-5">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
-            <input 
-              name="search"
-              value={filters.search}
-              onChange={handleFilterChange}
-              type="text" 
-              placeholder="Tìm theo tên khách hàng hoặc mã định danh CRM..." 
-              className="w-full pl-11 pr-4 py-2.5 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-vnpost-blue focus:ring-4 focus:ring-vnpost-blue/5 transition-all bg-gray-50/30 font-medium"
-            />
-          </div>
-          
-          <div className="w-56">
+            {/* 3.2: Search Box */}
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-300" size={12} />
+              <input 
+                name="search"
+                value={filters.search}
+                onChange={handleFilterChange}
+                type="text" 
+                placeholder="Tìm tên hoặc mã CRM..." 
+                className="w-full pl-8 pr-3 py-1.5 border border-gray-100 rounded-lg text-[10px] focus:outline-none focus:border-vnpost-blue bg-gray-50/30 font-medium"
+              />
+            </div>
+
+            {/* 3.3: RFM Segment */}
             <select 
               name="rfm_segment" 
               value={filters.rfm_segment} 
               onChange={handleFilterChange}
-              className="w-full py-2.5 px-4 border border-gray-200 rounded-2xl text-sm outline-none focus:border-vnpost-blue bg-white font-bold text-gray-700 shadow-sm transition-all"
+              className="py-1.5 px-2 border border-gray-100 rounded-lg text-[10px] outline-none bg-white font-bold text-gray-600 min-w-[120px]"
             >
-              <option value="">🎯 Phân hạng (Tất cả)</option>
-              <option value="Kim Cương">💎 Kim Cương</option>
-              <option value="Vàng">🏆 Vàng</option>
-              <option value="Bạc">🥈 Bạc</option>
-              <option value="Tiềm Năng">✨ Tiềm Năng</option>
-              <option value="Thường">👤 Thường</option>
+              <option value="">Phân hạng (Tất cả)</option>
+              {["Kim Cương", "Vàng", "Bạc", "Tiềm Năng", "Thường"].map(s => <option key={s} value={s}>{s}</option>)}
             </select>
-          </div>
 
-          <button onClick={handleApplyFilter} className="px-8 h-[42px] bg-vnpost-blue text-white rounded-2xl font-black hover:bg-[#003E7E] transition-all flex items-center gap-2 shadow-xl shadow-vnpost-blue/20 active:scale-95 uppercase tracking-wider text-xs">
-            <Filter size={18} /> Lọc dữ liệu
-          </button>
-        </div>
-
-        {/* Global Period Filter */}
-        <div className="flex flex-wrap gap-4 items-end bg-gradient-to-r from-gray-50 to-white p-4 rounded-2xl border border-gray-100">
-          <div className="space-y-1.5 flex-1 min-w-[150px]">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1 ml-1">
-              <Calendar size={12} /> Từ ngày
-            </label>
-            <input 
-              type="date" 
-              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-4 focus:ring-vnpost-orange/10 outline-none transition-all text-sm font-bold text-gray-700"
-              value={startDate}
-              onChange={(e) => { setStartDate(e.target.value); setSelectedMonth(""); }}
-            />
-          </div>
-          <div className="space-y-1.5 flex-1 min-w-[150px]">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1 ml-1">
-              <Calendar size={12} /> Đến ngày
-            </label>
-            <input 
-              type="date" 
-              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-4 focus:ring-vnpost-orange/10 outline-none transition-all text-sm font-bold text-gray-700"
-              value={endDate}
-              onChange={(e) => { setEndDate(e.target.value); setSelectedMonth(""); }}
-            />
-          </div>
-          <div className="space-y-1.5 flex-1 min-w-[200px]">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1 ml-1">
-              <TrendingUp size={12} /> Chọn nhanh tháng
-            </label>
+            {/* 3.4: Quick Month */}
             <select 
-              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-4 focus:ring-vnpost-orange/10 outline-none transition-all text-sm font-black text-vnpost-blue bg-white"
+              className="py-1.5 px-2 rounded-lg border border-gray-100 outline-none text-[10px] font-black text-vnpost-blue bg-white min-w-[140px]"
               onChange={(e) => handleQuickMonth(e.target.value)}
               value={selectedMonth}
             >
-              <option value="">-- Chọn tháng báo cáo --</option>
-              {coverage.months?.map(m => (
-                <option key={m.value} value={m.value}>{m.label}</option>
-              ))}
+              <option value="">Chọn tháng báo cáo</option>
+              {coverage.months?.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
             </select>
-          </div>
-          <div className="flex items-center h-full pt-6">
-             <button 
-              onClick={() => { setStartDate(""); setEndDate(""); setSelectedMonth(""); fetchCustomers(); }}
-              className="text-gray-400 hover:text-red-500 text-[10px] font-black transition-all uppercase tracking-tighter bg-white px-3 py-2.5 rounded-xl border border-dashed hover:border-red-200"
-             >
-               Xóa lọc
-             </button>
-          </div>
+
+            {/* 3.5: Date Range */}
+            <div className="flex items-center gap-1 bg-gray-50 p-0.5 rounded-lg border border-gray-100">
+              <input type="date" className="bg-transparent px-1 py-0.5 text-[9px] font-bold outline-none border-none" value={startDate} onChange={(e) => { setStartDate(e.target.value); setSelectedMonth(""); }} />
+              <span className="text-[8px] text-gray-300">→</span>
+              <input type="date" className="bg-transparent px-1 py-0.5 text-[9px] font-bold outline-none border-none" value={endDate} onChange={(e) => { setEndDate(e.target.value); setSelectedMonth(""); }} />
+            </div>
+
+            {/* 3.6: Action Button */}
+            <button onClick={handleApplyFilter} className="px-3 h-[28px] bg-vnpost-blue text-white rounded-lg font-black hover:bg-[#003E7E] transition-all flex items-center gap-1.5 shadow-sm uppercase tracking-wider text-[9px]">
+              <Filter size={12} /> Lọc
+            </button>
+            
+            <button 
+              onClick={() => { setFilters({ search: '', rfm_segment: '', lifecycle_status: '' }); setSelectedNode(null); setStartDate(""); setEndDate(""); setSelectedMonth(""); fetchCustomers(); }}
+              className="text-gray-400 hover:text-red-500 text-[9px] font-black uppercase tracking-tighter px-2"
+            >
+              Xóa lọc
+            </button>
         </div>
+      </div>
 
         {/* METRIC INTELLIGENCE LEGEND */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-2 py-4 bg-indigo-50/30 rounded-2xl border border-indigo-100/50">
