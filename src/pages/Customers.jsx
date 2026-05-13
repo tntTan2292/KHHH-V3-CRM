@@ -192,8 +192,14 @@ const CustomerRow = React.memo(({ c, handleRowClick, handleHistoryModal, formatC
          {(() => {
            const status = lifecycleConfig.find(l => l.value === c?.status_type) || lifecycleConfig[0];
            return (
-             <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[11px] font-black uppercase border shadow-sm ${status.colorClass} ${status.bgClass} ${status.textClass}`}>
-               <status.icon size={12} className={(c?.status_type === 'new' || c?.status_type === 'new_event') ? 'animate-bounce' : ''} />
+             <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[11px] font-black uppercase border shadow-sm ${
+               c?.status_type === 'active' ? 'bg-blue-50 text-vnpost-blue border-blue-100' :
+               c?.status_type === 'at_risk' ? 'bg-amber-50 text-amber-700 border-amber-100' :
+               c?.status_type === 'new' || c?.status_type?.includes('new') ? 'bg-indigo-50 text-indigo-700 border-indigo-100' :
+               c?.status_type?.includes('recovered') ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+               'bg-rose-50 text-rose-700 border-rose-100'
+             }`}>
+               <status.icon size={12} />
                {(() => {
                  if (c?.status_type === 'active') return 'Hiện hữu';
                  if (c?.status_type === 'new' || c?.status_type === 'new_event' || c?.status_type === 'new_pop') return 'Mới';
@@ -1396,6 +1402,66 @@ export default function Customers() {
           </div>
         </div>
 
+        {/* ACTIVE FILTER CONTEXT BAR (EXECUTIVE) */}
+        <div className="bg-white border-y border-gray-100 px-6 py-3 flex items-center justify-between shadow-sm sticky top-0 z-40 backdrop-blur-md">
+           <div className="flex items-center gap-6">
+              <div className="flex items-center gap-3">
+                 <div className="w-8 h-8 rounded-lg bg-blue-50 text-vnpost-blue flex items-center justify-center">
+                    <Filter size={16} />
+                 </div>
+                 <div>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Đang soi bộ lọc</p>
+                    <div className="flex items-center gap-2">
+                       <span className="text-xs font-black text-vnpost-blue uppercase tracking-tight">
+                          {filters.lifecycle_status ? (lifecycleConfig.find(l => l.value === filters.lifecycle_status)?.label || filters.lifecycle_status) : "Tất cả khách hàng"}
+                       </span>
+                       {filters.rfm_segment && (
+                         <span className="text-[10px] font-black bg-vnpost-orange/10 text-vnpost-orange px-2 py-0.5 rounded uppercase border border-vnpost-orange/20">
+                            {filters.rfm_segment}
+                         </span>
+                       )}
+                    </div>
+                 </div>
+              </div>
+
+              <div className="h-8 w-px bg-gray-100"></div>
+
+              <div className="flex items-center gap-3">
+                 <div className="w-8 h-8 rounded-lg bg-slate-50 text-slate-500 flex items-center justify-center">
+                    <Calendar size={16} />
+                 </div>
+                 <div>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Thời gian & Chế độ</p>
+                    <div className="flex items-center gap-2">
+                       <span className="text-xs font-black text-slate-700">
+                          {selectedMonth ? `Tháng ${selectedMonth}` : `${startDate} → ${endDate}`}
+                       </span>
+                       <div className={`logic-mode-badge ${selectedMonth ? 'mode-snapshot' : 'mode-realtime'} !py-0.5 !px-2 !text-[9px]`}>
+                          {selectedMonth ? 'SNAPSHOT' : 'REALTIME'}
+                       </div>
+                    </div>
+                 </div>
+              </div>
+           </div>
+
+           <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black text-gray-400 uppercase mr-2">Tổng cộng:</span>
+              <span className="text-sm font-black text-vnpost-blue">{total.toLocaleString()} <span className="text-[10px] opacity-60">KH</span></span>
+           </div>
+        </div>
+
+        {/* Navigation & Toolbar */}
+        <div className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+             {selectedNode && (
+               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 rounded-xl border border-gray-200 shadow-inner">
+                 <MapPin size={12} className="text-vnpost-blue" />
+                 <span className="text-[11px] font-black text-gray-500 uppercase tracking-tight">{selectedNode.title}</span>
+                 <button onClick={() => { setSelectedNode(null); saveNavigationContext(null); }} className="p-1 hover:text-red-500 transition-colors"><X size={12}/></button>
+               </div>
+             )}
+          </div>
+
         {/* TIER 3: COMPACT OPERATIONAL TOOLBAR */}
         <div className="card !p-1.5 !rounded-xl shadow-sm border-gray-100 bg-white flex flex-wrap items-center gap-2">
             {/* 3.1: Scope Selector */}
@@ -1416,7 +1482,7 @@ export default function Customers() {
             </div>
 
             {/* 3.2: Search Box */}
-            <div className="relative flex-1 min-w-[200px]">
+            <div className="relative min-w-[200px] flex-1">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-300" size={12} />
               <input 
                 name="search"
@@ -1427,6 +1493,28 @@ export default function Customers() {
                 className="w-full pl-8 pr-3 py-1.5 border border-gray-100 rounded-lg text-[10px] focus:outline-none focus:border-vnpost-blue bg-gray-50/30 font-medium"
               />
             </div>
+
+            {/* 3.3: Date Filters (Compact) */}
+            <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-lg border border-gray-100">
+               <input type="date" value={startDate} onChange={e => { setStartDate(e.target.value); setSelectedMonth(""); }} className="bg-white border-none rounded-md px-2 py-1 text-[10px] font-bold text-vnpost-blue w-28 focus:ring-1 focus:ring-vnpost-blue/20" />
+               <ChevronRight size={10} className="text-gray-300" />
+               <input type="date" value={endDate} onChange={e => { setEndDate(e.target.value); setSelectedMonth(""); }} className="bg-white border-none rounded-md px-2 py-1 text-[10px] font-bold text-vnpost-blue w-28 focus:ring-1 focus:ring-vnpost-blue/20" />
+            </div>
+
+            <select className="bg-gray-50 border border-gray-100 rounded-lg px-2 py-1.5 text-[10px] font-bold text-vnpost-blue cursor-pointer focus:ring-1 focus:ring-vnpost-blue/20 transition-all outline-none" value={selectedMonth} onChange={(e) => handleQuickMonth(e.target.value)}>
+              <option value="">-- Chọn tháng --</option>
+              {coverage.months?.map(m => (<option key={m.value} value={m.value}>{m.label}</option>))}
+            </select>
+
+            <div className="h-6 w-px bg-gray-100 mx-1"></div>
+
+            <button 
+              onClick={handleExportExcel}
+              className="bg-vnpost-blue text-white px-4 py-1.5 rounded-lg font-black text-[10px] uppercase shadow-md flex items-center gap-2 hover:scale-105 active:scale-95 transition-all"
+            >
+              <Download size={14} /> Excel
+            </button>
+        </div>
 
             {/* 3.3: RFM Segment */}
             <select 

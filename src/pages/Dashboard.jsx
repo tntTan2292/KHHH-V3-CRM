@@ -659,6 +659,10 @@ function Dashboard() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+             <div className={`logic-mode-badge ${selectedMonth ? 'mode-snapshot' : 'mode-realtime'}`}>
+               <div className={`w-2 h-2 rounded-full animate-pulse ${selectedMonth ? 'bg-slate-400' : 'bg-blue-500'}`}></div>
+               {selectedMonth ? `SNAPSHOT: ${selectedMonth}` : 'REALTIME MODE'}
+             </div>
              <button onClick={() => window.location.reload()} className="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-vnpost-blue transition-all shadow-sm"><RefreshCw size={18} /></button>
              <button onClick={handleExportPDF} className="bg-vnpost-blue text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase shadow-lg flex items-center gap-2 hover:scale-105 active:scale-95 transition-all"><DownloadCloud size={18} /> Xuất Báo Cáo</button>
           </div>
@@ -746,209 +750,246 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Lifecycle & Tiers Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          <div className="lg:col-span-3 space-y-4">
-            <h3 className="text-sm font-black text-vnpost-blue uppercase tracking-widest flex items-center gap-2">
-              <Users size={16} /> Nhóm 01: Cấu trúc Tệp Khách hàng Định danh (
-              <Link to="/guidelines#lifecycle" className="text-vnpost-orange hover:underline cursor-pointer">Lifecycle</Link>
-              )
+        {/* SECTION: POPULATION (HIỆN TRẠNG) - TOP PRIORITY */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-black text-vnpost-blue uppercase tracking-[0.2em] flex items-center gap-2">
+              <Users size={18} /> 01. HIỆN TRẠNG TỆP KHÁCH HÀNG (POPULATION)
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {(!summaryData && !stats.lifecycle?.["active"]) ? (
-                <>
-                  <Skeleton.KPIMini /><Skeleton.KPIMini /><Skeleton.KPIMini />
-                </>
-              ) : (
-                <>
-                  {/* RF5C-HOTFIX: ACTIVE SNAPSHOT CARD */}
-                  <div 
-                    className="card p-3 border-l-4 border-l-vnpost-blue bg-gradient-to-br from-vnpost-blue/5 to-transparent relative group/lctip cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all flex flex-col justify-between min-h-[90px]"
-                    onClick={() => {
-                      const node = selectedNode;
-                      if (node) saveNavigationContext(node);
-                      navigate(`/customers?lifecycle_status=active${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
-                    }}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-1.5">
-                          <p className="text-vnpost-blue text-[9px] font-black uppercase tracking-widest">Hiện hữu (Mature)</p>
-                          <span className="text-[8px] opacity-40 font-bold uppercase">{selectedMonthLabel}</span>
-                        </div>
-                        <h3 className="text-xl font-black">{(stats?.lifecycle?.["active"] || 0).toLocaleString()}</h3>
+            <Link to="/guidelines#lifecycle" className="text-[10px] font-black text-vnpost-orange uppercase hover:underline">Hướng dẫn định nghĩa trạng thái</Link>
+          </div>
+          
+          {/* Row 1: Priority States */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {(!summaryData && !stats.lifecycle?.["active"]) ? (
+              Array(3).fill(0).map((_, i) => <Skeleton.KPIMini key={i} />)
+            ) : (
+              <>
+                {/* ACTIVE - CENTRAL KPI */}
+                <div 
+                  className="executive-card pop-card border-l-[6px]" 
+                  style={{ borderLeftColor: 'var(--crm-active-base)', background: 'linear-gradient(135deg, var(--crm-active-light) 0%, #ffffff 100%)' }}
+                  onClick={() => {
+                    const node = selectedNode;
+                    if (node) saveNavigationContext(node);
+                    navigate(`/customers?lifecycle_status=active${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
+                  }}
+                >
+                  <div className="flex flex-col h-full justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="kpi-label" style={{ color: 'var(--crm-active-base)' }}>HIỆN HỮU (ACTIVE)</span>
+                        <Users size={24} style={{ color: 'var(--crm-active-base)', opacity: 0.15 }} />
                       </div>
-                      <Users size={16} className="text-vnpost-blue/30" />
+                      <div className="kpi-number text-4xl" style={{ color: 'var(--crm-active-base)' }}>{(stats?.lifecycle?.["active"] || 0).toLocaleString()}</div>
                     </div>
-
-                    <div className="flex items-center justify-between mt-1">
-                      {stats.lifecycle_growth?.active !== undefined && (
-                        <div className={`text-[9px] font-black flex items-center gap-1 ${stats.lifecycle_growth.active >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                          {stats.lifecycle_growth.active >= 0 ? "▲" : "▼"} {Math.abs(stats.lifecycle_growth.active)}%
-                          <span className="text-[8px] text-gray-400 font-bold ml-0.5">vs T-1</span>
-                        </div>
-                      )}
-                    </div>
+                    {stats.lifecycle_growth?.active !== undefined && (
+                      <div className={`text-xs font-black flex items-center gap-1 mt-2 ${stats.lifecycle_growth.active >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {stats.lifecycle_growth.active >= 0 ? "▲" : "▼"} {Math.abs(stats.lifecycle_growth.active)}%
+                        <span className="text-gray-400 opacity-60 ml-0.5 uppercase font-bold text-[10px]">vs T-1</span>
+                      </div>
+                    )}
                   </div>
+                </div>
 
-                  {/* RF5C-HOTFIX: NEW TRANSITION CARD */}
-                  <div 
-                    className="card p-3 border-l-4 border-l-indigo-500 bg-gradient-to-br from-indigo-500/5 to-transparent relative group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all flex flex-col justify-between min-h-[90px]"
-                    onClick={() => {
-                      const node = selectedNode;
-                      if (node) saveNavigationContext(node);
-                      navigate(`/customers?lifecycle_status=new_event${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
-                    }}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-1.5">
-                          <p className="text-indigo-600 text-[9px] font-black uppercase tracking-widest">Mới</p>
-                          <span className="text-[8px] opacity-40 font-bold uppercase">{selectedMonthLabel}</span>
-                        </div>
-                        <h3 className="text-xl font-black">{(stats?.lifecycle?.["new_event"] || 0).toLocaleString()}</h3>
+                {/* AT RISK */}
+                <div 
+                  className="executive-card pop-card border-l-[6px]" 
+                  style={{ borderLeftColor: 'var(--crm-warning-base)', background: 'linear-gradient(135deg, var(--crm-warning-light) 0%, #ffffff 100%)' }}
+                  onClick={() => {
+                    const node = selectedNode;
+                    if (node) saveNavigationContext(node);
+                    navigate(`/customers?lifecycle_status=at_risk${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
+                  }}
+                >
+                  <div className="flex flex-col h-full justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="kpi-label" style={{ color: 'var(--crm-warning-base)' }}>NGUY CƠ (AT RISK)</span>
+                        <AlertCircle size={24} style={{ color: 'var(--crm-warning-base)', opacity: 0.15 }} />
                       </div>
-                      <Sparkles size={16} className="text-indigo-300" />
+                      <div className="kpi-number text-4xl" style={{ color: 'var(--crm-warning-base)' }}>{(stats?.lifecycle?.["at_risk"] || 0).toLocaleString()}</div>
                     </div>
-                    
-                    <div className="flex items-center justify-between mt-1">
-                      <div 
-                        className="flex items-center gap-1 opacity-40 hover:opacity-100 transition-opacity cursor-help"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const node = selectedNode;
-                          if (node) saveNavigationContext(node);
-                          navigate(`/customers?lifecycle_status=new_pop${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
-                        }}
-                      >
-                         <span className="text-[9px] font-black text-indigo-400 uppercase">Lũy kế:</span>
-                         <span className="text-[10px] font-black text-indigo-600">{(stats?.lifecycle?.["new_pop"] || 0).toLocaleString()}</span>
+                    {stats.lifecycle_growth?.at_risk !== undefined && (
+                      <div className={`text-xs font-black flex items-center gap-1 mt-2 ${stats.lifecycle_growth.at_risk <= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {stats.lifecycle_growth.at_risk >= 0 ? "▲" : "▼"} {Math.abs(stats.lifecycle_growth.at_risk)}%
+                        <span className="text-gray-400 opacity-60 ml-0.5 uppercase font-bold text-[10px]">vs T-1</span>
                       </div>
-                    </div>
+                    )}
                   </div>
+                </div>
 
-                  {/* RF5C-HOTFIX: RECOVERED TRANSITION CARD */}
-                  <div 
-                    className="card p-3 border-l-4 border-l-emerald-500 bg-gradient-to-br from-emerald-500/5 to-transparent relative group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all flex flex-col justify-between min-h-[90px]"
-                    onClick={() => {
-                      const node = selectedNode;
-                      if (node) saveNavigationContext(node);
-                      navigate(`/customers?lifecycle_status=recovered_event${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
-                    }}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-1.5">
-                          <p className="text-emerald-600 text-[9px] font-black uppercase tracking-widest">Tái bản</p>
-                          <span className="text-[8px] opacity-40 font-bold uppercase">{selectedMonthLabel}</span>
-                        </div>
-                        <h3 className="text-xl font-black">{(stats?.lifecycle?.["recovered_event"] || 0).toLocaleString()}</h3>
+                {/* CHURN POP */}
+                <div 
+                  className="executive-card pop-card border-l-[6px]" 
+                  style={{ borderLeftColor: 'var(--crm-danger-base)', background: 'linear-gradient(135deg, var(--crm-danger-light) 0%, #ffffff 100%)' }}
+                  onClick={() => {
+                    const node = selectedNode;
+                    if (node) saveNavigationContext(node);
+                    navigate(`/customers?lifecycle_status=churn_pop${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
+                  }}
+                >
+                  <div className="flex flex-col h-full justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="kpi-label" style={{ color: 'var(--crm-danger-base)' }}>RỜI BỎ (CHURNED POP)</span>
+                        <UserMinus size={24} style={{ color: 'var(--crm-danger-base)', opacity: 0.15 }} />
                       </div>
-                      <ArrowUpRight size={16} className="text-green-300" />
+                      <div className="kpi-number text-4xl" style={{ color: 'var(--crm-danger-base)' }}>{(stats?.lifecycle?.["churn_pop"] || 0).toLocaleString()}</div>
                     </div>
-
-                    <div className="flex items-center justify-between mt-1">
-                      <div 
-                        className="flex items-center gap-1 opacity-40 hover:opacity-100 transition-opacity cursor-help"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const node = selectedNode;
-                          if (node) saveNavigationContext(node);
-                          navigate(`/customers?lifecycle_status=recovered_pop${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
-                        }}
-                      >
-                         <span className="text-[9px] font-black text-emerald-400 uppercase">Lũy kế:</span>
-                         <span className="text-[10px] font-black text-emerald-600">{(stats?.lifecycle?.["recovered_pop"] || 0).toLocaleString()}</span>
-                      </div>
-                    </div>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mt-2 italic">Dừng giao dịch &gt; 60 ngày</div>
                   </div>
-                </>
-              )}
-            </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Row 2: Challenge/Onboarding States */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full lg:w-2/3">
+            {(!summaryData && !stats.lifecycle?.["new_pop"]) ? (
+              Array(2).fill(0).map((_, i) => <Skeleton.KPIMini key={i} />)
+            ) : (
+              <>
+                {/* NEW POP */}
+                <div 
+                  className="executive-card pop-card border-l-[6px]" 
+                  style={{ borderLeftColor: 'var(--crm-onboarding-base)', background: 'linear-gradient(135deg, var(--crm-onboarding-light) 0%, #ffffff 100%)' }}
+                  onClick={() => {
+                    const node = selectedNode;
+                    if (node) saveNavigationContext(node);
+                    navigate(`/customers?lifecycle_status=new_pop${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
+                  }}
+                >
+                  <div className="flex flex-col h-full justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="kpi-label" style={{ color: 'var(--crm-onboarding-base)' }}>MỚI (NEW POP)</span>
+                        <Sparkles size={24} style={{ color: 'var(--crm-onboarding-base)', opacity: 0.15 }} />
+                      </div>
+                      <div className="kpi-number text-3xl" style={{ color: 'var(--crm-onboarding-base)' }}>{(stats?.lifecycle?.["new_pop"] || 0).toLocaleString()}</div>
+                    </div>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mt-2 italic">Tệp đang thử thách (30d)</div>
+                  </div>
+                </div>
+
+                {/* RECOVERED POP */}
+                <div 
+                  className="executive-card pop-card border-l-[6px]" 
+                  style={{ borderLeftColor: 'var(--crm-recovery-base)', background: 'linear-gradient(135deg, var(--crm-recovery-light) 0%, #ffffff 100%)' }}
+                  onClick={() => {
+                    const node = selectedNode;
+                    if (node) saveNavigationContext(node);
+                    navigate(`/customers?lifecycle_status=recovered_pop${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
+                  }}
+                >
+                  <div className="flex flex-col h-full justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="kpi-label" style={{ color: 'var(--crm-recovery-base)' }}>TÁI BẢN (RECOVERED POP)</span>
+                        <RefreshCw size={24} style={{ color: 'var(--crm-recovery-base)', opacity: 0.15 }} />
+                      </div>
+                      <div className="kpi-number text-3xl" style={{ color: 'var(--crm-recovery-base)' }}>{(stats?.lifecycle?.["recovered_pop"] || 0).toLocaleString()}</div>
+                    </div>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mt-2 italic">Tệp quay lại đang thử thách</div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* SECTION: EVENTS (BIẾN ĐỘNG TRONG KỲ) - SECONDARY PRIORITY */}
+        <div className="space-y-4 pt-4">
+          <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] flex items-center gap-2">
+            <Zap size={14} /> 02. BIẾN ĐỘNG TRONG KỲ (MOVEMENT INDICATORS)
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {(!summaryData && !stats.lifecycle?.["new_event"]) ? (
+              Array(3).fill(0).map((_, i) => <Skeleton.KPIMini key={i} />)
+            ) : (
+              <>
+                {/* NEW EVENT */}
+                <div 
+                  className="executive-card event-card border-l-4"
+                  style={{ borderLeftColor: 'var(--crm-onboarding-base)' }}
+                  onClick={() => {
+                    const node = selectedNode;
+                    if (node) saveNavigationContext(node);
+                    navigate(`/customers?lifecycle_status=new_event${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
+                  }}
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-4">
+                      <div className="p-2 rounded-xl" style={{ backgroundColor: 'var(--crm-onboarding-light)', color: 'var(--crm-onboarding-base)' }}>
+                        <Sparkles size={20} />
+                      </div>
+                      <div>
+                        <span className="kpi-label block" style={{ color: 'var(--crm-onboarding-base)' }}>Mới phát sinh</span>
+                        <span className="kpi-number text-2xl" style={{ color: 'var(--crm-onboarding-base)' }}>{(stats?.lifecycle?.["new_event"] || 0).toLocaleString()}</span>
+                      </div>
+                    </div>
+                    <ChevronRight size={20} className="text-gray-200" />
+                  </div>
+                </div>
+
+                {/* RECOVERED EVENT */}
+                <div 
+                  className="executive-card event-card border-l-4"
+                  style={{ borderLeftColor: 'var(--crm-recovery-base)' }}
+                  onClick={() => {
+                    const node = selectedNode;
+                    if (node) saveNavigationContext(node);
+                    navigate(`/customers?lifecycle_status=recovered_event${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
+                  }}
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-4">
+                      <div className="p-2 rounded-xl" style={{ backgroundColor: 'var(--crm-recovery-light)', color: 'var(--crm-recovery-base)' }}>
+                        <RefreshCw size={20} />
+                      </div>
+                      <div>
+                        <span className="kpi-label block" style={{ color: 'var(--crm-recovery-base)' }}>Tái bản trong kỳ</span>
+                        <span className="kpi-number text-2xl" style={{ color: 'var(--crm-recovery-base)' }}>{(stats?.lifecycle?.["recovered_event"] || 0).toLocaleString()}</span>
+                      </div>
+                    </div>
+                    <ChevronRight size={20} className="text-gray-200" />
+                  </div>
+                </div>
+
+                {/* CHURN EVENT */}
+                <div 
+                  className="executive-card event-card border-l-4"
+                  style={{ borderLeftColor: 'var(--crm-danger-base)' }}
+                  onClick={() => {
+                    const node = selectedNode;
+                    if (node) saveNavigationContext(node);
+                    navigate(`/customers?lifecycle_status=churn_event${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
+                  }}
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-4">
+                      <div className="p-2 rounded-xl" style={{ backgroundColor: 'var(--crm-danger-light)', color: 'var(--crm-danger-base)' }}>
+                        <UserMinus size={20} />
+                      </div>
+                      <div>
+                        <span className="kpi-label block" style={{ color: 'var(--crm-danger-base)' }}>Rời bỏ trong kỳ</span>
+                        <span className="kpi-number text-2xl" style={{ color: 'var(--crm-danger-base)' }}>{(stats?.lifecycle?.["churn_event"] || 0).toLocaleString()}</span>
+                      </div>
+                    </div>
+                    <ChevronRight size={20} className="text-gray-200" />
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              {(!summaryData && !stats.lifecycle?.["active"]) ? (
-                <>
-                  <Skeleton.KPIMini /><Skeleton.KPIMini />
-                </>
-              ) : (
-                <>
-                  {/* RF5C-HOTFIX: AT RISK SNAPSHOT CARD */}
-                  <div 
-                    className="card p-3 border-l-4 border-l-amber-500 bg-gradient-to-br from-amber-500/5 to-transparent relative group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all flex flex-col justify-between min-h-[90px]"
-                    onClick={() => {
-                      const node = selectedNode;
-                      if (node) saveNavigationContext(node);
-                      navigate(`/customers?lifecycle_status=at_risk${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
-                    }}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-1.5">
-                          <p className="text-amber-600 text-[9px] font-black uppercase tracking-widest">Nguy cơ</p>
-                          <span className="text-[8px] opacity-40 font-bold uppercase">{selectedMonthLabel}</span>
-                        </div>
-                        <h3 className="text-xl font-black">{(stats?.lifecycle?.["at_risk"] || 0).toLocaleString()}</h3>
-                      </div>
-                      <AlertCircle size={16} className="text-amber-300" />
-                    </div>
-
-                    <div className="flex items-center justify-between mt-1">
-                      {stats.lifecycle_growth?.at_risk !== undefined && (
-                        <div className={`text-[9px] font-black flex items-center gap-1 ${stats.lifecycle_growth.at_risk <= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                          {stats.lifecycle_growth.at_risk >= 0 ? "▲" : "▼"} {Math.abs(stats.lifecycle_growth.at_risk)}%
-                          <span className="text-[8px] text-gray-400 font-bold ml-0.5">vs T-1</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* RF5C-HOTFIX: CHURN TRANSITION CARD */}
-                  <div 
-                    className="card p-3 border-l-4 border-l-rose-500 bg-gradient-to-br from-rose-500/5 to-transparent relative group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all flex flex-col justify-between min-h-[90px]"
-                    onClick={() => {
-                      const node = selectedNode;
-                      if (node) saveNavigationContext(node);
-                      navigate(`/customers?lifecycle_status=churn_event${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
-                    }}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-1.5">
-                          <p className="text-rose-600 text-[9px] font-black uppercase tracking-widest">Rời bỏ</p>
-                          <span className="text-[8px] opacity-40 font-bold uppercase">{selectedMonthLabel}</span>
-                        </div>
-                        <h3 className="text-xl font-black">{(stats?.lifecycle?.["churn_event"] || 0).toLocaleString()}</h3>
-                      </div>
-                      <UserMinus size={16} className="text-rose-300" />
-                    </div>
-
-                    <div className="flex items-center justify-between mt-1">
-                      <div 
-                        className="flex items-center gap-1 opacity-40 hover:opacity-100 transition-opacity cursor-help"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const node = selectedNode;
-                          if (node) saveNavigationContext(node);
-                          navigate(`/customers?lifecycle_status=churn_pop${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
-                        }}
-                      >
-                         <span className="text-[9px] font-black text-rose-400 uppercase">Lũy kế:</span>
-                         <span className="text-[10px] font-black text-rose-600">{(stats?.lifecycle?.["churn_pop"] || 0).toLocaleString()}</span>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-            
-            {/* ELITE TIERS (Restored from Backup V2) */}
-            <h3 className="text-sm font-black text-vnpost-orange uppercase tracking-widest flex items-center gap-2 mt-4">
-              <ArrowUpRight size={16} /> Nhóm 02: Phân hạng Khách hàng Tiềm năng (
-              <Link to="/guidelines#potentials" className="text-vnpost-blue hover:underline cursor-pointer">Potentials</Link>
-              )
+            {/* ELITE TIERS (Potentials) */}
+            <h3 className="text-sm font-black text-vnpost-orange uppercase tracking-widest flex items-center gap-2 mt-4 mb-4">
+              <ArrowUpRight size={18} /> 03. PHÂN HẠNG KHÁCH HÀNG TIỀM NĂNG (POTENTIALS)
             </h3>
-            <div className={`grid grid-cols-1 md:grid-cols-3 gap-3 transition-opacity duration-300 ${(!summaryData && !stats.potential_ranks?.["Kim Cương"]) ? 'opacity-100' : 'opacity-100'}`}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 transition-opacity duration-300">
               {(!summaryData && !stats.potential_ranks?.["Kim Cương"]) ? (
                 <>
                   <Skeleton.Card /><Skeleton.Card /><Skeleton.Card />
@@ -956,75 +997,55 @@ function Dashboard() {
               ) : (
                 <>
                   <div 
-                    className="card p-3 border-t-4 border-t-blue-600 bg-gradient-to-br from-blue-600/5 to-transparent relative overflow-hidden group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+                    className="executive-card p-6 border-t-[6px] border-t-blue-600 relative overflow-hidden group cursor-pointer"
+                    onClick={() => {
+                      const node = selectedNode;
+                      if (node) saveNavigationContext(node);
+                      navigate(`/customers?rfm_segment=Kim Cương${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
+                    }}
+                  >
+                    <div className="absolute -right-4 -top-4 text-blue-100 group-hover:scale-110 transition-transform opacity-20">
+                      <DollarSign size={100} />
+                    </div>
+                    <p className="kpi-label mb-2 text-blue-700">💎 Kim Cương (Diamond)</p>
+                    <h3 className="kpi-number text-4xl text-blue-900">{(stats.potential_ranks?.["Kim Cương"] || 0).toLocaleString()}</h3>
+                    <p className="text-[10px] text-blue-500 font-bold mt-4 uppercase tracking-wider opacity-60">DT &gt; 5M & &gt; 20 đơn/tháng</p>
+                  </div>
 
-                onClick={() => {
-                  const node = selectedNode;
-                  if (node) saveNavigationContext(node);
-                  navigate(`/customers?rfm_segment=Kim Cương${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
-                }}
-                title="Xem danh sách KH Kim Cương"
-              >
-                <div className="absolute -right-4 -top-4 text-blue-100 group-hover:scale-110 transition-transform opacity-30 group-hover:opacity-50">
-                  <DollarSign size={80} />
-                </div>
-                <p className="text-blue-700 text-[11px] font-black uppercase tracking-widest mb-1 relative z-10">💎 Kim Cương (Diamond)</p>
-                <h3 className="text-2xl font-black text-blue-800 relative z-10">{(stats.potential_ranks?.["Kim Cương"] || 0).toLocaleString()}</h3>
-                
-                {/* RF4B: Mini-peek hint */}
-                <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-blue-700 text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap z-30 shadow-xl uppercase tracking-widest">
-                  Tiêu chuẩn: DT &gt; 5M & Tần suất &gt; 20 đơn
-                </div>
+                  <div 
+                    className="executive-card p-6 border-t-[6px] border-t-vnpost-orange relative overflow-hidden group cursor-pointer"
+                    onClick={() => {
+                      const node = selectedNode;
+                      if (node) saveNavigationContext(node);
+                      navigate(`/customers?rfm_segment=Vàng${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
+                    }}
+                  >
+                    <div className="absolute -right-4 -top-4 text-orange-100 group-hover:scale-110 transition-transform opacity-20">
+                      <DollarSign size={100} />
+                    </div>
+                    <p className="kpi-label mb-2 text-vnpost-orange">🥇 Vàng (Gold)</p>
+                    <h3 className="kpi-number text-4xl text-vnpost-orange">{(stats.potential_ranks?.["Vàng"] || 0).toLocaleString()}</h3>
+                    <p className="text-[10px] text-vnpost-orange font-bold mt-4 uppercase tracking-wider opacity-60">DT &gt; 1M & &gt; 10 đơn/tháng</p>
+                  </div>
 
-                <p className="text-[11px] text-blue-500 font-bold mt-2 relative z-10 uppercase">&gt; 5M và &gt; 20 đơn/tháng</p>
-              </div>
-              <div 
-                className="card p-3 border-t-4 border-t-vnpost-orange bg-gradient-to-br from-vnpost-orange/5 to-transparent relative overflow-hidden group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
-                onClick={() => {
-                  const node = selectedNode;
-                  if (node) saveNavigationContext(node);
-                  navigate(`/customers?rfm_segment=Vàng${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
-                }}
-                title="Xem danh sách KH Vàng"
-              >
-                <div className="absolute -right-4 -top-4 text-orange-100 group-hover:scale-110 transition-transform opacity-30 group-hover:opacity-50">
-                  <DollarSign size={80} />
-                </div>
-                <p className="text-vnpost-orange text-[11px] font-black uppercase tracking-widest mb-1 relative z-10">🥇 Vàng (Gold)</p>
-                <h3 className="text-2xl font-black text-vnpost-orange relative z-10">{(stats.potential_ranks?.["Vàng"] || 0).toLocaleString()}</h3>
-
-                {/* RF4B: Mini-peek hint */}
-                <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-vnpost-orange text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap z-30 shadow-xl uppercase tracking-widest">
-                  Tiêu chuẩn: DT &gt; 1M & Tần suất &gt; 10 đơn
-                </div>
-
-                <p className="text-[11px] text-vnpost-orange font-bold mt-2 relative z-10 uppercase">&gt; 1M và &gt; 10 đơn/tháng</p>
-              </div>
-              <div 
-                className="card p-3 border-t-4 border-t-orange-800 bg-gradient-to-br from-orange-800/5 to-transparent relative overflow-hidden group cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
-                onClick={() => {
-                  const node = selectedNode;
-                  if (node) saveNavigationContext(node);
-                  navigate(`/customers?rfm_segment=Bạc${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
-                }}
-                title="Xem danh sách KH Bạc"
-              >
-                <div className="absolute -right-4 -top-4 text-orange-200 group-hover:scale-110 transition-transform opacity-30 group-hover:opacity-50">
-                  <DollarSign size={80} />
-                </div>
-                <p className="text-orange-900 text-[11px] font-black uppercase tracking-widest mb-1 relative z-10">🥉 Bạc (Silver)</p>
-                <h3 className="text-2xl font-black text-orange-950 relative z-10">{(stats.potential_ranks?.["Bạc"] || 0).toLocaleString()}</h3>
-
-                {/* RF4B: Mini-peek hint */}
-                <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-orange-800 text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap z-30 shadow-xl uppercase tracking-widest">
-                  Tiêu chuẩn: DT &gt; 500K & Tần suất &gt; 5 đơn
-                </div>
-
-                <p className="text-[11px] text-orange-800 font-bold mt-2 relative z-10 uppercase">&gt; 500K và &gt; 5 đơn/tháng</p>
-              </div>
-            </>
-          )}
-        </div>
+                  <div 
+                    className="executive-card p-6 border-t-[6px] border-t-orange-800 relative overflow-hidden group cursor-pointer"
+                    onClick={() => {
+                      const node = selectedNode;
+                      if (node) saveNavigationContext(node);
+                      navigate(`/customers?rfm_segment=Bạc${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
+                    }}
+                  >
+                    <div className="absolute -right-4 -top-4 text-orange-200 group-hover:scale-110 transition-transform opacity-20">
+                      <DollarSign size={100} />
+                    </div>
+                    <p className="kpi-label mb-2 text-orange-900">🥉 Bạc (Silver)</p>
+                    <h3 className="kpi-number text-4xl text-orange-950">{(stats.potential_ranks?.["Bạc"] || 0).toLocaleString()}</h3>
+                    <p className="text-[10px] text-orange-900 font-bold mt-4 uppercase tracking-wider opacity-60">DT &gt; 500K & &gt; 5 đơn/tháng</p>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
           
           <div className="card flex flex-col items-center justify-center p-6 bg-white/40 shadow-sm border border-white/60">
@@ -1072,13 +1093,13 @@ function Dashboard() {
                         <stop offset="95%" stopColor="#0054A6" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis 
                       dataKey="date" 
                       axisLine={false} 
                       tickLine={false} 
-                      tick={{ fontSize: 12, fill: '#64748b', fontWeight: 'bold' }}
-                      minTickGap={30}
+                      tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 'bold' }}
+                      minTickGap={40}
                       tickFormatter={(str) => {
                         try { return new Date(str).toLocaleDateString('vi-VN', {day: '2-digit', month: '2-digit'}); }
                         catch(e) { return str; }
@@ -1087,23 +1108,23 @@ function Dashboard() {
                     <YAxis 
                       axisLine={false} 
                       tickLine={false} 
-                      tick={{ fontSize: 12, fill: '#64748b', fontWeight: 'bold' }}
-                      tickFormatter={(val) => `${(Number(val) / 1000000).toFixed(1)}M`}
+                      tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 'bold' }}
+                      tickFormatter={(val) => `${(Number(val) / 1000000).toFixed(0)}M`}
                     />
                     <RechartsTooltip 
-                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontWeight: 'bold', fontSize: '12px' }}
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontWeight: 'bold', fontSize: '11px' }}
                       wrapperStyle={{ pointerEvents: 'none', zIndex: 1000 }}
                       formatter={(v) => [formatCurrency(v), "Doanh thu"]} 
                     />
                     <Area 
                       type="monotone" 
                       dataKey="value" 
-                      stroke="#0054A6" 
+                      stroke="var(--crm-active-base)" 
                       fill="url(#colorRev)" 
-                      strokeWidth={4} 
+                      strokeWidth={3} 
                       dot={{ r: 0 }}
-                      activeDot={{ r: 6, strokeWidth: 0, fill: '#F9A51A' }}
-                      animationDuration={2000}
+                      activeDot={{ r: 5, strokeWidth: 0, fill: '#F9A51A' }}
+                      animationDuration={1500}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
