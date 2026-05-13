@@ -15,26 +15,29 @@ class LifecycleService:
         """
         # 1. Determine Boundary
         max_ts = db.query(func.max(Transaction.ngay_chap_nhan)).scalar()
-        max_month_str = max_ts[:7] if isinstance(max_ts, str) else max_ts.strftime("%Y-%m")
+        max_month_str = max_ts[:7] if isinstance(max_ts, str) else (max_ts.strftime("%Y-%m") if max_ts else None)
+        
+        # System Today context
+        from datetime import datetime
+        today_str = datetime.now().strftime("%Y-%m")
         
         if not month_str and start_date:
             month_str = start_date[:7]
         if not month_str:
-            month_str = max_month_str
+            month_str = max_month_str or today_str
 
-        is_latest_month = (month_str == max_month_str)
-        logger.info(f"SSOT-SEMANTIC-V2: Resolving Lifecycle. Month={month_str}, Latest={max_month_str}, IsLatest={is_latest_month}")
+        is_latest_month = (month_str == max_month_str or month_str == today_str)
         
         # Determine if we need dynamic transition calculation
         is_partial = False
         if start_date and end_date:
-            from datetime import datetime, timedelta
+            from datetime import timedelta
             s_dt = datetime.strptime(start_date, "%Y-%m-%d")
             e_dt = datetime.strptime(end_date, "%Y-%m-%d")
             if not (s_dt.day == 1 and (e_dt + timedelta(days=1)).day == 1):
                 is_partial = True
 
-        logger.info(f"SSOT: Resolving Lifecycle. Month={month_str}, Latest={max_month_str}, IsPartial={is_partial}")
+        logger.info(f"SSOT: Resolving Lifecycle. Month={month_str}, MaxMonth={max_month_str}, Today={today_str}, IsLatest={is_latest_month}, IsPartial={is_partial}")
 
         # 1. Attempt Summary Fetch (Base Layer)
         summary_res = db.query(
@@ -52,18 +55,23 @@ class LifecycleService:
         logger.info(f"SSOT: Summary Rows found for {month_str}: {len(summary_rows)}")
         
         stage_map = {
-            # STATE Metrics (Population - 90d probationary or mature)
-            "new": "new_pop",                   # 90-day New Population
-            "recovered": "recovered_pop",       # 90-day Recovered Population
-            "active": "active",                 # Mature Active Population
-            "at_risk": "at_risk",               # Population at risk
-            "churned": "churn_pop",             # Total Churned Population (Snapshot)
-            "churned_snapshot": "churn_pop",
+            # STATE Metrics (Population)
+            "new": "new_pop",
+            "new_pop": "new_pop",
+            "recovered": "recovered_pop",
+            "recovered_pop": "recovered_pop",
+            "active": "active",
+            "at_risk": "at_risk",
+            "churned": "churn_pop",
+            "churn_pop": "churn_pop",
             
-            # TRANSITION Metrics (Flow/Event - Month-locked)
+            # TRANSITION Metrics (Events)
             "new_transition": "new_event",
+            "new_event": "new_event",
             "recovered_transition": "recovered_event",
-            "churn_transition": "churn_event"
+            "recovered_event": "recovered_event",
+            "churn_transition": "churn_event",
+            "churn_event": "churn_event"
         }
         
         results = {
@@ -92,7 +100,7 @@ class LifecycleService:
             s_dt = datetime.strptime(start_date, "%Y-%m-%d")
             e_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
             
-            logger.info(f"SSOT: Partial or Latest range detected ({start_date} to {end_date}). Recalculating Transitions...")
+            logger.info(f"SSOT: Partial or Latest range detected ({start_date} to {end_date}). Recalculating Realtime metrics...")
                 
             # NEW EVENT (Joined strictly within month)
             new_event_query = db.query(func.count(Customer.id)).filter(
@@ -108,12 +116,12 @@ class LifecycleService:
             if scope_point_ids: new_event_query = new_event_query.filter(Customer.point_id.in_(scope_point_ids))
             results['new_event'] = new_event_query.scalar() or 0
 
-            # NEW POPULATION (90-day window) - [RF5C] FIXED: Include active probationary
+            # [RF5I] NEW POPULATION (Active Probation)
+            # Logic: Joined < 90 days ago AND still active in last 30 days
             new_pop_query = db.query(func.count(Customer.id)).filter(
                 exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan >= e_dt - timedelta(days=90)) &
-                    (Transaction.ngay_chap_nhan <= e_dt)
+                    (Transaction.ngay_chap_nhan.between(e_dt - timedelta(days=30), e_dt))
                 ),
                 ~exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
@@ -123,7 +131,7 @@ class LifecycleService:
             if scope_point_ids: new_pop_query = new_pop_query.filter(Customer.point_id.in_(scope_point_ids))
             results['new_pop'] = new_pop_query.scalar() or 0
 
-            # RECOVERED EVENT (Recovered strictly within month)
+            # RECOVERED EVENT (Returned strictly within month after churn)
             recovered_event_query = db.query(func.count(Customer.id)).filter(
                 exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
@@ -131,37 +139,36 @@ class LifecycleService:
                 ),
                 ~exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan.between(s_dt - timedelta(days=30), s_dt - timedelta(seconds=1)))
+                    (Transaction.ngay_chap_nhan.between(s_dt - timedelta(days=90), s_dt - timedelta(seconds=1)))
                 ),
                 exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan < s_dt - timedelta(days=30))
+                    (Transaction.ngay_chap_nhan < s_dt - timedelta(days=90))
                 )
             )
             if scope_point_ids: recovered_event_query = recovered_event_query.filter(Customer.point_id.in_(scope_point_ids))
             results['recovered_event'] = recovered_event_query.scalar() or 0
 
-            # [RF5H] RECOVERED POPULATION (REACTIVATED POP - 90-day Probation)
-            # Logic: Has Tx in last 90 days AND (First Tx < e_dt - 90) 
-            #        AND Had a 90-day gap in history that ended within the last 90 days.
+            # [RF5I] RECOVERED POPULATION (Probation - 90 days after return)
+            # Logic: Returned < 90 days ago (after 90+ day silence) AND still active
             recovered_pop_query = db.query(func.count(Customer.id)).filter(
                 exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan.between(e_dt - timedelta(days=90), e_dt))
-                ),
-                ~exists().where(
-                    (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan.between(e_dt - timedelta(days=180), e_dt - timedelta(days=90)))
+                    (Transaction.ngay_chap_nhan.between(e_dt - timedelta(days=30), e_dt))
                 ),
                 exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
                     (Transaction.ngay_chap_nhan < e_dt - timedelta(days=180))
+                ),
+                ~exists().where(
+                    (Transaction.ma_kh == Customer.ma_crm_cms) &
+                    (Transaction.ngay_chap_nhan.between(e_dt - timedelta(days=180), e_dt - timedelta(days=90)))
                 )
             )
             if scope_point_ids: recovered_pop_query = recovered_pop_query.filter(Customer.point_id.in_(scope_point_ids))
             results['recovered_pop'] = recovered_pop_query.scalar() or 0
 
-            # CHURN EVENT (Churn strictly within month)
+            # CHURN EVENT (Lost strictly within month: went silent for 90 days)
             churn_event_query = db.query(func.count(Customer.id)).filter(
                 ~exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) & 
@@ -175,9 +182,10 @@ class LifecycleService:
             if scope_point_ids: churn_event_query = churn_event_query.filter(Customer.point_id.in_(scope_point_ids))
             results['churn_event'] = churn_event_query.scalar() or 0
 
-            # [RF5H] ACTIVE (Mature & Stable)
-            # Logic: Has Tx in last 30 days AND Mature (First Tx < e_dt - 90)
-            #        AND NOT in Recovered Probation (Had Tx in [e_dt-180, e_dt-90])
+            # [RF5H] ACTIVE (Mature & Stable Core)
+            # Logic: Has Tx in last 30 days 
+            #        AND Joined > 90 days ago (Mature)
+            #        AND WAS active in the 180-90 window (Stable - Not recovered probation)
             active_mature_query = db.query(func.count(Customer.id)).filter(
                 exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
@@ -195,9 +203,8 @@ class LifecycleService:
             if scope_point_ids: active_mature_query = active_mature_query.filter(Customer.point_id.in_(scope_point_ids))
             results['active'] = active_mature_query.scalar() or 0
 
-            # [RF5H] AT RISK (Mature)
-            # Logic: No Tx in last 30 days AND Mature (First Tx < e_dt - 90)
-            #        AND NOT in Recovered Probation (Had Tx in [e_dt-180, e_dt-90])
+            # [RF5I] AT RISK (Universal Risk)
+            # Logic: No Tx in last 30 days AND Has Tx in last 90 days
             at_risk_query = db.query(func.count(Customer.id)).filter(
                 exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
@@ -206,20 +213,12 @@ class LifecycleService:
                 ~exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &
                     (Transaction.ngay_chap_nhan > e_dt - timedelta(days=30))
-                ),
-                exists().where(
-                    (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan < e_dt - timedelta(days=90))
-                ),
-                exists().where(
-                    (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan.between(e_dt - timedelta(days=180), e_dt - timedelta(days=90)))
                 )
             )
             if scope_point_ids: at_risk_query = at_risk_query.filter(Customer.point_id.in_(scope_point_ids))
             results['at_risk'] = at_risk_query.scalar() or 0
 
-            # CHURN POPULATION (Realtime) - [RF5C] FIXED: Current month realtime
+            # CHURN POPULATION (Realtime Snapshot)
             churn_pop_query = db.query(func.count(Customer.id)).filter(
                 ~exists().where(
                     (Transaction.ma_kh == Customer.ma_crm_cms) &

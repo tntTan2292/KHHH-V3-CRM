@@ -112,30 +112,30 @@ class CustomerService:
                     ))
                     use_realtime = True # FORCE REALTIME
                 elif status_val == 'new_pop':
-                    # NEW POPULATION (Realtime) - [RF5C] FIXED: Include active probationary
+                    # [RF5I] NEW POPULATION (Active Probation)
+                    # Logic: First Tx < 90 days ago AND NOT Silent (> 30 days)
                     filters.append(exists().where(
                         (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=90), curr_end))
+                        (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=30), curr_end))
                     ))
                     filters.append(~exists().where(
                         (Transaction.ma_kh == Customer.ma_crm_cms) &
                         (Transaction.ngay_chap_nhan < curr_end - timedelta(days=90))
                     ))
                 elif status_val == 'recovered_pop':
-                    # [RF5H] RECOVERED POPULATION (REACTIVATED POP - 90-day Probation)
-                    # Logic: Has Tx in last 90 days AND Mature (First Tx < e_dt-90)
-                    #        AND Had a 90-day gap in history that ended within last 90 days.
+                    # [RF5I] RECOVERED POPULATION (Active Probation - 90 days)
+                    # Logic: Returned < 90 days ago AND NOT Silent (> 30 days)
                     filters.append(exists().where(
                         (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=90), curr_end))
-                    ))
-                    filters.append(~exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=180), curr_end - timedelta(days=90)))
+                        (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=30), curr_end))
                     ))
                     filters.append(exists().where(
                         (Transaction.ma_kh == Customer.ma_crm_cms) &
                         (Transaction.ngay_chap_nhan < curr_end - timedelta(days=180))
+                    ))
+                    filters.append(~exists().where(
+                        (Transaction.ma_kh == Customer.ma_crm_cms) &
+                        (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=180), curr_end - timedelta(days=90)))
                     ))
                 elif status_val == 'active':
                     # [RF5H] Mature Active (Realtime): Tx in last 30 days AND Mature (First Tx < e_dt-90)
@@ -152,6 +152,30 @@ class CustomerService:
                         (Transaction.ma_kh == Customer.ma_crm_cms) &
                         (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=180), curr_end - timedelta(days=90)))
                     ))
+                elif status_val == 'new_pop':
+                    # NEW POPULATION (Probation): Joined < 90 days ago AND still active
+                    filters.append(exists().where(
+                        (Transaction.ma_kh == Customer.ma_crm_cms) &
+                        (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=30), curr_end))
+                    ))
+                    filters.append(~exists().where(
+                        (Transaction.ma_kh == Customer.ma_crm_cms) &
+                        (Transaction.ngay_chap_nhan < curr_end - timedelta(days=90))
+                    ))
+                elif status_val == 'recovered_pop':
+                    # RECOVERED POPULATION (Probation): Returned < 90 days ago AND still active
+                    filters.append(exists().where(
+                        (Transaction.ma_kh == Customer.ma_crm_cms) &
+                        (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=30), curr_end))
+                    ))
+                    filters.append(exists().where(
+                        (Transaction.ma_kh == Customer.ma_crm_cms) &
+                        (Transaction.ngay_chap_nhan < curr_end - timedelta(days=180))
+                    ))
+                    filters.append(~exists().where(
+                        (Transaction.ma_kh == Customer.ma_crm_cms) &
+                        (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=180), curr_end - timedelta(days=90)))
+                    ))
                 elif status_val == 'churn_pop':
                     # CHURN POPULATION (Realtime) - [RF5F] STRICT ALIGNMENT
                     # Logic: No transactions in the last 90 days
@@ -165,8 +189,8 @@ class CustomerService:
                     ))
                     use_realtime = True
                 elif status_val == 'at_risk':
-                    # [RF5H] AT RISK (Mature): No Tx in last 30 days AND Mature (First Tx < e_dt-90)
-                    #        AND NOT in Recovered Probation (Had Tx in [e_dt-180, e_dt-90])
+                    # [RF5I] AT RISK (Universal Risk)
+                    # Logic: No Tx in last 30 days AND Has Tx in last 90 days
                     filters.append(exists().where(
                         (Transaction.ma_kh == Customer.ma_crm_cms) &
                         (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=90), curr_end - timedelta(days=30)))
@@ -174,14 +198,6 @@ class CustomerService:
                     filters.append(~exists().where(
                         (Transaction.ma_kh == Customer.ma_crm_cms) &
                         (Transaction.ngay_chap_nhan > curr_end - timedelta(days=30))
-                    ))
-                    filters.append(exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan < curr_end - timedelta(days=90))
-                    ))
-                    filters.append(exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=180), curr_end - timedelta(days=90)))
                     ))
                 elif status_val == 'total_pop':
                     # [RF5F] UNIVERSE: Everyone with at least one transaction (Distinct ma_kh)
