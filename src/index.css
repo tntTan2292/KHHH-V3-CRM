@@ -1,7 +1,7 @@
+@import './styles/executive_theme.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@import './styles/executive_theme.css';
 
 @layer base {
   body {

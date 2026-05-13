@@ -1046,34 +1046,32 @@ function Dashboard() {
                 </>
               )}
             </div>
-          </div>
           
-          <div className="card flex flex-col items-center justify-center p-6 bg-white/40 shadow-sm border border-white/60">
-            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Cơ cấu Vòng đời</h4>
-            <div className="h-48 w-full flex items-center justify-center">
-              {stats.lifecycle && (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={[
-                      { name: 'Active', value: stats.lifecycle?.["active"] || 0 }, 
-                      { name: 'New', value: stats.lifecycle?.["new"] || 0 }, 
-                      { name: 'Recovered', value: stats.lifecycle?.["recovered"] || 0 }, 
-                      { name: 'At Risk', value: stats.lifecycle?.["at_risk"] || 0 }, 
-                      { name: 'Churned', value: stats.lifecycle?.["churned"] || 0 }
-                    ]} innerRadius={45} outerRadius={65} paddingAngle={5} dataKey="value">
-                      <Cell fill="#0054A6" /><Cell fill="#6366f1" /><Cell fill="#10b981" /><Cell fill="#F9A51A" /><Cell fill="#9ca3af" />
-                    </Pie>
-                    <RechartsTooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
+            <div className="card flex flex-col items-center justify-center p-6 bg-white/40 shadow-sm border border-white/60">
+              <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Cơ cấu Vòng đời</h4>
+              <div className="h-48 w-full flex items-center justify-center">
+                {stats.lifecycle && (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={[
+                        { name: 'Active', value: stats.lifecycle?.["active"] || 0 }, 
+                        { name: 'New', value: stats.lifecycle?.["new"] || 0 }, 
+                        { name: 'Recovered', value: stats.lifecycle?.["recovered"] || 0 }, 
+                        { name: 'At Risk', value: stats.lifecycle?.["at_risk"] || 0 }, 
+                        { name: 'Churned', value: stats.lifecycle?.["churned"] || 0 }
+                      ]} innerRadius={45} outerRadius={65} paddingAngle={5} dataKey="value">
+                        <Cell fill="#0054A6" /><Cell fill="#6366f1" /><Cell fill="#10b981" /><Cell fill="#F9A51A" /><Cell fill="#9ca3af" />
+                      </Pie>
+                      <RechartsTooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+              <div className="mt-4 space-y-1 w-full text-[9px] font-bold text-gray-500 uppercase tracking-tighter">
+                <div className="flex justify-between"><span>Active:</span> <span>{(stats.lifecycle?.["active"] || 0).toLocaleString()}</span></div>
+                <div className="flex justify-between"><span>At Risk:</span> <span className="text-vnpost-orange">{(stats.lifecycle?.["at_risk"] || 0).toLocaleString()}</span></div>
+              </div>
             </div>
-            <div className="mt-4 space-y-1 w-full text-[9px] font-bold text-gray-500 uppercase tracking-tighter">
-              <div className="flex justify-between"><span>Active:</span> <span>{(stats.lifecycle?.["active"] || 0).toLocaleString()}</span></div>
-              <div className="flex justify-between"><span>At Risk:</span> <span className="text-vnpost-orange">{(stats.lifecycle?.["at_risk"] || 0).toLocaleString()}</span></div>
-            </div>
-        </div>
-      </div>
 
       {/* Heatmap & Trends */}
         <div className="grid grid-cols-1 gap-6">

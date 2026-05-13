@@ -1508,15 +1508,7 @@ export default function Customers() {
 
             <div className="h-6 w-px bg-gray-100 mx-1"></div>
 
-            <button 
-              onClick={handleExportExcel}
-              className="bg-vnpost-blue text-white px-4 py-1.5 rounded-lg font-black text-[10px] uppercase shadow-md flex items-center gap-2 hover:scale-105 active:scale-95 transition-all"
-            >
-              <Download size={14} /> Excel
-            </button>
-        </div>
-
-            {/* 3.3: RFM Segment */}
+            {/* 3.4: RFM Segment */}
             <select 
               name="rfm_segment" 
               value={filters.rfm_segment} 
@@ -1527,35 +1519,33 @@ export default function Customers() {
               {["Kim Cương", "Vàng", "Bạc", "Tiềm Năng", "Thường"].map(s => <option key={s} value={s}>{s}</option>)}
             </select>
 
-            {/* 3.4: Quick Month */}
-            <select 
-              className="py-1.5 px-2 rounded-lg border border-gray-100 outline-none text-[10px] font-black text-vnpost-blue bg-white min-w-[140px]"
-              onChange={(e) => handleQuickMonth(e.target.value)}
-              value={selectedMonth}
-            >
-              <option value="">Chọn tháng báo cáo</option>
-              {coverage.months?.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-            </select>
+            {/* 3.5: Action Buttons */}
+            <div className="flex items-center gap-1.5 ml-auto">
+              <button 
+                onClick={handleApplyFilter} 
+                className="px-3 h-[28px] bg-vnpost-blue text-white rounded-lg font-black hover:bg-[#003E7E] transition-all flex items-center gap-1.5 shadow-sm uppercase tracking-wider text-[9px]"
+              >
+                <Filter size={12} /> Lọc
+              </button>
+              
+              <button 
+                onClick={() => { setFilters({ search: '', rfm_segment: '', lifecycle_status: '' }); setSelectedNode(null); setStartDate(""); setEndDate(""); setSelectedMonth(""); fetchCustomers(); }}
+                className="text-gray-400 hover:text-red-500 text-[9px] font-black uppercase tracking-tighter px-2"
+              >
+                Xóa lọc
+              </button>
 
-            {/* 3.5: Date Range */}
-            <div className="flex items-center gap-1 bg-gray-50 p-0.5 rounded-lg border border-gray-100">
-              <input type="date" className="bg-transparent px-1 py-0.5 text-[9px] font-bold outline-none border-none" value={startDate} onChange={(e) => { setStartDate(e.target.value); setSelectedMonth(""); }} />
-              <span className="text-[8px] text-gray-300">→</span>
-              <input type="date" className="bg-transparent px-1 py-0.5 text-[9px] font-bold outline-none border-none" value={endDate} onChange={(e) => { setEndDate(e.target.value); setSelectedMonth(""); }} />
+              <div className="h-6 w-px bg-gray-100 mx-1"></div>
+
+              <button 
+                onClick={handleExportExcel}
+                className="bg-emerald-600 text-white px-4 py-1.5 rounded-lg font-black text-[10px] uppercase shadow-md flex items-center gap-2 hover:bg-emerald-700 transition-all"
+              >
+                <Download size={14} /> Excel
+              </button>
             </div>
-
-            {/* 3.6: Action Button */}
-            <button onClick={handleApplyFilter} className="px-3 h-[28px] bg-vnpost-blue text-white rounded-lg font-black hover:bg-[#003E7E] transition-all flex items-center gap-1.5 shadow-sm uppercase tracking-wider text-[9px]">
-              <Filter size={12} /> Lọc
-            </button>
-            
-            <button 
-              onClick={() => { setFilters({ search: '', rfm_segment: '', lifecycle_status: '' }); setSelectedNode(null); setStartDate(""); setEndDate(""); setSelectedMonth(""); fetchCustomers(); }}
-              className="text-gray-400 hover:text-red-500 text-[9px] font-black uppercase tracking-tighter px-2"
-            >
-              Xóa lọc
-            </button>
         </div>
+      </div>
 
         {/* METRIC INTELLIGENCE LEGEND */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-2 py-4 bg-indigo-50/30 rounded-2xl border border-indigo-100/50">
