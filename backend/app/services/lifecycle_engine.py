@@ -31,7 +31,6 @@ class LifecycleEngine:
             prev_month_str = (curr_month_start - timedelta(days=1)).strftime('%Y-%m')
             
             # 2. Fetch Previous Snapshot (Temporal Consistency)
-            # We look into customer_monthly_snapshots for the previous month's frozen truth.
             prev_snapshots = {}
             cursor = conn.cursor()
             cursor.execute("""
@@ -42,7 +41,6 @@ class LifecycleEngine:
             for row in cursor.fetchall():
                 prev_snapshots[row[0]] = row[1]
                 
-            # If no historical snapshots, fall back to current customers table (initial migration safety)
             if not prev_snapshots:
                 logger.warning(f"No snapshots found for {prev_month_str}. Falling back to realtime table.")
                 cursor.execute("SELECT ma_crm_cms, lifecycle_state FROM customers")
@@ -108,45 +106,43 @@ class LifecycleEngine:
                 # CALCULATE DELTAS
                 days_since_first = (reporting_period_end - first_dt).days if pd.notnull(first_dt) else 9999
                 
-                last_active = last_before_dt or first_dt
-                days_inactive = (reporting_period_end - last_active).days if pd.notnull(last_active) else 9999
+                # [FIX] last_active must include transactions from the current month
+                actual_last_tx = row['last_order_date'] if pd.notnull(row['last_order_date']) else (last_before_dt or first_dt)
+                actual_last_tx = pd.to_datetime(actual_last_tx)
+                days_inactive = (reporting_period_end - actual_last_tx).days if pd.notnull(actual_last_tx) else 9999
 
-                # Note: last_recovery_date should ideally be tracked in snapshots. 
-                # For now, we derive it from prev_state and curr_rev
-                # If prev was CHURNED and now has rev, it's a recovery.
-                # We need to persist this 'RECOVERED' status for 90 days.
-                
                 # DETERMINE TRANSITIONS & NEW STATE
                 is_new = False
                 is_recovered = False
                 is_churn = False
                 final_state = 'ACTIVE'
 
-                # 1. NEW (Primary State - 90 Days)
-                if days_since_first <= 90:
+                # --- GOVERNANCE: UNIVERSAL PRIORITY MODEL ---
+                # 1. FINAL CHURN (> 90 days silence)
+                if days_inactive > 90:
+                    final_state = 'CHURNED'
+                    if prev_state in ['ACTIVE', 'AT_RISK', 'NEW', 'RECOVERED']:
+                        is_churn = True
+                
+                # 2. UNIVERSAL AT_RISK (> 30 days silence) - Overrides NEW/REACTIVATED
+                elif days_inactive > 30:
+                    final_state = 'AT_RISK'
+                
+                # 3. NEW (Probation - 90 Days)
+                elif days_since_first <= 90:
                     final_state = 'NEW'
                     if first_dt.strftime('%Y-%m') == month_str:
                         is_new = True
                 
-                # 2. RECOVERED (Primary State - 90 Days)
-                # Logic: If they were recovered in this month OR were RECOVERED in the previous snapshot
+                # 4. RECOVERED (Probation - 90 Days)
                 elif (curr_rev > 0 and prev_state == 'CHURNED') or (prev_state == 'RECOVERED' and days_inactive <= 90):
                     final_state = 'RECOVERED'
                     if curr_rev > 0 and prev_state == 'CHURNED':
                         is_recovered = True
                 
-                # 3. MATURE STATES (Active / At Risk / Churn)
-                elif curr_rev > 0:
-                    final_state = 'ACTIVE'
+                # 5. MATURE ACTIVE
                 else:
-                    if days_inactive > 90:
-                        final_state = 'CHURNED'
-                        if prev_state in ['ACTIVE', 'AT_RISK', 'NEW', 'RECOVERED']:
-                            is_churn = True
-                    elif days_inactive > 30:
-                        final_state = 'AT_RISK'
-                    else:
-                        final_state = 'ACTIVE'
+                    final_state = 'ACTIVE'
 
                 # Log for summary consumption
                 results.append({
@@ -165,6 +161,92 @@ class LifecycleEngine:
                 conn.close()
 
     @staticmethod
+    def get_lifecycle_sql_logic(as_of_date_str, state_code):
+        """
+        [GOVERNANCE] Centralized SQL Logic Provider (SSOT).
+        Returns SQL fragments for POPULATION and EVENT layers.
+        Ensures Universal AT_RISK priority is baked into the query.
+        """
+        from datetime import datetime, timedelta
+        e_dt = datetime.strptime(as_of_date_str, "%Y-%m-%d")
+        e_dt_str = e_dt.strftime("%Y-%m-%d 23:59:59")
+        
+        # POPULATION FRAGMENTS (As of date)
+        # 1. CHURN (Silence > 90 days)
+        churn_logic = f"NOT EXISTS (SELECT 1 FROM transactions t WHERE t.ma_kh = customers.ma_crm_cms AND t.ngay_chap_nhan BETWEEN datetime('{e_dt_str}', '-90 days') AND '{e_dt_str}')"
+        
+        # 2. AT_RISK (Silence > 30 days AND NOT Churn)
+        at_risk_logic = f"NOT EXISTS (SELECT 1 FROM transactions t WHERE t.ma_kh = customers.ma_crm_cms AND t.ngay_chap_nhan BETWEEN datetime('{e_dt_str}', '-30 days') AND '{e_dt_str}') AND EXISTS (SELECT 1 FROM transactions t WHERE t.ma_kh = customers.ma_crm_cms AND t.ngay_chap_nhan BETWEEN datetime('{e_dt_str}', '-90 days') AND datetime('{e_dt_str}', '-30 days'))"
+        
+        # 3. NEW (Mature <= 90 days AND NOT Silent)
+        new_logic = f"EXISTS (SELECT 1 FROM transactions t WHERE t.ma_kh = customers.ma_crm_cms AND t.ngay_chap_nhan <= '{e_dt_str}' GROUP BY t.ma_kh HAVING MIN(t.ngay_chap_nhan) > datetime('{e_dt_str}', '-90 days')) AND EXISTS (SELECT 1 FROM transactions t WHERE t.ma_kh = customers.ma_crm_cms AND t.ngay_chap_nhan BETWEEN datetime('{e_dt_str}', '-30 days') AND '{e_dt_str}')"
+        
+        # 4. RECOVERED (Returned <= 90 days AND NOT Silent)
+        # Simplified: Has a transaction in the last 90 days that was preceded by a 90-day gap.
+        recovered_logic = f"""
+            EXISTS (SELECT 1 FROM transactions t WHERE t.ma_kh = customers.ma_crm_cms AND t.ngay_chap_nhan BETWEEN datetime('{e_dt_str}', '-30 days') AND '{e_dt_str}')
+            AND EXISTS (
+                SELECT 1 FROM transactions t1 
+                WHERE t1.ma_kh = customers.ma_crm_cms 
+                AND t1.ngay_chap_nhan BETWEEN datetime('{e_dt_str}', '-90 days') AND '{e_dt_str}'
+                AND NOT EXISTS (
+                    SELECT 1 FROM transactions t2 
+                    WHERE t2.ma_kh = customers.ma_crm_cms 
+                    AND t2.ngay_chap_nhan BETWEEN datetime(t1.ngay_chap_nhan, '-90 days') AND datetime(t1.ngay_chap_nhan, '-1 seconds')
+                )
+                AND EXISTS (
+                    SELECT 1 FROM transactions t3
+                    WHERE t3.ma_kh = customers.ma_crm_cms
+                    AND t3.ngay_chap_nhan < datetime(t1.ngay_chap_nhan, '-90 days')
+                )
+            )
+        """
+        
+        # 5. ACTIVE (Passed probation AND NOT Silent)
+        active_logic = f"EXISTS (SELECT 1 FROM transactions t WHERE t.ma_kh = customers.ma_crm_cms AND t.ngay_chap_nhan BETWEEN datetime('{e_dt_str}', '-30 days') AND '{e_dt_str}') AND NOT ({new_logic}) AND NOT ({recovered_logic})"
+        
+        logic_map = {
+            'churn_pop': churn_logic,
+            'at_risk': at_risk_logic,
+            'new_pop': new_logic,
+            'recovered_pop': recovered_logic,
+            'active': active_logic
+        }
+        
+        return logic_map.get(state_code.lower())
+
+    @staticmethod
+    def get_event_sql_logic(start_date_str, end_date_str, event_type):
+        """
+        [GOVERNANCE] Centralized SQL Logic for EVENT Layer.
+        NEW_EVENT, REACTIVATED_EVENT, CHURN_EVENT.
+        """
+        s_dt_str = start_date_str + " 00:00:00"
+        e_dt_str = end_date_str + " 23:59:59"
+        
+        if event_type.lower() == 'new_event':
+            # First transaction ever in this period
+            return f"""
+                EXISTS (SELECT 1 FROM transactions t WHERE t.ma_kh = customers.ma_crm_cms AND t.ngay_chap_nhan BETWEEN '{s_dt_str}' AND '{e_dt_str}')
+                AND NOT EXISTS (SELECT 1 FROM transactions t WHERE t.ma_kh = customers.ma_crm_cms AND t.ngay_chap_nhan < '{s_dt_str}')
+            """
+        elif event_type.lower() == 'recovered_event':
+            # Transaction in period, but was CHURNED before (no tx in last 90 days before period)
+            return f"""
+                EXISTS (SELECT 1 FROM transactions t WHERE t.ma_kh = customers.ma_crm_cms AND t.ngay_chap_nhan BETWEEN '{s_dt_str}' AND '{e_dt_str}')
+                AND NOT EXISTS (SELECT 1 FROM transactions t WHERE t.ma_kh = customers.ma_crm_cms AND t.ngay_chap_nhan BETWEEN datetime('{s_dt_str}', '-90 days') AND datetime('{s_dt_str}', '-1 seconds'))
+                AND EXISTS (SELECT 1 FROM transactions t WHERE t.ma_kh = customers.ma_crm_cms AND t.ngay_chap_nhan < datetime('{s_dt_str}', '-90 days'))
+            """
+        elif event_type.lower() == 'churn_event':
+            # Silent > 90 days at end of period, but WAS active in the previous 90 days
+            return f"""
+                NOT EXISTS (SELECT 1 FROM transactions t WHERE t.ma_kh = customers.ma_crm_cms AND t.ngay_chap_nhan BETWEEN datetime('{e_dt_str}', '-90 days') AND '{e_dt_str}')
+                AND EXISTS (SELECT 1 FROM transactions t WHERE t.ma_kh = customers.ma_crm_cms AND t.ngay_chap_nhan BETWEEN datetime('{s_dt_str}', '-90 days') AND '{s_dt_str}')
+            """
+        return None
+
+
+    @staticmethod
     def _calculate_growth_tag(curr_rev, prev_rev):
         if curr_rev <= 0: return None
         if prev_rev <= 0: return 'GROWTH'
@@ -174,21 +256,31 @@ class LifecycleEngine:
         return 'STABLE'
 
     @staticmethod
-    def sync_customers_table(month_str=None):
+    def sync_customers_table(month_str=None, force_refresh=False):
         """
         Updates the 'customers' table and 'customer_monthly_snapshots' table.
-        Ensures idempotency by using REPLACE for snapshots.
+        [GOVERNANCE] Ensures snapshots are immutable unless force_refresh=True.
         """
         if not month_str:
             month_str = datetime.now().strftime('%Y-%m')
             
-        print(f"Syncing customers and snapshots for {month_str}...")
-        results = LifecycleEngine.process_month_summary(month_str)
-        if not results:
-            return
-            
         conn = LifecycleEngine.get_connection()
         cursor = conn.cursor()
+        
+        # 0. Check for existing snapshot (Protection Layer)
+        if not force_refresh:
+            cursor.execute("SELECT 1 FROM customer_monthly_snapshots WHERE year_month = ? LIMIT 1", (month_str,))
+            if cursor.fetchone():
+                print(f"Snapshot for {month_str} already exists. Skipping sync (Immutable). Use force_refresh=True to overwrite.")
+                conn.close()
+                return True
+
+        print(f"Syncing customers and snapshots for {month_str}...")
+        results = LifecycleEngine.process_month_summary(month_str, connection=conn)
+        if not results:
+            conn.close()
+            return
+            
         try:
             cursor.execute("BEGIN")
             
@@ -201,8 +293,12 @@ class LifecycleEngine:
                 ) for r in results
             ]
             
+            # If force_refresh, we delete existing first to ensure clean state
+            if force_refresh:
+                cursor.execute("DELETE FROM customer_monthly_snapshots WHERE year_month = ?", (month_str,))
+            
             cursor.executemany("""
-                INSERT OR REPLACE INTO customer_monthly_snapshots 
+                INSERT INTO customer_monthly_snapshots 
                 (year_month, ma_kh, point_id, lifecycle_state, is_new_transition, is_recovered_transition, is_churn_transition, revenue, orders)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, snapshot_data)

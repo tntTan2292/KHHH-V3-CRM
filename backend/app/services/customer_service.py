@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import dateutil.relativedelta
 from ..models import User, NhanSu, HierarchyNode, Customer, Transaction, CustomerMonthlySnapshot
 from ..services.scoping_service import ScopingService
+from ..services.lifecycle_engine import LifecycleEngine
 from ..core.config_segments import (
     MONTHS_UNTIL_CHURN, MONTHS_FOR_NEW, THRESHOLD_DIAMOND_REV, THRESHOLD_GOLD_REV, 
     THRESHOLD_BRONZE_REV, THRESHOLD_DIAMOND_SHIP, THRESHOLD_GOLD_SHIP, 
@@ -74,135 +75,36 @@ class CustomerService:
             use_realtime = (not snapshot_exists) or is_latest_month or is_partial
             
             if use_realtime:
-                # REALTIME FALLBACK (Current Month) - MUST MATCH LifecycleService EXACTLY
-                if status_val == 'new_event':
-                    filters.append(exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan.between(curr_start, curr_end))
-                    ))
-                    filters.append(~exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan < curr_start)
-                    ))
-                elif status_val == 'recovered_event':
-                    # Logic: Tx in period, NO Tx in last 30 days before period, HAD Tx before that
-                    filters.append(exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan.between(curr_start, curr_end))
-                    ))
-                    filters.append(~exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan.between(curr_start - timedelta(days=30), curr_start - timedelta(seconds=1)))
-                    ))
-                    filters.append(exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan < curr_start - timedelta(days=30))
-                    ))
-                elif status_val == 'churn_event':
-                    # CHURN EVENT (Realtime) - [RF5F] STRICT ALIGNMENT
-                    # Logic: NO Tx in last 90 days, HAD Tx in the 90 days before that
-                    # ALWAYS USE REALTIME FOR CURRENT MONTH TRANSITIONS
-                    filters.append(~exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) & 
-                        (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=90), curr_end))
-                    ))
-                    filters.append(exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) & 
-                        (Transaction.ngay_chap_nhan.between(curr_start - timedelta(days=90), curr_start))
-                    ))
-                    use_realtime = True # FORCE REALTIME
-                elif status_val == 'new_pop':
-                    # [RF5I] NEW POPULATION (Active Probation)
-                    # Logic: First Tx < 90 days ago AND NOT Silent (> 30 days)
-                    filters.append(exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=30), curr_end))
-                    ))
-                    filters.append(~exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan < curr_end - timedelta(days=90))
-                    ))
-                elif status_val == 'recovered_pop':
-                    # [RF5I] RECOVERED POPULATION (Active Probation - 90 days)
-                    # Logic: Returned < 90 days ago AND NOT Silent (> 30 days)
-                    filters.append(exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=30), curr_end))
-                    ))
-                    filters.append(exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan < curr_end - timedelta(days=180))
-                    ))
-                    filters.append(~exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=180), curr_end - timedelta(days=90)))
-                    ))
-                elif status_val == 'active':
-                    # [RF5H] Mature Active (Realtime): Tx in last 30 days AND Mature (First Tx < e_dt-90)
-                    #        AND NOT in Recovered Probation (Had Tx in [e_dt-180, e_dt-90])
-                    filters.append(exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=30), curr_end))
-                    ))
-                    filters.append(exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan < curr_end - timedelta(days=90))
-                    ))
-                    filters.append(exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=180), curr_end - timedelta(days=90)))
-                    ))
-                elif status_val == 'new_pop':
-                    # NEW POPULATION (Probation): Joined < 90 days ago AND still active
-                    filters.append(exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=30), curr_end))
-                    ))
-                    filters.append(~exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan < curr_end - timedelta(days=90))
-                    ))
-                elif status_val == 'recovered_pop':
-                    # RECOVERED POPULATION (Probation): Returned < 90 days ago AND still active
-                    filters.append(exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=30), curr_end))
-                    ))
-                    filters.append(exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan < curr_end - timedelta(days=180))
-                    ))
-                    filters.append(~exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=180), curr_end - timedelta(days=90)))
-                    ))
-                elif status_val == 'churn_pop':
-                    # CHURN POPULATION (Realtime) - [RF5F] STRICT ALIGNMENT
-                    # Logic: No transactions in the last 90 days
-                    filters.append(~exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan >= curr_end - timedelta(days=90))
-                    ))
-                    filters.append(exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan < curr_end - timedelta(days=90))
-                    ))
-                    use_realtime = True
-                elif status_val == 'at_risk':
-                    # [RF5I] AT RISK (Universal Risk)
-                    # Logic: No Tx in last 30 days AND Has Tx in last 90 days
-                    filters.append(exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan.between(curr_end - timedelta(days=90), curr_end - timedelta(days=30)))
-                    ))
-                    filters.append(~exists().where(
-                        (Transaction.ma_kh == Customer.ma_crm_cms) &
-                        (Transaction.ngay_chap_nhan > curr_end - timedelta(days=30))
-                    ))
+                # REALTIME FALLBACK (Current Month) - MUST MATCH LifecycleEngine SSOT EXACTLY
+                from sqlalchemy import text
+                target_date = curr_end.strftime("%Y-%m-%d")
+                
+                # Mapping UI filter codes to Engine Logic codes
+                engine_map = {
+                    'new_pop': 'new_pop',
+                    'recovered_pop': 'recovered_pop',
+                    'active': 'active',
+                    'at_risk': 'at_risk',
+                    'churn_pop': 'churn_pop'
+                }
+                
+                event_map = {
+                    'new_event': 'new_event',
+                    'recovered_event': 'recovered_event',
+                    'churn_event': 'churn_event'
+                }
+                
+                if status_val in engine_map:
+                    sql_fragment = LifecycleEngine.get_lifecycle_sql_logic(target_date, engine_map[status_val])
+                    if sql_fragment:
+                        filters.append(text(sql_fragment))
+                elif status_val in event_map:
+                    sql_fragment = LifecycleEngine.get_event_sql_logic(curr_start.strftime("%Y-%m-%d"), target_date, event_map[status_val])
+                    if sql_fragment:
+                        filters.append(text(sql_fragment))
                 elif status_val == 'total_pop':
-                    # [RF5F] UNIVERSE: Everyone with at least one transaction (Distinct ma_kh)
+                    # [RF5F] UNIVERSE: Everyone with at least one transaction
                     filters.append(exists().where(Transaction.ma_kh == Customer.ma_crm_cms))
-                    use_realtime = True # ALWAYS REALTIME
                 else:
                     filters.append(func.lower(Customer.lifecycle_state) == status_val)
             else:

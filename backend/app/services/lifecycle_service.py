@@ -92,148 +92,47 @@ class LifecycleService:
             else:
                 logger.warning(f"SSOT: Unmapped lifecycle stage detected: '{clean_stage}'")
 
-        # 3. RF5C-HOTFIX: Dynamic Recalculation for Transitions
-        # Transitions (New, Recovered, Churned in period) are period-bound.
-        # If the range is partial or it's the latest month, we recalculate to ensure integrity.
+        # 3. RF5C-HOTFIX: Dynamic Recalculation (Realtime)
+        # Use SSOT logic from LifecycleEngine to ensure parity across Dashboard and Table.
         if (is_latest_month or is_partial) and start_date and end_date:
-            from datetime import datetime, timedelta
-            s_dt = datetime.strptime(start_date, "%Y-%m-%d")
-            e_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+            from sqlalchemy import text
+            target_date = end_date
             
-            logger.info(f"SSOT: Partial or Latest range detected ({start_date} to {end_date}). Recalculating Realtime metrics...")
-                
-            # NEW EVENT (Joined strictly within month)
-            new_event_query = db.query(func.count(Customer.id)).filter(
-                exists().where(
-                    (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan.between(s_dt, e_dt))
-                ),
-                ~exists().where(
-                    (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan < s_dt)
-                )
-            )
-            if scope_point_ids: new_event_query = new_event_query.filter(Customer.point_id.in_(scope_point_ids))
-            results['new_event'] = new_event_query.scalar() or 0
+            logger.info(f"SSOT: Partial or Latest range detected ({start_date} to {end_date}). Recalculating Realtime metrics from LifecycleEngine SSOT...")
 
-            # [RF5I] NEW POPULATION (Active Probation)
-            # Logic: Joined < 90 days ago AND still active in last 30 days
-            new_pop_query = db.query(func.count(Customer.id)).filter(
-                exists().where(
-                    (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan.between(e_dt - timedelta(days=30), e_dt))
-                ),
-                ~exists().where(
-                    (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan < e_dt - timedelta(days=90))
-                )
-            )
-            if scope_point_ids: new_pop_query = new_pop_query.filter(Customer.point_id.in_(scope_point_ids))
-            results['new_pop'] = new_pop_query.scalar() or 0
+            # --- POPULATION LAYER ---
+            pop_keys = {
+                'active': 'active',
+                'new_pop': 'new_pop',
+                'recovered_pop': 'recovered_pop',
+                'at_risk': 'at_risk',
+                'churn_pop': 'churn_pop'
+            }
+            
+            for res_key, engine_key in pop_keys.items():
+                sql_fragment = LifecycleEngine.get_lifecycle_sql_logic(target_date, engine_key)
+                if sql_fragment:
+                    query = db.query(func.count(Customer.id)).filter(text(sql_fragment))
+                    if scope_point_ids: 
+                        query = query.filter(Customer.point_id.in_(scope_point_ids))
+                    results[res_key] = query.scalar() or 0
 
-            # RECOVERED EVENT (Returned strictly within month after churn)
-            recovered_event_query = db.query(func.count(Customer.id)).filter(
-                exists().where(
-                    (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan.between(s_dt, e_dt))
-                ),
-                ~exists().where(
-                    (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan.between(s_dt - timedelta(days=90), s_dt - timedelta(seconds=1)))
-                ),
-                exists().where(
-                    (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan < s_dt - timedelta(days=90))
-                )
-            )
-            if scope_point_ids: recovered_event_query = recovered_event_query.filter(Customer.point_id.in_(scope_point_ids))
-            results['recovered_event'] = recovered_event_query.scalar() or 0
-
-            # [RF5I] RECOVERED POPULATION (Probation - 90 days after return)
-            # Logic: Returned < 90 days ago (after 90+ day silence) AND still active
-            recovered_pop_query = db.query(func.count(Customer.id)).filter(
-                exists().where(
-                    (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan.between(e_dt - timedelta(days=30), e_dt))
-                ),
-                exists().where(
-                    (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan < e_dt - timedelta(days=180))
-                ),
-                ~exists().where(
-                    (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan.between(e_dt - timedelta(days=180), e_dt - timedelta(days=90)))
-                )
-            )
-            if scope_point_ids: recovered_pop_query = recovered_pop_query.filter(Customer.point_id.in_(scope_point_ids))
-            results['recovered_pop'] = recovered_pop_query.scalar() or 0
-
-            # CHURN EVENT (Lost strictly within month: went silent for 90 days)
-            churn_event_query = db.query(func.count(Customer.id)).filter(
-                ~exists().where(
-                    (Transaction.ma_kh == Customer.ma_crm_cms) & 
-                    (Transaction.ngay_chap_nhan.between(e_dt - timedelta(days=90), e_dt))
-                ),
-                exists().where(
-                    (Transaction.ma_kh == Customer.ma_crm_cms) & 
-                    (Transaction.ngay_chap_nhan.between(s_dt - timedelta(days=90), s_dt))
-                )
-            )
-            if scope_point_ids: churn_event_query = churn_event_query.filter(Customer.point_id.in_(scope_point_ids))
-            results['churn_event'] = churn_event_query.scalar() or 0
-
-            # [RF5H] ACTIVE (Mature & Stable Core)
-            # Logic: Has Tx in last 30 days 
-            #        AND Joined > 90 days ago (Mature)
-            #        AND WAS active in the 180-90 window (Stable - Not recovered probation)
-            active_mature_query = db.query(func.count(Customer.id)).filter(
-                exists().where(
-                    (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan.between(e_dt - timedelta(days=30), e_dt))
-                ),
-                exists().where(
-                    (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan < e_dt - timedelta(days=90))
-                ),
-                exists().where(
-                    (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan.between(e_dt - timedelta(days=180), e_dt - timedelta(days=90)))
-                )
-            )
-            if scope_point_ids: active_mature_query = active_mature_query.filter(Customer.point_id.in_(scope_point_ids))
-            results['active'] = active_mature_query.scalar() or 0
-
-            # [RF5I] AT RISK (Universal Risk)
-            # Logic: No Tx in last 30 days AND Has Tx in last 90 days
-            at_risk_query = db.query(func.count(Customer.id)).filter(
-                exists().where(
-                    (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan.between(e_dt - timedelta(days=90), e_dt - timedelta(days=30)))
-                ),
-                ~exists().where(
-                    (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan > e_dt - timedelta(days=30))
-                )
-            )
-            if scope_point_ids: at_risk_query = at_risk_query.filter(Customer.point_id.in_(scope_point_ids))
-            results['at_risk'] = at_risk_query.scalar() or 0
-
-            # CHURN POPULATION (Realtime Snapshot)
-            churn_pop_query = db.query(func.count(Customer.id)).filter(
-                ~exists().where(
-                    (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan >= e_dt - timedelta(days=90))
-                ),
-                exists().where(
-                    (Transaction.ma_kh == Customer.ma_crm_cms) &
-                    (Transaction.ngay_chap_nhan < e_dt - timedelta(days=90))
-                )
-            )
-            if scope_point_ids: churn_pop_query = churn_pop_query.filter(Customer.point_id.in_(scope_point_ids))
-            results['churn_pop'] = churn_pop_query.scalar() or 0
+            # --- EVENT LAYER ---
+            event_keys = {
+                'new_event': 'new_event',
+                'recovered_event': 'recovered_event',
+                'churn_event': 'churn_event'
+            }
+            
+            for res_key, engine_key in event_keys.items():
+                sql_fragment = LifecycleEngine.get_event_sql_logic(start_date, end_date, engine_key)
+                if sql_fragment:
+                    query = db.query(func.count(Customer.id)).filter(text(sql_fragment))
+                    if scope_point_ids: 
+                        query = query.filter(Customer.point_id.in_(scope_point_ids))
+                    results[res_key] = query.scalar() or 0
 
         # TOTAL KHÁCH HÀNG - [RF5F] Unified Universe
-        # COUNT DISTINCT toàn bộ customer_id tồn tại trong lifecycle universe (Universe thực tế)
         total_universe_query = db.query(func.count(Customer.id)).filter(
             exists().where(Transaction.ma_kh == Customer.ma_crm_cms)
         )
