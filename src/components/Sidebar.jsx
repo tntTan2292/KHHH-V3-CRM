@@ -82,7 +82,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
       )}
 
       {/* Sidebar Container */}
-      <aside className={`fixed md:relative inset-y-0 left-0 ${isCollapsed ? 'md:w-20' : 'md:w-64'} w-64 bg-slate-900 text-white flex flex-col shadow-2xl z-50 transform transition-all duration-300 ease-in-out ${
+      <aside className={`fixed md:relative inset-y-0 left-0 ${isCollapsed ? 'md:w-20' : 'md:w-[250px]'} w-[250px] bg-gradient-to-b from-[#003B7A] to-[#002B5C] text-white flex flex-col shadow-2xl z-50 transform transition-all duration-300 ease-in-out ${
         isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
       }`}>
         <div className={`p-6 border-b border-white/5 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} gap-4 relative`}>
@@ -136,14 +136,14 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                   <Link
                     key={item.path}
                     to={item.path}
-                    className={`flex items-center ${isCollapsed ? 'justify-center px-0' : 'px-4'} py-4 rounded-2xl transition-all duration-200 group relative ${
+                    className={`flex items-center ${isCollapsed ? 'justify-center px-0' : 'px-4'} py-3.5 rounded-xl transition-all duration-200 group relative ${
                       isRouteActive(item.path)
-                        ? 'bg-vnpost-orange text-[#003E7E] font-bold shadow-xl shadow-orange-500/30'
-                        : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                        ? 'bg-[#F5A623] text-white font-bold shadow-lg shadow-orange-500/20'
+                        : 'text-white/60 hover:bg-white/10 hover:text-white'
                     }`}
                   >
                     <div className="flex-shrink-0">{item.icon}</div>
-                    {!isCollapsed && <span className="ml-4 whitespace-nowrap text-[14px] font-bold tracking-tight transition-opacity duration-300">{item.name}</span>}
+                    {!isCollapsed && <span className="ml-3 whitespace-nowrap text-sm font-bold transition-opacity duration-300">{item.name}</span>}
                     
                     {/* Tooltip when collapsed */}
                     {isCollapsed && (
