@@ -366,6 +366,45 @@ const CustomerDetailModal = ({ selectedCustomer, setSelectedCustomer, fullCustom
   );
 };
 
+const ChurnList = ({ churnPrediction, setSelectedCustomer }) => {
+  if (!churnPrediction) return null;
+  return (
+    <div className="executive-card p-0 overflow-hidden min-w-0">
+       <div className="p-8 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+          <h3 className="section-title flex items-center gap-3">
+             <Users size={20} className="text-rose-500" /> Cảnh báo Rời bỏ (At Risk)
+          </h3>
+          <div className="px-3 py-1 bg-rose-50 text-rose-600 rounded-full text-[10px] font-bold border border-rose-100">QUAN TRỌNG</div>
+       </div>
+       <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="bg-gray-50 text-gray-500 text-[9px] uppercase font-black">
+              <tr>
+                <th className="px-6 py-3 text-left">Khách hàng</th>
+                <th className="px-6 py-3 text-right">Rủi ro</th>
+                <th className="px-6 py-3 text-right">Đơn cuối</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {churnPrediction.slice(0, 8).map((p, idx) => (
+                <tr key={idx} className="hover:bg-rose-50/30 transition-all cursor-pointer" onClick={() => setSelectedCustomer(p)}>
+                  <td className="px-6 py-4">
+                     <div className="font-bold text-gray-800 uppercase">{p.ten_kh}</div>
+                     <div className="text-[9px] text-gray-400 font-bold">{p.ma_kh}</div>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                     <span className="px-2 py-1 bg-red-100 text-red-600 rounded font-black text-[9px] uppercase">{p.risk_level}</span>
+                  </td>
+                  <td className="px-6 py-4 text-right font-bold text-gray-600">{p.last_active}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+       </div>
+    </div>
+  );
+};
+
 export default function DashboardWrapper() {
   return <ErrorBoundary><Dashboard /></ErrorBoundary>;
 }
@@ -900,39 +939,7 @@ function Dashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8 mt-12 pb-20">
           {/* CUSTOMER CHURN LIST (LEFT) */}
-          <div className="executive-card p-0 overflow-hidden min-w-0">
-             <div className="p-8 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
-                <h3 className="section-title flex items-center gap-3">
-                   <Users size={20} className="text-rose-500" /> Cảnh báo Rời bỏ (At Risk)
-                </h3>
-                <div className="px-3 py-1 bg-rose-50 text-rose-600 rounded-full text-[10px] font-bold border border-rose-100">QUAN TRỌNG</div>
-             </div>
-             <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead className="bg-gray-50 text-gray-500 text-[9px] uppercase font-black">
-                    <tr>
-                      <th className="px-6 py-3 text-left">Khách hàng</th>
-                      <th className="px-6 py-3 text-right">Rủi ro</th>
-                      <th className="px-6 py-3 text-right">Đơn cuối</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {churnPrediction?.slice(0, 8).map((p, idx) => (
-                      <tr key={idx} className="hover:bg-rose-50/30 transition-all cursor-pointer" onClick={() => setSelectedCustomer(p)}>
-                        <td className="px-6 py-4">
-                           <div className="font-bold text-gray-800 uppercase">{p.ten_kh}</div>
-                           <div className="text-[9px] text-gray-400 font-bold">{p.ma_kh}</div>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                           <span className="px-2 py-1 bg-red-100 text-red-600 rounded font-black text-[9px] uppercase">{p.risk_level}</span>
-                        </td>
-                        <td className="px-6 py-4 text-right font-bold text-gray-600">{p.last_active}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-             </div>
-          </div>
+          <ChurnList churnPrediction={churnPrediction} setSelectedCustomer={setSelectedCustomer} />
           
           {/* CUSTOMER SCORING (RIGHT PANEL) */}
           <div className="executive-card p-0 overflow-hidden w-[320px] min-w-[320px]">
