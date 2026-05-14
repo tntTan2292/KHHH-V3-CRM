@@ -96,7 +96,7 @@ async def get_customers(
             "rebuy": "recovered",
             "reactivated": "recovered",
             "active": "active",
-            "new": "new",
+            "new": "new_pop",
             "at_risk": "at_risk",
             "churned": "churned"
         }
