@@ -30,7 +30,7 @@ export default function Topbar({ onMenuClick }) {
   }, []);
 
   return (
-    <header className="glass-header h-20 flex items-center justify-between px-6 md:px-10 shadow-xl shadow-blue-900/5 bg-white/95 backdrop-blur-xl sticky top-0 z-30 border-b border-gray-100/50">
+    <header className="glass-header h-14 flex items-center justify-between px-4 md:px-6 shadow-sm bg-white/80 backdrop-blur-md sticky top-0 z-30 border-b border-gray-100">
       <div className="flex items-center gap-3">
         <button 
           onClick={onMenuClick}
@@ -39,8 +39,8 @@ export default function Topbar({ onMenuClick }) {
           <Menu size={24} />
         </button>
 
-        <div className="hidden sm:block text-[38px] text-gray-800 font-extrabold tracking-tighter leading-none">
-          CRM <span className="text-[#F5A623]">3.0</span> <span className="text-[14px] text-gray-400 font-bold tracking-widest ml-4 uppercase opacity-50">• EXECUTIVE COMMAND CENTER</span>
+        <div className="hidden sm:block text-xs md:text-sm text-gray-500 font-medium">
+          Hệ thống <span className="hidden lg:inline">Quản trị Khách hàng</span> <span className="mx-1 md:mx-2 text-vnpost-blue font-bold">•</span> VNPost Huế
         </div>
         {latestDate && (
           <div className="hidden xl:flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-vnpost-blue rounded-full border border-blue-100 text-[10px] font-black tracking-tighter">

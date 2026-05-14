@@ -82,21 +82,21 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
       )}
 
       {/* Sidebar Container */}
-      <aside className={`fixed md:relative inset-y-0 left-0 ${isCollapsed ? 'md:w-20' : 'md:w-[250px]'} w-[250px] bg-gradient-to-b from-[#003B7A] to-[#002B5C] text-white flex flex-col shadow-2xl z-50 transform transition-all duration-300 ease-in-out ${
+      <aside className={`fixed md:relative inset-y-0 left-0 ${isCollapsed ? 'md:w-20' : 'md:w-64'} w-64 bg-gradient-to-b from-[#003E7E] to-[#002a54] text-white flex flex-col shadow-2xl z-50 transform transition-all duration-300 ease-in-out ${
         isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
       }`}>
-        <div className={`p-6 border-b border-white/5 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} gap-4 relative`}>
+        <div className={`p-6 border-b border-white/10 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} gap-4 relative`}>
           <div className="flex items-center gap-4 overflow-hidden">
             <div className="flex-shrink-0">
               <img 
                 src={vnpostLogo} 
                 alt="VNPost" 
-                className="w-10 h-auto brightness-0 invert opacity-80" 
+                className="w-12 h-auto brightness-0 invert opacity-90" 
               />
             </div>
             {!isCollapsed && (
               <div className="transition-opacity duration-300">
-                <h1 className="font-extrabold text-sm tracking-tight text-white uppercase opacity-90">
+                <h1 className="font-extrabold text-sm tracking-tight text-white uppercase">
                   Portal <span className="text-vnpost-orange">CRM 3.0</span>
                 </h1>
                 <p className="text-[10px] font-bold text-blue-300 opacity-60 uppercase tracking-widest mt-0.5">
@@ -136,14 +136,14 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                   <Link
                     key={item.path}
                     to={item.path}
-                    className={`flex items-center ${isCollapsed ? 'justify-center px-0' : 'px-4'} py-3.5 rounded-xl transition-all duration-200 group relative ${
+                    className={`flex items-center ${isCollapsed ? 'justify-center px-0' : 'px-4'} py-3 rounded-xl transition-all duration-200 group relative ${
                       isRouteActive(item.path)
-                        ? 'bg-[#F5A623] text-white font-bold shadow-lg shadow-orange-500/20'
-                        : 'text-white/60 hover:bg-white/10 hover:text-white'
+                        ? 'bg-gradient-to-r from-vnpost-orange to-orange-400 text-white font-bold shadow-lg shadow-orange-500/20'
+                        : 'text-blue-100 hover:bg-white/10 hover:text-white'
                     }`}
                   >
                     <div className="flex-shrink-0">{item.icon}</div>
-                    {!isCollapsed && <span className="ml-3 whitespace-nowrap text-sm font-bold transition-opacity duration-300">{item.name}</span>}
+                    {!isCollapsed && <span className="ml-3 whitespace-nowrap text-sm transition-opacity duration-300">{item.name}</span>}
                     
                     {/* Tooltip when collapsed */}
                     {isCollapsed && (
