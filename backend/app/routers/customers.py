@@ -81,7 +81,11 @@ async def get_customers(
         if not c: continue
         
         # Governance: Priority given to Temporal Snapshot stage for list context
-        snapshot_stage = row[5] if len(row) > 5 else None
+        snapshot_stage = None
+        try:
+            snapshot_stage = row._mapping.get("snapshot_stage")
+        except Exception:
+            snapshot_stage = row[5] if len(row) > 5 else None
         
         if snapshot_stage and snapshot_stage != "NONE":
             status_raw = snapshot_stage.lower()

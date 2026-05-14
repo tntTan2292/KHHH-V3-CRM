@@ -180,8 +180,8 @@ class CustomerService:
         # 4. Total Count (Deterministic)
         # Snapshot mode must use customer_monthly_snapshots as the primary truth source.
         if lifecycle_status and not use_realtime:
-            base_query = db.query(snapshot_sub)
-            base_query = base_query.outerjoin(Customer, Customer.ma_crm_cms == snapshot_sub.c.ma_kh)
+            base_query = db.query(snapshot_sub.c.ma_kh).select_from(snapshot_sub)\
+                .outerjoin(Customer, Customer.ma_crm_cms == snapshot_sub.c.ma_kh)
             base_query = base_query.filter(*filters)
         else:
             base_query = db.query(Customer).filter(*filters)
@@ -207,10 +207,23 @@ class CustomerService:
                 func.coalesce(metrics_sub.c.transaction_count, 0).label("transaction_count"),
                 metrics_sub.c.last_shipped_absolute,
                 NhanSu.full_name.label("assigned_staff_name"),
-                snapshot_sub.c.lifecycle_state.label("snapshot_stage")
+                snapshot_sub.c.ma_kh.label("ma_kh"),
+                snapshot_sub.c.point_id.label("point_id"),
+                snapshot_sub.c.lifecycle_state.label("snapshot_stage"),
+                snapshot_sub.c.vip_tier.label("vip_tier"),
+                snapshot_sub.c.rfm_segment.label("rfm_segment"),
+                func.coalesce(snapshot_sub.c.revenue, 0).label("snapshot_revenue"),
+                func.coalesce(snapshot_sub.c.orders, 0).label("snapshot_orders"),
+                Customer.id.label("customer_id"),
+                Customer.ma_crm_cms.label("customer_ma_crm_cms"),
+                Customer.ten_kh.label("customer_name"),
+                Customer.priority_score.label("priority_score"),
+                Customer.priority_level.label("priority_level"),
+                Customer.assigned_staff_id.label("assigned_staff_id"),
+                Customer.ma_bc_phu_trach.label("point_code")
             ).select_from(snapshot_sub)\
              .outerjoin(Customer, Customer.ma_crm_cms == snapshot_sub.c.ma_kh)\
-             .outerjoin(metrics_sub, Customer.ma_crm_cms == metrics_sub.c.ma_kh)\
+             .outerjoin(metrics_sub, snapshot_sub.c.ma_kh == metrics_sub.c.ma_kh)\
              .outerjoin(NhanSu, Customer.assigned_staff_id == NhanSu.id)\
              .filter(*filters)
         else:
