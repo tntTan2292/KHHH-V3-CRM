@@ -128,7 +128,9 @@ const AIAssistantInsights = ({ summary, stats, churnPrediction, heatmapData }) =
     }`}>
       <div className={`absolute -right-10 -top-10 w-40 h-40 rounded-full blur-[80px] opacity-20 ${
         type === 'positive' ? 'bg-emerald-500' : type === 'warning' ? 'bg-amber-500' : type === 'negative' ? 'bg-red-500' : 'bg-indigo-500'
-    <div className="executive-card relative overflow-hidden bg-gradient-to-br from-indigo-900 via-blue-900 to-slate-900 text-white p-8 mb-8 border-0 shadow-2xl">
+      }`}></div>
+
+      <div className="executive-card relative overflow-hidden bg-gradient-to-br from-indigo-900 via-blue-900 to-slate-900 text-white p-8 border-0 shadow-2xl">
       {/* Decorative BG elements */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
       
@@ -156,6 +158,7 @@ const AIAssistantInsights = ({ summary, stats, churnPrediction, heatmapData }) =
         </div>
       </div>
     </div>
+  </div>
   );
 };
 
@@ -842,10 +845,18 @@ function Dashboard() {
                         </div>
                       </div>
                     </div>
-                    
+                    <div className="grid grid-cols-2 gap-3 mt-1">
+                       <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                          <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Doanh thu</p>
+                          <p className="text-sm font-bold text-gray-800">{formatCurrency(s.revenue)}</p>
+                       </div>
+                       <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                          <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Tần suất</p>
+                          <p className="text-sm font-bold text-gray-800">{s.frequency} đơn</p>
+                       </div>
                     </div>
                   </div>
-                )) : <div className="p-12 text-center text-gray-300 italic text-xs font-bold uppercase">Đang đồng bộ điểm số...</div>}
+                )) : <div className="p-12 text-center text-gray-300 italic text-sm">Đang đồng bộ điểm số...</div>}
               </div>
             </div>
           </div>
