@@ -178,12 +178,13 @@ class CustomerService:
             filters.append(Customer.ma_bc_phu_trach.in_(scope_codes))
 
         # 4. Total Count (Deterministic)
-        # Use Outerjoin for snapshot to ensure population views don't collapse if some fields are null
-        base_query = db.query(Customer)
+        # Snapshot mode must use customer_monthly_snapshots as the primary truth source.
         if lifecycle_status and not use_realtime:
-            base_query = base_query.outerjoin(snapshot_sub, Customer.ma_crm_cms == snapshot_sub.c.ma_kh)
-        
-        base_query = base_query.filter(*filters)
+            base_query = db.query(snapshot_sub)
+            base_query = base_query.outerjoin(Customer, Customer.ma_crm_cms == snapshot_sub.c.ma_kh)
+            base_query = base_query.filter(*filters)
+        else:
+            base_query = db.query(Customer).filter(*filters)
         total = base_query.count()
 
         # 5. Metrics Subquery (Revenue month-locked)
@@ -199,21 +200,31 @@ class CustomerService:
 
         # 6. Final Query Assembly
         # [GOVERNANCE] Ensure snapshot_stage fallback to Customer.lifecycle_state when not in snapshot mode
-        final_query = db.query(
-            Customer,
-            func.coalesce(metrics_sub.c.dynamic_revenue, 0).label("dynamic_revenue"),
-            func.coalesce(metrics_sub.c.transaction_count, 0).label("transaction_count"),
-            metrics_sub.c.last_shipped_absolute,
-            NhanSu.full_name.label("assigned_staff_name"),
-            (snapshot_sub.c.lifecycle_state if (lifecycle_status and not use_realtime) else Customer.lifecycle_state).label("snapshot_stage")
-        ).select_from(Customer)
-        
         if lifecycle_status and not use_realtime:
-            final_query = final_query.outerjoin(snapshot_sub, Customer.ma_crm_cms == snapshot_sub.c.ma_kh)
-            
-        final_query = final_query.outerjoin(metrics_sub, Customer.ma_crm_cms == metrics_sub.c.ma_kh)\
-          .outerjoin(NhanSu, Customer.assigned_staff_id == NhanSu.id)\
-          .filter(*filters)
+            final_query = db.query(
+                Customer,
+                func.coalesce(metrics_sub.c.dynamic_revenue, 0).label("dynamic_revenue"),
+                func.coalesce(metrics_sub.c.transaction_count, 0).label("transaction_count"),
+                metrics_sub.c.last_shipped_absolute,
+                NhanSu.full_name.label("assigned_staff_name"),
+                snapshot_sub.c.lifecycle_state.label("snapshot_stage")
+            ).select_from(snapshot_sub)\
+             .outerjoin(Customer, Customer.ma_crm_cms == snapshot_sub.c.ma_kh)\
+             .outerjoin(metrics_sub, Customer.ma_crm_cms == metrics_sub.c.ma_kh)\
+             .outerjoin(NhanSu, Customer.assigned_staff_id == NhanSu.id)\
+             .filter(*filters)
+        else:
+            final_query = db.query(
+                Customer,
+                func.coalesce(metrics_sub.c.dynamic_revenue, 0).label("dynamic_revenue"),
+                func.coalesce(metrics_sub.c.transaction_count, 0).label("transaction_count"),
+                metrics_sub.c.last_shipped_absolute,
+                NhanSu.full_name.label("assigned_staff_name"),
+                Customer.lifecycle_state.label("snapshot_stage")
+            ).select_from(Customer)\
+             .outerjoin(metrics_sub, Customer.ma_crm_cms == metrics_sub.c.ma_kh)\
+             .outerjoin(NhanSu, Customer.assigned_staff_id == NhanSu.id)\
+             .filter(*filters)
 
         # 7. Sorting
         sort_map = {
