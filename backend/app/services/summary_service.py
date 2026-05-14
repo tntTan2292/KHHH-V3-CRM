@@ -8,7 +8,7 @@ import logging
 from .lifecycle_engine import LifecycleEngine
 from .vip_tier_engine import VIPTierEngine
 from .priority_engine import PriorityEngine
-from backend.app.models import CustomerMonthlySnapshot
+from ..models import CustomerMonthlySnapshot
 
 logger = logging.getLogger(__name__)
 
