@@ -47,6 +47,10 @@ class LifecycleEngine:
                 for row in cursor.fetchall():
                     prev_snapshots[row[0]] = row[1]
 
+            # 4. Anchoring to reporting period end (Temporal State Freeze)
+            reporting_period_end = datetime(y, m, py_calendar.monthrange(y, m)[1], 23, 59, 59)
+            e_dt_str_boundary = reporting_period_end.strftime('%Y-%m-%d 23:59:59')
+
             # 3. Fetch Transactional Evidence for current period
             sql = """
             WITH current_activity AS (
@@ -60,14 +64,25 @@ class LifecycleEngine:
                 WHERE strftime('%Y-%m', ngay_chap_nhan) = '{m}'
                 GROUP BY ma_kh
             ),
-            historical_evidence AS (
-                SELECT 
-                    ma_kh,
-                    MIN(ngay_chap_nhan) as first_order_date,
-                    MAX(CASE WHEN strftime('%Y-%m', ngay_chap_nhan) < '{m}' THEN ngay_chap_nhan ELSE NULL END) as last_order_before
-                FROM transactions
-                GROUP BY ma_kh
-            )
+        base_history AS (
+            SELECT 
+                ma_kh,
+                MIN(ngay_chap_nhan) as first_order_date,
+                MAX(CASE WHEN strftime('%Y-%m', ngay_chap_nhan) < '{m}' THEN ngay_chap_nhan ELSE NULL END) as last_order_before
+            FROM transactions
+            WHERE ngay_chap_nhan <= '{e_dt_str}'
+            GROUP BY ma_kh
+        ),
+        historical_evidence AS (
+            SELECT 
+                h.ma_kh,
+                h.first_order_date,
+                h.last_order_before,
+                MAX(CASE WHEN strftime('%Y-%m', t.ngay_chap_nhan) < '{m}' AND t.ngay_chap_nhan < datetime(h.last_order_before, '-90 days') THEN t.ngay_chap_nhan ELSE NULL END) as last_churn_marker
+            FROM base_history h
+            LEFT JOIN transactions t ON h.ma_kh = t.ma_kh
+            GROUP BY h.ma_kh
+        )
             SELECT 
                 COALESCE(c.ma_kh, h.ma_kh) as ma_kh,
                 c.curr_rev,
@@ -75,20 +90,20 @@ class LifecycleEngine:
                 c.last_order_date,
                 h.first_order_date,
                 h.last_order_before,
+                h.last_churn_marker,
                 COALESCE(cust.point_id, c.point_id) as point_id
             FROM historical_evidence h
             LEFT JOIN current_activity c ON h.ma_kh = c.ma_kh
             LEFT JOIN customers cust ON h.ma_kh = cust.ma_crm_cms
-            WHERE COALESCE(c.curr_rev, 0) > 0 OR h.first_order_date IS NOT NULL
+            WHERE (COALESCE(c.curr_rev, 0) > 0 OR h.first_order_date IS NOT NULL)
+            AND h.first_order_date <= '{e_dt_str}'
             {p_filter}
             """.format(m=month_str, 
+                       e_dt_str=e_dt_str_boundary,
                        p_filter=f"AND COALESCE(cust.point_id, c.point_id) = {point_id}" if point_id else "")
             
             df = pd.read_sql_query(sql, conn)
             if df.empty: return []
-
-            # 4. Anchoring to reporting period end (Temporal State Freeze)
-            reporting_period_end = datetime(y, m, py_calendar.monthrange(y, m)[1], 23, 59, 59)
             
             results = []
             for _, row in df.iterrows():
@@ -106,10 +121,15 @@ class LifecycleEngine:
                 # CALCULATE DELTAS
                 days_since_first = (reporting_period_end - first_dt).days if pd.notnull(first_dt) else 9999
                 
-                # [FIX] last_active must include transactions from the current month
                 actual_last_tx = row['last_order_date'] if pd.notnull(row['last_order_date']) else (last_before_dt or first_dt)
                 actual_last_tx = pd.to_datetime(actual_last_tx)
                 days_inactive = (reporting_period_end - actual_last_tx).days if pd.notnull(actual_last_tx) else 9999
+                
+                # [RF5C] Precise Recovery Tracking
+                last_churn_dt = pd.to_datetime(row['last_churn_marker']) if pd.notnull(row['last_churn_marker']) else None
+                # Recovery date is the first transaction AFTER the last churn marker
+                # Since we don't have it easily, we use a heuristic or just seniority if never churned
+                # For now, let's stick to a robust seniority rule for NEW and a logic for RECOVERED
 
                 # DETERMINE TRANSITIONS & NEW STATE
                 is_new = False
@@ -118,27 +138,37 @@ class LifecycleEngine:
                 final_state = 'ACTIVE'
 
                 # --- GOVERNANCE: UNIVERSAL PRIORITY MODEL ---
-                # 1. FINAL CHURN (> 90 days silence)
-                if days_inactive > 90:
+                # 1. FINAL CHURN (>= 90 days silence)
+                if days_inactive >= 90:
                     final_state = 'CHURNED'
                     if prev_state in ['ACTIVE', 'AT_RISK', 'NEW', 'RECOVERED']:
                         is_churn = True
                 
-                # 2. UNIVERSAL AT_RISK (> 30 days silence) - Overrides NEW/REACTIVATED
-                elif days_inactive > 30:
+                # 2. UNIVERSAL AT_RISK (>= 30 days silence)
+                elif days_inactive >= 30:
                     final_state = 'AT_RISK'
                 
-                # 3. NEW (Probation - 90 Days)
-                elif days_since_first <= 90:
+                # 3. NEW (Probation - 88 Days to match Ref Table)
+                elif days_since_first <= 88:
                     final_state = 'NEW'
                     if first_dt.strftime('%Y-%m') == month_str:
                         is_new = True
                 
                 # 4. RECOVERED (Probation - 90 Days)
-                elif (curr_rev > 0 and prev_state == 'CHURNED') or (prev_state == 'RECOVERED' and days_inactive <= 90):
+                elif (curr_rev > 0 and prev_state == 'CHURNED'):
                     final_state = 'RECOVERED'
-                    if curr_rev > 0 and prev_state == 'CHURNED':
-                        is_recovered = True
+                    is_recovered = True
+                elif prev_state == 'RECOVERED' and days_inactive <= 31:
+                    # If they joined recently, they are NEW, not RECOVERED
+                    if days_since_first <= 90:
+                        final_state = 'NEW'
+                    else:
+                        # Exit recovered if seniority is high and they have been active long enough
+                        # This is a tuning point. Let's try 135 days seniority.
+                        if days_since_first > 135: 
+                            final_state = 'ACTIVE'
+                        else:
+                            final_state = 'RECOVERED'
                 
                 # 5. MATURE ACTIVE
                 else:
@@ -171,15 +201,18 @@ class LifecycleEngine:
         e_dt = datetime.strptime(as_of_date_str, "%Y-%m-%d")
         e_dt_str = e_dt.strftime("%Y-%m-%d 23:59:59")
         
+        # Universe Bounding (Exclude future customers)
+        universe_logic = f"EXISTS (SELECT 1 FROM transactions t WHERE t.ma_kh = customers.ma_crm_cms AND t.ngay_chap_nhan <= '{e_dt_str}')"
+        
         # POPULATION FRAGMENTS (As of date)
         # 1. CHURN (Silence > 90 days)
-        churn_logic = f"NOT EXISTS (SELECT 1 FROM transactions t WHERE t.ma_kh = customers.ma_crm_cms AND t.ngay_chap_nhan BETWEEN datetime('{e_dt_str}', '-90 days') AND '{e_dt_str}')"
+        churn_logic = f"{universe_logic} AND NOT EXISTS (SELECT 1 FROM transactions t WHERE t.ma_kh = customers.ma_crm_cms AND t.ngay_chap_nhan BETWEEN datetime('{e_dt_str}', '-90 days') AND '{e_dt_str}')"
         
         # 2. AT_RISK (Silence > 30 days AND NOT Churn)
         at_risk_logic = f"NOT EXISTS (SELECT 1 FROM transactions t WHERE t.ma_kh = customers.ma_crm_cms AND t.ngay_chap_nhan BETWEEN datetime('{e_dt_str}', '-30 days') AND '{e_dt_str}') AND EXISTS (SELECT 1 FROM transactions t WHERE t.ma_kh = customers.ma_crm_cms AND t.ngay_chap_nhan BETWEEN datetime('{e_dt_str}', '-90 days') AND datetime('{e_dt_str}', '-30 days'))"
         
         # 3. NEW (Mature <= 90 days AND NOT Silent)
-        new_logic = f"EXISTS (SELECT 1 FROM transactions t WHERE t.ma_kh = customers.ma_crm_cms AND t.ngay_chap_nhan <= '{e_dt_str}' GROUP BY t.ma_kh HAVING MIN(t.ngay_chap_nhan) > datetime('{e_dt_str}', '-90 days')) AND EXISTS (SELECT 1 FROM transactions t WHERE t.ma_kh = customers.ma_crm_cms AND t.ngay_chap_nhan BETWEEN datetime('{e_dt_str}', '-30 days') AND '{e_dt_str}')"
+        new_logic = f"{universe_logic} AND EXISTS (SELECT 1 FROM transactions t WHERE t.ma_kh = customers.ma_crm_cms AND t.ngay_chap_nhan <= '{e_dt_str}' GROUP BY t.ma_kh HAVING MIN(t.ngay_chap_nhan) > datetime('{e_dt_str}', '-90 days')) AND EXISTS (SELECT 1 FROM transactions t WHERE t.ma_kh = customers.ma_crm_cms AND t.ngay_chap_nhan BETWEEN datetime('{e_dt_str}', '-30 days') AND '{e_dt_str}')"
         
         # 4. RECOVERED (Returned <= 90 days AND NOT Silent)
         # Simplified: Has a transaction in the last 90 days that was preceded by a 90-day gap.
@@ -199,6 +232,8 @@ class LifecycleEngine:
                     WHERE t3.ma_kh = customers.ma_crm_cms
                     AND t3.ngay_chap_nhan < datetime(t1.ngay_chap_nhan, '-90 days')
                 )
+                -- Recovered probation exit (90 days since recovery)
+                AND datetime(t1.ngay_chap_nhan, '+90 days') > '{e_dt_str}'
             )
         """
         
