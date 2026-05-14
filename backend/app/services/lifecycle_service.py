@@ -92,9 +92,13 @@ class LifecycleService:
             else:
                 logger.warning(f"SSOT: Unmapped lifecycle stage detected: '{clean_stage}'")
 
+        # Check if we have data in summary for this month
+        has_summary = len(summary_rows) > 0
+        
         # 3. RF5C-HOTFIX: Dynamic Recalculation (Realtime)
-        # Use SSOT logic from LifecycleEngine to ensure parity across Dashboard and Table.
-        if (is_latest_month or is_partial) and start_date and end_date:
+        # Use Realtime ONLY if snapshot is missing.
+        # If snapshot exists, we trust it as the Constitutional SSOT for that month.
+        if not has_summary and start_date and end_date:
             from sqlalchemy import text
             target_date = end_date
             

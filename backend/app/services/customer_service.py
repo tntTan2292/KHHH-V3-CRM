@@ -71,8 +71,10 @@ class CustomerService:
             snapshot_exists = db.query(exists().where(CustomerMonthlySnapshot.year_month == month_str)).scalar()
             snapshot_sub = None
             
-            # Use Realtime if snapshot missing OR if it's the current/partial month (to ensure consistency with Dashboard)
-            use_realtime = (not snapshot_exists) or is_latest_month or is_partial
+            # [RF5C] Determine if we should use Realtime vs Snapshot
+            # Use Realtime ONLY if snapshot is missing. 
+            # If snapshot exists, it is the Frozen Truth.
+            use_realtime = not snapshot_exists
             
             if use_realtime:
                 # REALTIME FALLBACK (Current Month) - MUST MATCH LifecycleEngine SSOT EXACTLY
@@ -138,6 +140,16 @@ class CustomerService:
                 
                 # Join with snapshot (Using filter for join integrity)
                 filters.append(Customer.ma_crm_cms == snapshot_sub.c.ma_kh)
+        else:
+            # [RF5F] UNIVERSE LEAK PROTECTION: Even if no status selected, bound by transaction universe
+            # for the current selected period.
+            target_date = end_date or datetime.now().strftime("%Y-%m-%d")
+            filters.append(exists().where(
+                and_(
+                    Transaction.ma_kh == Customer.ma_crm_cms,
+                    Transaction.ngay_chap_nhan <= target_date + " 23:59:59"
+                )
+            ))
             
         if rfm_segment:
             filters.append(Customer.rfm_segment == rfm_segment)
