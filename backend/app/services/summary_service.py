@@ -203,8 +203,8 @@ class SummaryService:
             # [GOVERNANCE] Use centralized LeadTierEngine
             df_pot['rank'] = df_pot.apply(lambda r: LeadTierEngine.classify_lead_rank(r['rev'], r['orders']), axis=1)
             
-            # Gộp doanh thu Tiềm năng (BAO GỒM CẢ HẠNG THƯỜNG ĐỂ KHÔNG MẤT DOANH THU)
-            pot_agg = df_pot.groupby(['point_id', 'rank', 'ma_dv', 'region_type']).agg({
+            # Gộp doanh thu Tiềm năng
+            pot_agg = df_pot[df_pot['rank'] != 'THƯỜNG'].groupby(['point_id', 'rank', 'ma_dv', 'region_type']).agg({
                 'rev': 'sum', 'orders': 'sum', 'name': 'count'
             }).reset_index()
             for _, r in pot_agg.iterrows():

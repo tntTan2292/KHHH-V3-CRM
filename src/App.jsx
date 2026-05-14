@@ -106,7 +106,22 @@ function App() {
             />
           </Routes>
         </Suspense>
-        <ToastContainer position="bottom-right" autoClose={3000} theme="colored" />
+        <ToastContainer 
+          position="bottom-right" 
+          autoClose={3000} 
+          theme="dark" 
+          hideProgressBar={true}
+          toastStyle={{ 
+            fontSize: '11px', 
+            fontWeight: '900', 
+            textTransform: 'uppercase', 
+            letterSpacing: '0.05em', 
+            borderRadius: '12px',
+            background: 'rgba(30, 41, 59, 0.9)',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)'
+          }}
+        />
       </Router>
     </AuthProvider>
   );

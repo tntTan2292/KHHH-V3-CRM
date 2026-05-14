@@ -86,14 +86,23 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post('/api/auth/login', formData);
       const { access_token, user: userData } = response.data;
       
+      if (!access_token) {
+        return { success: false, message: 'Phản hồi từ hệ thống không hợp lệ (Missing Token)' };
+      }
+      
       localStorage.setItem('token', access_token);
       setToken(access_token);
-      setUser(userData);
-      return { success: true, must_change_password: userData.must_change_password };
+      setUser(userData || null);
+      
+      return { 
+        success: true, 
+        must_change_password: userData?.must_change_password || false 
+      };
     } catch (error) {
+      console.error('Login error details:', error.response?.data || error.message);
       return { 
         success: false, 
-        message: error.response?.data?.detail || 'Đăng nhập thất bại' 
+        message: error.response?.data?.detail || error.message || 'Kết nối máy chủ thất bại' 
       };
     }
   };

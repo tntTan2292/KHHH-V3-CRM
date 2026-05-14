@@ -89,56 +89,56 @@ const Login = () => {
       <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-vnpost-blue/10 blur-[100px] z-0"></div>
       <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-vnpost-yellow/5 blur-[100px] z-0"></div>
 
-      <div className="relative z-10 w-full max-w-md px-6">
+      <div className="relative z-10 w-full max-w-[380px] px-6">
         {/* Logo & Brand */}
-        <div className="text-center mb-10 animate-fade-in-down">
-          <div className="inline-flex items-center justify-center p-3 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 mb-4 shadow-2xl">
-            <Shield className="text-vnpost-yellow" size={40} />
+        <div className="text-center mb-6 animate-fade-in-down">
+          <div className="inline-flex items-center justify-center p-2.5 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 mb-3 shadow-2xl">
+            <Shield className="text-vnpost-yellow" size={32} />
           </div>
-          <h1 className="text-4xl font-black text-white tracking-tighter mb-2">
+          <h1 className="text-3xl font-black text-white tracking-tighter mb-1">
             CRM <span className="text-vnpost-yellow italic">3.0</span>
           </h1>
-          <p className="text-gray-400 font-medium tracking-widest uppercase text-xs">Intelligence Hub • Elite Protocol</p>
+          <p className="text-gray-400 font-medium tracking-widest uppercase text-[10px]">Intelligence Hub • Elite Protocol</p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white/10 backdrop-blur-2xl rounded-3xl border border-white/10 p-8 shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-fade-in">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="bg-white/10 backdrop-blur-2xl rounded-2xl border border-white/10 p-7 shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-fade-in">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-gray-300 text-sm font-semibold mb-2 ml-1">Mã nhân sự / Username</label>
+              <label className="block text-gray-300 text-[11px] font-bold uppercase tracking-wider mb-1.5 ml-1">Mã nhân sự / Username</label>
               <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <User className="text-gray-500 group-focus-within:text-vnpost-yellow transition-colors" size={18} />
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <User className="text-gray-500 group-focus-within:text-vnpost-yellow transition-colors" size={16} />
                 </div>
                 <input
                   type="text"
                   required
-                  className="w-full bg-black/30 border border-white/10 rounded-2xl py-3.5 pl-11 pr-4 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-vnpost-yellow/50 focus:border-vnpost-yellow/50 transition-all text-lg"
+                  className="w-full bg-black/30 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-vnpost-yellow/50 focus:border-vnpost-yellow/50 transition-all text-sm"
                   placeholder="Ví dụ: 00109101"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                 />
               </div>
               {displayName && (
-                <div className="mt-3 px-4 py-2 bg-white/5 border border-white/10 rounded-2xl animate-bounce-in backdrop-blur-md overflow-hidden">
-                  <p className="text-white text-xs font-black flex items-center gap-3 whitespace-nowrap overflow-hidden text-ellipsis">
-                    <span className="w-2 h-2 rounded-full bg-vnpost-yellow animate-pulse shadow-[0_0_8px_rgba(255,185,0,0.8)] shrink-0"></span>
-                    Chào mừng trở lại, {displayName}!
+                <div className="mt-2.5 px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl animate-bounce-in backdrop-blur-md overflow-hidden">
+                  <p className="text-white text-[10px] font-black flex items-center gap-2 whitespace-nowrap overflow-hidden text-ellipsis">
+                    <span className="w-1.5 h-1.5 rounded-full bg-vnpost-yellow animate-pulse shadow-[0_0_8px_rgba(255,185,0,0.8)] shrink-0"></span>
+                    Chào mừng, {displayName}!
                   </p>
                 </div>
               )}
             </div>
 
             <div>
-              <label className="block text-gray-300 text-sm font-semibold mb-2 ml-1">Mật khẩu</label>
+              <label className="block text-gray-300 text-[11px] font-bold uppercase tracking-wider mb-1.5 ml-1">Mật khẩu</label>
               <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Lock className="text-gray-500 group-focus-within:text-vnpost-yellow transition-colors" size={18} />
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <Lock className="text-gray-500 group-focus-within:text-vnpost-yellow transition-colors" size={16} />
                 </div>
                 <input
                   type={showPassword ? "text" : "password"}
                   required
-                  className="w-full bg-black/30 border border-white/10 rounded-2xl py-3.5 pl-11 pr-12 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-vnpost-yellow/50 focus:border-vnpost-yellow/50 transition-all text-lg"
+                  className="w-full bg-black/30 border border-white/10 rounded-xl py-2.5 pl-10 pr-10 text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-vnpost-yellow/50 focus:border-vnpost-yellow/50 transition-all text-sm"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -146,41 +146,41 @@ const Login = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-white transition-colors"
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-500 hover:text-white transition-colors"
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
             <div className="flex items-center justify-between px-1">
               <label className="flex items-center gap-2 cursor-pointer group">
-                <input type="checkbox" className="w-4 h-4 rounded border-gray-600 bg-black/30 text-vnpost-yellow focus:ring-vnpost-yellow/50" />
-                <span className="text-xs text-gray-400 group-hover:text-gray-200 transition-colors">Ghi nhớ đăng nhập</span>
+                <input type="checkbox" className="w-3.5 h-3.5 rounded border-gray-600 bg-black/30 text-vnpost-yellow focus:ring-vnpost-yellow/50" />
+                <span className="text-[10px] text-gray-400 group-hover:text-gray-200 transition-colors">Ghi nhớ đăng nhập</span>
               </label>
-              <a href="#" className="text-xs text-vnpost-yellow hover:underline">Quên mật khẩu?</a>
+              <a href="#" className="text-[10px] text-vnpost-yellow hover:underline">Quên mật khẩu?</a>
             </div>
 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-gradient-to-r from-vnpost-yellow to-yellow-600 text-vnpost-blue font-black py-4 rounded-2xl shadow-[0_10px_20px_-5px_rgba(255,185,0,0.4)] hover:shadow-[0_15px_25px_-5px_rgba(255,185,0,0.6)] hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 text-lg disabled:opacity-70 disabled:scale-100"
+              className="w-full bg-gradient-to-r from-vnpost-yellow to-yellow-600 text-vnpost-blue font-black py-3 rounded-xl shadow-[0_8px_15px_-5px_rgba(255,185,0,0.3)] hover:shadow-[0_12px_20px_-5px_rgba(255,185,0,0.5)] hover:scale-[1.01] active:scale-95 transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-70 disabled:scale-100 mt-2"
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="animate-spin" size={20} /> ĐANG XÁC THỰC...
+                  <Loader2 className="animate-spin" size={16} /> ĐANG XÁC THỰC...
                 </>
               ) : (
                 <>
-                  ĐĂNG NHẬP HỆ THỐNG <ArrowRight size={20} />
+                  ĐĂNG NHẬP HỆ THỐNG <ArrowRight size={16} />
                 </>
               )}
             </button>
           </form>
 
           {/* Quote Section */}
-          <div className="mt-10 pt-6 border-t border-white/5 text-center">
-            <p className="text-gray-500 text-xs italic transition-all duration-1000">
+          <div className="mt-8 pt-4 border-t border-white/5 text-center">
+            <p className="text-gray-500 text-[10px] italic transition-all duration-1000 leading-relaxed px-2">
               "{ELITE_MESSAGES[quoteIndex]}"
             </p>
           </div>

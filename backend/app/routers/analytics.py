@@ -216,21 +216,26 @@ async def get_dashboard_stats(
                 lifecycle_growth[k] = round(((curr_v - prev_v) / prev_v) * 100, 1)
             else:
                 lifecycle_growth[k] = 100.0 if curr_v > 0 else 0.0
-
-    # [GOVERNANCE] Revenue SSOT: Use Summary data for KPI consistency if available
-    latest_val = tong_dt 
     
-    # Calculate Previous Revenue for growth metric
-    prev_val = 0
-    if prev_start:
-        prev_summary = db.query(func.sum(MonthlyAnalyticsSummary.total_revenue)).filter(
-            MonthlyAnalyticsSummary.year_month == prev_month_str
-        )
-        if scope_point_ids is not None:
-            prev_summary = prev_summary.filter(MonthlyAnalyticsSummary.point_id.in_(scope_point_ids))
-        
-        prev_val = prev_summary.scalar() or 0
+    rev_growth = 0
+    latest_val = db.query(func.sum(Transaction.doanh_thu)).filter(Transaction.id == -1) # Default empty query
+    prev_val_q = db.query(func.sum(Transaction.doanh_thu)).filter(Transaction.id == -1) # Default empty query
 
+    if curr_start:
+        latest_val = db.query(func.sum(Transaction.doanh_thu)).filter(
+            Transaction.ngay_chap_nhan.between(curr_start, curr_end)
+        )
+        prev_val_q = db.query(func.sum(Transaction.doanh_thu)).filter(
+            Transaction.ngay_chap_nhan.between(prev_start, prev_end)
+        )
+
+    if scope_point_ids is not None:
+        latest_val = latest_val.filter(Transaction.point_id.in_(scope_point_ids))
+        prev_val_q = prev_val_q.filter(Transaction.point_id.in_(scope_point_ids))
+    
+    latest_val = latest_val.scalar() or 0
+    prev_val = prev_val_q.scalar() or 0
+    
     rev_growth = 0
     if prev_val > 0:
         rev_growth = ((latest_val - prev_val) / prev_val) * 100
@@ -424,7 +429,7 @@ async def get_revenue_trend(
     return [{"date": str(r[0]), "value": r[1] or 0} for r in stats]
 
 @router.get("/revenue-monthly")
-@cache_response(ttl_hours=4)
+# @cache_response(ttl_hours=4)
 async def get_revenue_monthly(
     start_date: str = None,
     end_date: str = None,
@@ -441,6 +446,7 @@ async def get_revenue_monthly(
     target_month = db.query(func.max(MonthlyAnalyticsSummary.year_month)).scalar() or datetime.now().strftime("%Y-%m")
     
     end_dt = datetime.strptime(target_month, "%Y-%m")
+    print(f"[DEBUG BACKEND] target_month: {target_month}, start_date_param: {start_date}, end_date_param: {end_date}")
     
     # Tạo danh sách 14 tháng (T-13 -> T)
     months_range = []
@@ -450,7 +456,6 @@ async def get_revenue_monthly(
     
     start_month_str = months_range[0]
     max_month_str = months_range[-1]
-    
 
     # 3. Query dữ liệu
     query = db.query(
@@ -466,12 +471,9 @@ async def get_revenue_monthly(
         
     stats = query.group_by(MonthlyAnalyticsSummary.year_month).all()
     
-    
     # Mapping kết quả vào dải tháng (Điền 0 nếu khuyết dữ liệu)
     data_map = {r[0]: (r[1] or 0) for r in stats}
-    result = [{"month": m, "total": data_map.get(m, 0)} for m in months_range]
-    
-    return result
+    return [{"month": m, "total": data_map.get(m, 0)} for m in months_range]
 
 @router.get("/revenue-by-service")
 # @cache_response(ttl_hours=12)
