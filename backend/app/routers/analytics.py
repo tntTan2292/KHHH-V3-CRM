@@ -175,8 +175,8 @@ async def get_dashboard_stats(
     kh_tai_ban_pop = lifecycle_stats.get("recovered_pop", 0)
     kh_nguy_co = lifecycle_stats.get("at_risk", 0)
     
-    # [GOVERNANCE] tong_kh includes Active Mature + All Probationary/Snapshot states
-    tong_kh = kh_hien_huu + kh_moi_pop + kh_tai_ban_pop + kh_nguy_co
+    # [GOVERNANCE] tong_kh is the month-bounded Universe (Sum of all 5 populations)
+    tong_kh = lifecycle_stats.get("total", 0)
     
     # 5. KH Tiềm Năng (Vãng lai - Gọi trực tiếp từ Service để đảm bảo đồng bộ logic gom tên)
     _, kh_tiem_nang, potential_ranks, _ = PotentialService.get_potential_data(

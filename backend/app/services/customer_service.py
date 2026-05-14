@@ -76,7 +76,6 @@ class CustomerService:
             
             if use_realtime:
                 # REALTIME FALLBACK (Current Month) - MUST MATCH LifecycleEngine SSOT EXACTLY
-                from sqlalchemy import text
                 target_date = curr_end.strftime("%Y-%m-%d")
                 
                 # Mapping UI filter codes to Engine Logic codes
@@ -103,8 +102,13 @@ class CustomerService:
                     if sql_fragment:
                         filters.append(text(sql_fragment))
                 elif status_val == 'total_pop':
-                    # [RF5F] UNIVERSE: Everyone with at least one transaction
-                    filters.append(exists().where(Transaction.ma_kh == Customer.ma_crm_cms))
+                    # [RF5F] UNIVERSE: Everyone with at least one transaction before/on target_date
+                    filters.append(exists().where(
+                        and_(
+                            Transaction.ma_kh == Customer.ma_crm_cms,
+                            Transaction.ngay_chap_nhan <= target_date + " 23:59:59"
+                        )
+                    ))
                 else:
                     filters.append(func.lower(Customer.lifecycle_state) == status_val)
             else:
@@ -112,7 +116,7 @@ class CustomerService:
                 snapshot_sub = db.query(CustomerMonthlySnapshot).filter(CustomerMonthlySnapshot.year_month == month_str).subquery()
                 
                 if status_val == 'total_pop':
-                    filters.append(snapshot_sub.c.lifecycle_state.in_(['ACTIVE', 'NEW', 'RECOVERED', 'AT_RISK']))
+                    filters.append(snapshot_sub.c.lifecycle_state.in_(['ACTIVE', 'NEW', 'RECOVERED', 'AT_RISK', 'CHURNED']))
                 elif status_val == 'new_event':
                     filters.append(snapshot_sub.c.is_new_transition == True)
                 elif status_val == 'new_pop':

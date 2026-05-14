@@ -74,6 +74,7 @@ class LifecycleEngine:
                     MAX(CASE WHEN ngay_chap_nhan < '{m_start}' THEN ngay_chap_nhan ELSE NULL END) as last_order_before
                 FROM transactions
                 WHERE ngay_chap_nhan <= '{m_end}'
+                AND ma_kh IS NOT NULL AND ma_kh != ''
                 GROUP BY ma_kh
             ),
             historical_evidence AS (

@@ -132,9 +132,14 @@ class LifecycleService:
                         query = query.filter(Customer.point_id.in_(scope_point_ids))
                     results[res_key] = query.scalar() or 0
 
-        # TOTAL KHÁCH HÀNG - [RF5F] Unified Universe
+        # TOTAL KHÁCH HÀNG - [RF5F] Unified Universe (Month-Bounded)
         total_universe_query = db.query(func.count(Customer.id)).filter(
-            exists().where(Transaction.ma_kh == Customer.ma_crm_cms)
+            exists().where(
+                and_(
+                    Transaction.ma_kh == Customer.ma_crm_cms,
+                    Transaction.ngay_chap_nhan <= end_date
+                )
+            )
         )
         if scope_point_ids: 
             total_universe_query = total_universe_query.filter(Customer.point_id.in_(scope_point_ids))
