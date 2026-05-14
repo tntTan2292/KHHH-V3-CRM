@@ -534,14 +534,11 @@ export default function Customers() {
       // API Dashboard trả về phím 'lifecycle' chứa các con số định danh
       const ls = d.lifecycle || {};
       const constitutionalUniverse = Number(
-        d.tong_kh ??
-        (
-          (ls.active || 0) +
-          (ls.new_pop || 0) +
-          (ls.recovered_pop || 0) +
-          (ls.at_risk || 0) +
-          (ls.churn_pop || 0)
-        )
+        (ls.active || 0) +
+        (ls.new_pop || 0) +
+        (ls.recovered_pop || 0) +
+        (ls.at_risk || 0) +
+        (ls.churn_pop || 0)
       ) || 0;
       
       setLifecycleStats({

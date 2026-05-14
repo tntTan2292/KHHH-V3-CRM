@@ -4,7 +4,7 @@ from sqlalchemy import func, text
 from datetime import datetime, timedelta
 
 from ..database import get_db
-from ..models import Customer, Transaction, SyncAttempt, SyncLog, HierarchyNode, MonthlyAnalyticsSummary
+from ..models import Customer, Transaction, SyncAttempt, SyncLog, HierarchyNode, MonthlyAnalyticsSummary, CustomerMonthlySnapshot
 from ..services.lifecycle_service import LifecycleService
 import dateutil.relativedelta
 from ..core.cache import cache_response
@@ -457,19 +457,19 @@ async def get_revenue_monthly(
     start_month_str = months_range[0]
     max_month_str = months_range[-1]
 
-    # 3. Query dữ liệu
+    # 3. Query dữ liệu (GOVERNANCE: Pull from Transaction for Realtime Trend)
     query = db.query(
-        MonthlyAnalyticsSummary.year_month.label("month"),
-        func.sum(MonthlyAnalyticsSummary.total_revenue).label("total")
+        func.strftime('%Y-%m', Transaction.ngay_chap_nhan).label("month"),
+        func.sum(Transaction.doanh_thu).label("total")
     ).filter(
-        MonthlyAnalyticsSummary.year_month >= start_month_str,
-        MonthlyAnalyticsSummary.year_month <= max_month_str
+        Transaction.ngay_chap_nhan >= f"{start_month_str}-01",
+        Transaction.ngay_chap_nhan <= f"{max_month_str}-31 23:59:59"
     )
     
     if scope_ids is not None:
-        query = query.filter(MonthlyAnalyticsSummary.point_id.in_(scope_ids))
+        query = query.filter(Transaction.point_id.in_(scope_ids))
         
-    stats = query.group_by(MonthlyAnalyticsSummary.year_month).all()
+    stats = query.group_by("month").all()
     
     # Mapping kết quả vào dải tháng (Điền 0 nếu khuyết dữ liệu)
     data_map = {r[0]: (r[1] or 0) for r in stats}
@@ -488,19 +488,19 @@ async def get_revenue_by_service(
     scope_ids = ScopingService.get_effective_scope_ids(db, current_user, node_code)
     if scope_ids is not None and not scope_ids: return []
 
-    # 2. Xác định tháng
-    month_str = (start_date[:7] if start_date else None) or datetime.now().strftime("%Y-%m")
+    # 2. Xác định dải thời gian (GOVERNANCE: Pull from Transaction for Realtime Service Mix)
+    curr_start, curr_end, _, _, _ = get_governed_comparison_periods(db, start_date, end_date)
 
-    # Ưu tiên lấy từ bảng MonthlyAnalyticsSummary
+    # Ưu tiên lấy từ bảng Transaction
     query = db.query(
-        MonthlyAnalyticsSummary.ma_dv, 
-        func.sum(MonthlyAnalyticsSummary.total_revenue).label("total")
-    ).filter(MonthlyAnalyticsSummary.year_month == month_str)
+        Transaction.ma_dv, 
+        func.sum(Transaction.doanh_thu).label("total")
+    ).filter(Transaction.ngay_chap_nhan.between(curr_start, curr_end))
     
     if scope_ids is not None:
-        query = query.filter(MonthlyAnalyticsSummary.point_id.in_(scope_ids))
+        query = query.filter(Transaction.point_id.in_(scope_ids))
         
-    stats = query.group_by(MonthlyAnalyticsSummary.ma_dv).all()
+    stats = query.group_by(Transaction.ma_dv).all()
         
     service_map = {
         'C': 'C - Bưu kiện',
@@ -531,19 +531,19 @@ async def get_revenue_by_region(
     scope_ids = ScopingService.get_effective_scope_ids(db, current_user, node_code)
     if scope_ids is not None and not scope_ids: return []
 
-    # 2. Xác định tháng
-    month_str = (start_date[:7] if start_date else None) or datetime.now().strftime("%Y-%m")
+    # 2. Xác định dải thời gian (GOVERNANCE: Pull from Transaction for Realtime Region Mix)
+    curr_start, curr_end, _, _, _ = get_governed_comparison_periods(db, start_date, end_date)
 
-    # Ưu tiên lấy từ bảng MonthlyAnalyticsSummary
+    # Ưu tiên lấy từ bảng Transaction
     query = db.query(
-        MonthlyAnalyticsSummary.region_type, 
-        func.sum(MonthlyAnalyticsSummary.total_revenue).label("total")
-    ).filter(MonthlyAnalyticsSummary.year_month == month_str)
+        Transaction.region_type, 
+        func.sum(Transaction.doanh_thu).label("total")
+    ).filter(Transaction.ngay_chap_nhan.between(curr_start, curr_end))
     
     if scope_ids is not None:
-        query = query.filter(MonthlyAnalyticsSummary.point_id.in_(scope_ids))
+        query = query.filter(Transaction.point_id.in_(scope_ids))
         
-    stats = query.group_by(MonthlyAnalyticsSummary.region_type).all()
+    stats = query.group_by(Transaction.region_type).all()
         
     result = { "Nội tỉnh": 0, "Liên tỉnh": 0, "Quốc tế": 0 }
     
@@ -595,23 +595,25 @@ async def get_top_movers(
             "governance_alert": "Data pending summary. Please run maintenance."
         }
 
-    # 2 & 3. Query Doanh thu kỳ hiện tại và kỳ trước song song
-    async def get_period_data(start, end, ids):
+    # 2 & 3. Query Doanh thu kỳ hiện tại và kỳ trước (GOVERNANCE: Pull from CustomerMonthlySnapshot)
+    async def get_period_data(month_str, ids):
         q = db.query(
-            Transaction.ma_kh, 
-            func.sum(Transaction.doanh_thu).label("val")
+            CustomerMonthlySnapshot.ma_kh, 
+            func.sum(CustomerMonthlySnapshot.revenue).label("val")
         ).filter(
-            Transaction.ngay_chap_nhan >= start, 
-            Transaction.ngay_chap_nhan <= end,
-            Transaction.ma_kh != None,
-            Transaction.ma_kh != ''
+            CustomerMonthlySnapshot.year_month == month_str,
+            CustomerMonthlySnapshot.ma_kh != None,
+            CustomerMonthlySnapshot.ma_kh != ''
         )
         if ids:
-            q = q.filter(Transaction.point_id.in_(ids))
-        return q.group_by(Transaction.ma_kh).all()
+            q = q.filter(CustomerMonthlySnapshot.point_id.in_(ids))
+        return q.group_by(CustomerMonthlySnapshot.ma_kh).all()
 
-    curr_task = get_period_data(curr_start, curr_end, scope_ids)
-    prev_task = get_period_data(prev_start, prev_end, scope_ids)
+    curr_month_str = curr_start.strftime("%Y-%m")
+    prev_month_str = prev_start.strftime("%Y-%m")
+
+    curr_task = get_period_data(curr_month_str, scope_ids)
+    prev_task = get_period_data(prev_month_str, scope_ids)
     
     curr_results, prev_results = await asyncio.gather(curr_task, prev_task)
     prev_data = {r[0]: (r[1] or 0) for r in prev_results if r[0]}
@@ -659,48 +661,36 @@ async def get_top_movers(
                 "diff": -prev_val
             })
 
-    # 5. Phân tích TỔNG THỂ (MoM Summary by Service) - NEW
-    async def get_service_stats(start, end, ids):
-        base_q = db.query(
-            Transaction.shbg,
-            Transaction.trong_nuoc_quoc_te,
-            Transaction.ma_dv,
-            func.sum(Transaction.doanh_thu).label("rev"),
-            func.count(Transaction.id).label("vol")
-        ).filter(Transaction.ngay_chap_nhan >= start, Transaction.ngay_chap_nhan <= end)
+    # 5. Phân tích TỔNG THỂ (MoM Summary by Service) - (GOVERNANCE: Pull from MonthlyAnalyticsSummary)
+    async def get_service_stats(month_str, ids):
+        q = db.query(
+            MonthlyAnalyticsSummary.ma_dv,
+            func.sum(MonthlyAnalyticsSummary.total_revenue).label("rev"),
+            func.sum(MonthlyAnalyticsSummary.total_orders).label("vol")
+        ).filter(MonthlyAnalyticsSummary.year_month == month_str)
         
         if ids:
-            base_q = base_q.filter(Transaction.point_id.in_(ids))
+            q = q.filter(MonthlyAnalyticsSummary.point_id.in_(ids))
             
-        raw = base_q.group_by(func.substr(Transaction.shbg, 1, 1), Transaction.trong_nuoc_quoc_te, Transaction.ma_dv).all()
+        raw = q.group_by(MonthlyAnalyticsSummary.ma_dv).all()
         
         svc_map = {"EMS": {"rev": 0, "vol": 0}, "Bưu kiện": {"rev": 0, "vol": 0}, 
                    "KT1": {"rev": 0, "vol": 0}, "BĐBD": {"rev": 0, "vol": 0}, 
                    "Quốc tế": {"rev": 0, "vol": 0}, "Khác": {"rev": 0, "vol": 0}}
         
-        for r in raw:
-            shbg_prefix = (r[0] or "")[:1].upper()
-            trong_nuoc_qt = str(r[1] or "").strip().lower()
-            ma_dv = str(r[2] or "").strip().upper()
-            
-            # Logic nhận diện Quốc tế linh hoạt (khớp với region logic)
-            is_intl = trong_nuoc_qt in ['quốc tế', 'quoc te'] or ma_dv == 'L'
-            
-            if is_intl:
-                s_key = "Quốc tế"
-            elif shbg_prefix == 'E': s_key = "EMS"
-            elif shbg_prefix == 'C': s_key = "Bưu kiện"
-            elif shbg_prefix == 'M': s_key = "KT1"
-            elif shbg_prefix == 'R': s_key = "BĐBD"
-            else: s_key = "Khác"
-            
-            svc_map[s_key]["rev"] += (r[3] or 0)
-            svc_map[s_key]["vol"] += (r[4] or 0)
+        service_id_map = {
+            'E': 'EMS', 'C': 'Bưu kiện', 'M': 'KT1', 'R': 'BĐBD', 'L': 'Quốc tế'
+        }
+        
+        for ma_dv, rev, vol in raw:
+            s_key = service_id_map.get(ma_dv, "Khác")
+            svc_map[s_key]["rev"] += (rev or 0)
+            svc_map[s_key]["vol"] += (vol or 0)
             
         return svc_map
 
-    curr_svc_task = get_service_stats(curr_start, curr_end, scope_ids)
-    prev_svc_task = get_service_stats(prev_start, prev_end, scope_ids)
+    curr_svc_task = get_service_stats(curr_month_str, scope_ids)
+    prev_svc_task = get_service_stats(prev_month_str, scope_ids)
     
     curr_svc, prev_svc = await asyncio.gather(curr_svc_task, prev_svc_task)
     
@@ -844,25 +834,22 @@ async def get_customer_performance_scoring(
         curr_start = datetime.strptime(start_date, "%Y-%m-%d")
         curr_end = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
 
-    # Query metrics
+    # Query metrics (GOVERNANCE: Pull from CustomerMonthlySnapshot for Scoring)
+    month_str = curr_start.strftime("%Y-%m")
     metrics_query = db.query(
-        Transaction.ma_kh,
-        func.sum(Transaction.doanh_thu).label("revenue"),
-        func.count(Transaction.id).label("frequency"),
-        func.max(Transaction.ngay_chap_nhan).label("last_active")
+        CustomerMonthlySnapshot.ma_kh,
+        func.sum(CustomerMonthlySnapshot.revenue).label("revenue"),
+        func.sum(CustomerMonthlySnapshot.orders).label("frequency")
     ).filter(
-        Transaction.ngay_chap_nhan.between(curr_start, curr_end),
-        Transaction.ma_kh != None,
-        Transaction.ma_kh != '',
-        Transaction.ma_kh != 'None',
-        Transaction.ma_kh != 'NONE'
+        CustomerMonthlySnapshot.year_month == month_str,
+        CustomerMonthlySnapshot.ma_kh != None,
+        CustomerMonthlySnapshot.ma_kh != ''
     )
     
-    # Apply scope filter
     if scope_ids is not None:
-        metrics_query = metrics_query.filter(Transaction.point_id.in_(scope_ids))
+        metrics_query = metrics_query.filter(CustomerMonthlySnapshot.point_id.in_(scope_ids))
         
-    metrics = metrics_query.group_by(Transaction.ma_kh).all()
+    metrics = metrics_query.group_by(CustomerMonthlySnapshot.ma_kh).all()
     
     if not metrics: return []
 
@@ -902,7 +889,6 @@ async def get_customer_performance_scoring(
             "ten_kh": ten_kh,
             "revenue": m.revenue or 0,
             "frequency": m.frequency or 0,
-            "last_active": m.last_active.strftime("%d/%m/%Y") if m.last_active else "N/A",
             "score": round(final_score, 1),
             "rank": "Tiềm năng cao" if final_score > 90 else "Ổn định" if final_score > 60 else "Cần chăm sóc"
         })
