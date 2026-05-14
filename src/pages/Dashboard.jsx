@@ -636,15 +636,15 @@ function Dashboard() {
   };
 
   return (
-    <div className="flex bg-gray-50/50 min-h-screen">
-      <div className={`flex-1 p-3 md:p-4 space-y-2 ${isExporting ? 'is-exporting' : ''}`} ref={dashboardRef}>
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white px-4 py-2.5 rounded-xl shadow-sm border border-gray-100 relative z-50">
+    <div className="flex bg-[#f4f7fa] min-h-screen">
+      <div className={`flex-1 p-6 md:p-10 space-y-10 ${isExporting ? 'is-exporting' : ''}`} ref={dashboardRef}>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white px-8 py-5 rounded-[2rem] shadow-xl shadow-blue-900/5 border border-gray-100 relative z-50">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 bg-vnpost-blue rounded-lg flex items-center justify-center text-white shadow-lg">
               <BarChart3 size={20} />
             </div>
             <div>
-              <h2 className="text-lg font-black text-vnpost-blue uppercase tracking-tight leading-none">EXECUTIVE COMMAND CENTER</h2>
+              <h2 className="text-xl font-black text-vnpost-blue uppercase tracking-tight leading-none">EXECUTIVE COMMAND CENTER</h2>
               <div className="flex items-center gap-2 mt-1">
                 {selectedNode ? (
                   <span className="text-[9px] bg-vnpost-orange text-white px-2 py-0.5 rounded-full font-black uppercase shadow-sm">VIEW: {selectedNode.title}</span>
@@ -732,17 +732,16 @@ function Dashboard() {
         </div>
 
         {/* SECTION: POPULATION (HIỆN TRẠNG) - TOP PRIORITY */}
-        {/* EXECUTIVE INTELLIGENCE MATRIX (Consolidated Section 01, 02, 03) */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Main Population Stats */}
           <div className="executive-card pop-card border-l-[4px] cursor-pointer" style={{ borderLeftColor: 'var(--crm-active-base)' }} onClick={() => navigate('/customers?lifecycle_status=active')}>
             <div className="flex flex-col h-full justify-between">
               <div className="flex items-center justify-between">
-                <span className="kpi-label" style={{ color: 'var(--crm-active-base)' }}>ACTIVE</span>
-                <Users size={14} className="opacity-20" />
+                <span className="kpi-label" style={{ color: 'var(--crm-active-base)' }}>ACTIVE CUSTOMERS</span>
+                <Users size={18} className="opacity-20" />
               </div>
               <div className="flex items-end justify-between">
-                <span className="kpi-number text-2xl font-black" style={{ color: 'var(--crm-active-base)' }}>{(stats?.lifecycle?.["active"] || 0).toLocaleString()}</span>
+                <span className="kpi-number text-4xl font-black" style={{ color: 'var(--crm-active-base)' }}>{(stats?.lifecycle?.["active"] || 0).toLocaleString()}</span>
                 {stats.lifecycle_growth?.active !== undefined && (
                   <span className={`text-[10px] font-black ${stats.lifecycle_growth.active >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                     {stats.lifecycle_growth.active >= 0 ? "▲" : "▼"}{Math.abs(stats.lifecycle_growth.active)}%
@@ -755,11 +754,11 @@ function Dashboard() {
           <div className="executive-card pop-card border-l-[4px] cursor-pointer" style={{ borderLeftColor: 'var(--crm-warning-base)' }} onClick={() => navigate('/customers?lifecycle_status=at_risk')}>
             <div className="flex flex-col h-full justify-between">
               <div className="flex items-center justify-between">
-                <span className="kpi-label" style={{ color: 'var(--crm-warning-base)' }}>AT RISK</span>
-                <AlertCircle size={14} className="opacity-20" />
+                <span className="kpi-label" style={{ color: 'var(--crm-warning-base)' }}>AT RISK POPULATION</span>
+                <AlertCircle size={18} className="opacity-20" />
               </div>
               <div className="flex items-end justify-between">
-                <span className="kpi-number text-2xl font-black" style={{ color: 'var(--crm-warning-base)' }}>{(stats?.lifecycle?.["at_risk"] || 0).toLocaleString()}</span>
+                <span className="kpi-number text-4xl font-black" style={{ color: 'var(--crm-warning-base)' }}>{(stats?.lifecycle?.["at_risk"] || 0).toLocaleString()}</span>
                 {stats.lifecycle_growth?.at_risk !== undefined && (
                   <span className={`text-[10px] font-black ${stats.lifecycle_growth.at_risk <= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                     {stats.lifecycle_growth.at_risk >= 0 ? "▲" : "▼"}{Math.abs(stats.lifecycle_growth.at_risk)}%
@@ -772,11 +771,11 @@ function Dashboard() {
           <div className="executive-card pop-card border-l-[4px] cursor-pointer" style={{ borderLeftColor: 'var(--crm-danger-base)' }} onClick={() => navigate('/customers?lifecycle_status=churn_pop')}>
             <div className="flex flex-col h-full justify-between">
               <div className="flex items-center justify-between">
-                <span className="kpi-label" style={{ color: 'var(--crm-danger-base)' }}>CHURNED</span>
-                <UserMinus size={14} className="opacity-20" />
+                <span className="kpi-label" style={{ color: 'var(--crm-danger-base)' }}>CHURNED (60D+)</span>
+                <UserMinus size={18} className="opacity-20" />
               </div>
               <div className="flex items-end justify-between">
-                <span className="kpi-number text-2xl font-black" style={{ color: 'var(--crm-danger-base)' }}>{(stats?.lifecycle?.["churn_pop"] || 0).toLocaleString()}</span>
+                <span className="kpi-number text-4xl font-black" style={{ color: 'var(--crm-danger-base)' }}>{(stats?.lifecycle?.["churn_pop"] || 0).toLocaleString()}</span>
                 <span className="text-[8px] text-gray-400 font-bold uppercase italic tracking-tighter">&gt; 60D Inactive</span>
               </div>
             </div>
@@ -786,11 +785,11 @@ function Dashboard() {
           <div className="executive-card pop-card border-l-[4px] cursor-pointer border-l-blue-600 bg-blue-50/10" onClick={() => navigate('/customers?rfm_segment=Kim Cương')}>
             <div className="flex flex-col h-full justify-between">
               <div className="flex items-center justify-between">
-                <span className="kpi-label text-blue-700">DIAMOND</span>
-                <Sparkles size={14} className="text-blue-400 opacity-40" />
+                <span className="kpi-label text-blue-700">DIAMOND ELITE</span>
+                <Sparkles size={18} className="text-blue-400 opacity-40" />
               </div>
               <div className="flex items-end justify-between">
-                <span className="kpi-number text-2xl font-black text-blue-900">{(stats.potential_ranks?.["Kim Cương"] || 0).toLocaleString()}</span>
+                <span className="kpi-number text-4xl font-black text-blue-900">{(stats.potential_ranks?.["Kim Cương"] || 0).toLocaleString()}</span>
                 <span className="text-[8px] text-blue-500 font-bold uppercase">Elite T1</span>
               </div>
             </div>
@@ -798,7 +797,7 @@ function Dashboard() {
         </div>
 
         {/* Movement & Sub-States Row */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5 no-pdf">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-6 no-pdf">
            {[
              { label: 'New Pop', key: 'new_pop', color: 'var(--crm-onboarding-base)', icon: Sparkles, path: 'new_pop' },
              { label: 'Recovered', key: 'recovered_pop', color: 'var(--crm-recovery-base)', icon: RefreshCw, path: 'recovered_pop' },
@@ -806,12 +805,12 @@ function Dashboard() {
              { label: 'Diamond', key: 'Gold', val: stats.potential_ranks?.["Vàng"], color: 'var(--crm-vnpost-orange)', icon: Target, path: 'Vàng' },
              { label: 'Silver', key: 'Silver', val: stats.potential_ranks?.["Bạc"], color: 'var(--crm-vnpost-blue)', icon: Shield, path: 'Bạc' }
            ].map((item, idx) => (
-             <div key={idx} className="executive-card p-2.5 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-all border-b-2" style={{ borderBottomColor: item.color }} onClick={() => navigate(`/customers?lifecycle_status=${item.path}`)}>
+             <div key={idx} className="executive-card p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-all border-b-2" style={{ borderBottomColor: item.color }} onClick={() => navigate(`/customers?lifecycle_status=${item.path}`)}>
                 <div className="flex items-center gap-2">
                    <item.icon size={12} style={{ color: item.color }} />
                    <div>
-                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-tighter leading-none mb-1">{item.label}</p>
-                     <p className="text-sm font-black text-gray-800 leading-none">{(item.val !== undefined ? item.val : (stats?.lifecycle?.[item.key] || 0)).toLocaleString()}</p>
+                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-2">{item.label}</p>
+                     <p className="text-lg font-black text-gray-800 leading-none">{(item.val !== undefined ? item.val : (stats?.lifecycle?.[item.key] || 0)).toLocaleString()}</p>
                    </div>
                 </div>
                 <ChevronRight size={12} className="text-gray-300" />
@@ -819,16 +818,16 @@ function Dashboard() {
            ))}
         </div>
         {/* Visual Priority Row: Revenue Trend + Lifecycle Breakdown */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* REVENUE DAILY TREND (PRIORITY #1) */}
-          <div className="lg:col-span-2 executive-card p-4 overflow-hidden relative min-w-0">
+          <div className="lg:col-span-3 executive-card p-6 overflow-hidden relative min-w-0">
             <div className="flex items-center justify-between mb-3 border-b border-gray-50 pb-2">
-              <h3 className="text-xs font-black text-gray-800 uppercase tracking-widest flex items-center gap-2">
-                <TrendingUp size={16} className="text-vnpost-blue" /> Biến Động Doanh Thu Ngày
+              <h3 className="text-base font-black text-gray-800 uppercase tracking-widest flex items-center gap-3">
+                <TrendingUp size={20} className="text-vnpost-blue" /> Biến Động Doanh Thu Ngày
               </h3>
-              <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Dữ liệu Realtime</div>
+              <div className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.2em]">Dữ liệu Realtime</div>
             </div>
-            <div className="h-[220px] w-full">
+            <div className="h-[320px] w-full">
               {loadingTrend && !trendData.length ? (
                 <Skeleton.Chart height="h-56" />
               ) : (
@@ -867,11 +866,11 @@ function Dashboard() {
           </div>
 
           {/* LIFECYCLE PIE CHART (DENSITY) */}
-          <div className="executive-card p-4 flex flex-col items-center justify-between min-w-0">
-             <h3 className="text-xs font-black text-gray-800 uppercase tracking-widest self-start mb-3 border-b border-gray-50 pb-2 w-full">
+          <div className="executive-card p-8 flex flex-col items-center justify-between min-w-0">
+             <h3 className="text-base font-black text-gray-800 uppercase tracking-widest self-start mb-6 border-b border-gray-100 pb-4 w-full">
                Cơ cấu Vòng đời
              </h3>
-             <div className="h-40 w-full flex items-center justify-center">
+             <div className="h-64 w-full flex items-center justify-center">
                 {stats.lifecycle && (
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -881,7 +880,7 @@ function Dashboard() {
                         { name: 'Recovered', value: stats.lifecycle?.["recovered"] || 0 }, 
                         { name: 'At Risk', value: stats.lifecycle?.["at_risk"] || 0 }, 
                         { name: 'Churned', value: stats.lifecycle?.["churned"] || 0 }
-                      ]} innerRadius={45} outerRadius={65} paddingAngle={5} dataKey="value">
+                      ]} innerRadius={70} outerRadius={100} paddingAngle={8} dataKey="value">
                         <Cell fill="#0054A6" /><Cell fill="#6366f1" /><Cell fill="#10b981" /><Cell fill="#F9A51A" /><Cell fill="#9ca3af" />
                       </Pie>
                       <RechartsTooltip />

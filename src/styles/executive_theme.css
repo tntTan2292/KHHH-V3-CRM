@@ -1,98 +1,98 @@
-
 :root {
-  /* EXECUTIVE COLOR PALETTE (MUTED ENTERPRISE) */
+  /* EXECUTIVE COLOR PALETTE (PREMIUM & BALANCED) */
   --crm-bg-main: #f8fafc;
-  --crm-card-shadow: 0 2px 10px -1px rgba(0, 0, 0, 0.04);
+  --crm-card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -4px rgba(0, 0, 0, 0.02);
   --crm-card-border: #f1f5f9;
 
-  /* State Colors */
-  --crm-active-base: #003e7e;
+  /* State Colors - Muted but Clear */
+  --crm-active-base: #0054A6;
   --crm-active-light: #f0f7ff;
   --crm-active-border: #e0efff;
 
-  --crm-warning-base: #b45309;
+  --crm-warning-base: #d97706;
   --crm-warning-light: #fffbeb;
   --crm-warning-border: #fef3c7;
 
-  --crm-danger-base: #9f1239;
+  --crm-danger-base: #e11d48;
   --crm-danger-light: #fff1f2;
   --crm-danger-border: #ffe4e6;
 
-  --crm-onboarding-base: #4338ca;
+  --crm-onboarding-base: #4f46e5;
   --crm-onboarding-light: #eef2ff;
   --crm-onboarding-border: #e0e7ff;
 
-  --crm-recovery-base: #0d9488;
-  --crm-recovery-light: #f0fdfa;
-  --crm-recovery-border: #ccfbf1;
+  --crm-recovery-base: #059669;
+  --crm-recovery-light: #ecfdf5;
+  --crm-recovery-border: #d1fae5;
 
   --crm-neutral-base: #475569;
-  --crm-neutral-light: #f1f5f9;
-  --crm-neutral-border: #e2e8f0;
+  --crm-neutral-light: #f8fafc;
+  --crm-neutral-border: #f1f5f9;
 }
 
-/* GLOBAL UI REFINEMENTS - DENSITY PASS */
+/* GLOBAL UI REFINEMENTS - RECOVERY PASS */
 .executive-card {
   background: white;
   border: 1px solid var(--crm-card-border);
-  border-radius: 0.75rem; /* Reduced from 1rem */
+  border-radius: 1.25rem; 
   box-shadow: var(--crm-card-shadow);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 1.5rem; /* Increased for breathability */
 }
 
 .executive-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
 }
 
 .kpi-number {
   font-family: 'Inter', system-ui, sans-serif;
   font-weight: 900;
-  letter-spacing: -0.03em;
-  line-height: 1; /* Tighten line height for density */
+  letter-spacing: -0.04em;
+  line-height: 1.1;
 }
 
 .kpi-label {
-  font-size: 0.58rem; /* Ultra compact */
+  font-size: 0.75rem; /* Restored size */
   font-weight: 900;
   text-transform: uppercase;
-  letter-spacing: 0.08em; /* Spread for scanning */
+  letter-spacing: 0.12em;
   opacity: 0.6;
 }
 
-/* POPULATION AREA - Visual Priority (Optimized Height) */
+/* POPULATION AREA - Strategic Density */
 .pop-grid {
   display: grid;
-  gap: 1rem; /* Reduced from 1.5rem */
-  margin-bottom: 1rem; /* Reduced from 2rem */
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
 }
 
 .pop-card {
-  padding: 0.75rem 1rem; /* Compact padding */
-  min-height: 80px; /* Further reduction */
+  padding: 1.5rem;
+  min-height: 130px; /* Increased for air */
 }
 
-/* EVENT AREA - Compact Hierarchy */
+/* EVENT AREA - Clean Hierarchy */
 .event-grid {
   display: grid;
-  gap: 0.75rem; /* Reduced from 1rem */
+  gap: 1rem;
 }
 
 .event-card {
-  padding: 0.75rem; /* Reduced from 1rem */
-  min-height: 60px; /* Reduced from 90px (~33% reduction) */
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(8px);
+  padding: 1.25rem;
+  min-height: 90px;
+  background: white;
+  border-bottom: 4px solid transparent;
 }
 
 /* LOGIC MODE INDICATOR */
 .logic-mode-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.35rem 0.75rem;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
   border-radius: 9999px;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -106,7 +106,7 @@
 }
 
 .mode-realtime {
-  background: #eff6ff;
-  color: #2563eb;
-  border-color: #dbeafe;
+  background: #f0f9ff;
+  color: #0369a1;
+  border-color: #e0f2fe;
 }
