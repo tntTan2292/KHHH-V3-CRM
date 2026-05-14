@@ -21,6 +21,52 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/import", tags=["import"])
 
+def filter_transactions_anti_dupe(db: Session, records: list) -> list:
+    """
+    [GOVERNANCE] Anti-Duplicate Transaction Engine
+    Filters records based on the official Dedup Key: SHBG + ngay_chap_nhan + doanh_thu
+    """
+    if not records:
+        return []
+
+    # 1. Internal Deduplication (within the current raw batch)
+    unique_in_batch = []
+    seen_keys = set()
+    for r in records:
+        # Key calculation (handle datetime carefully)
+        dt = r['ngay_chap_nhan']
+        dt_str = dt.strftime("%Y-%m-%d %H:%M:%S") if hasattr(dt, 'strftime') else str(dt)
+        key = (str(r['shbg']), dt_str, round(float(r['doanh_thu']), 2))
+        
+        if key not in seen_keys:
+            unique_in_batch.append(r)
+            seen_keys.add(key)
+
+    # 2. Database Deduplication (against existing SSOT)
+    shbg_list = list(set([r['shbg'] for r in unique_in_batch]))
+    
+    # SQLite optimization: batch query by SHBG
+    existing_q = db.query(Transaction.shbg, Transaction.ngay_chap_nhan, Transaction.doanh_thu).filter(
+        Transaction.shbg.in_(shbg_list)
+    ).all()
+    
+    existing_keys = set()
+    for s, d, v in existing_q:
+        d_str = d.strftime("%Y-%m-%d %H:%M:%S") if hasattr(d, 'strftime') else str(d)
+        existing_keys.add((str(s), d_str, round(float(v or 0), 2)))
+
+    # Final filtering
+    final_records = []
+    for r in unique_in_batch:
+        dt = r['ngay_chap_nhan']
+        dt_str = dt.strftime("%Y-%m-%d %H:%M:%S") if hasattr(dt, 'strftime') else str(dt)
+        key = (str(r['shbg']), dt_str, round(float(r['doanh_thu']), 2))
+        
+        if key not in existing_keys:
+            final_records.append(r)
+            
+    return final_records
+
 import_status = {"running": False, "message": "Chưa khởi tạo", "done": False, "error": None}
 
 def do_import(db: Session, full_reset: bool = True, target_files: list = None):
@@ -93,15 +139,16 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None):
         point_map = {n.code: n.id for n in db.query(HierarchyNode).all()}
 
         total_transactions = 0
+        skipped_duplicates = 0
         from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
         for filepath in bf_files:
             filename = os.path.basename(filepath)
             import_status["message"] = f"Đang nạp {filename}..."
             df_bf = read_file2(filepath)
-            # ... (giữ nguyên logic nạp batch_data và upsert hiện tại)
             df_bf = df_bf.where(pd.notnull(df_bf), None)
-            batch_data = []
+            
+            raw_records = []
             for _, row in df_bf.iterrows():
                 shbg = row.get("shbg")
                 if not shbg: continue
@@ -135,16 +182,27 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None):
                     "point_id": p_id,
                     "dich_vu_chinh": str(row.get("dich_vu_chinh", "")),
                 }
-                batch_data.append(record)
-                total_transactions += 1
-                if len(batch_data) >= 1000:
-                    db.execute(sqlite_insert(Transaction).values(batch_data))
-                    db.commit()
-                    batch_data = []
+                raw_records.append(record)
 
-            if batch_data:
-                db.execute(sqlite_insert(Transaction).values(batch_data))
-                db.commit()
+                if len(raw_records) >= 2000:
+                    # [ANTI-DUPLICATE GOVERNANCE]
+                    filtered = filter_transactions_anti_dupe(db, raw_records)
+                    skipped_duplicates += (len(raw_records) - len(filtered))
+                    if filtered:
+                        db.execute(sqlite_insert(Transaction).values(filtered))
+                        db.commit()
+                        total_transactions += len(filtered)
+                    raw_records = []
+
+            if raw_records:
+                filtered = filter_transactions_anti_dupe(db, raw_records)
+                skipped_duplicates += (len(raw_records) - len(filtered))
+                if filtered:
+                    db.execute(sqlite_insert(Transaction).values(filtered))
+                    db.commit()
+                    total_transactions += len(filtered)
+        
+        logger.info(f"Import Finished: {total_transactions} inserted, {skipped_duplicates} duplicates skipped.")
 
         # ... (giữ nguyên logic đồng bộ KH, RFM...)
         import_status["message"] = "Đồng bộ Khách hàng & RFM..."
