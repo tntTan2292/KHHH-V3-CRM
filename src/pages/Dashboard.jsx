@@ -444,6 +444,45 @@ const ScoringPanel = ({ customerScoring, setSelectedCustomer }) => {
   );
 };
 
+const StatCard = ({ label, value, growth, color, icon: Icon, onClick, subtitle, labelColor }) => {
+  return (
+    <div className={`executive-card pop-card border-l-[6px] cursor-pointer ${labelColor ? 'bg-blue-50/5' : ''}`} style={{ borderLeftColor: color }} onClick={onClick}>
+      <div className="flex flex-col h-full justify-between">
+        <div className="flex items-center justify-between">
+          <span className={`kpi-label ${labelColor || ''}`}>{label}</span>
+          <Icon size={24} className={`${labelColor ? 'text-blue-400 opacity-20' : 'opacity-10 text-slate-900'}`} />
+        </div>
+        <div className="flex items-end justify-between">
+          <span className={`kpi-number ${labelColor ? 'text-slate-900' : 'text-slate-800'}`}>{value.toLocaleString()}</span>
+          {growth !== undefined ? (
+            <span className={`text-sm font-bold ${growth >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+              {growth >= 0 ? "▲" : "▼"}{Math.abs(growth)}%
+            </span>
+          ) : subtitle ? (
+             <span className={`text-[10px] font-bold uppercase ${labelColor ? 'text-blue-500' : 'text-gray-400 italic tracking-wider'}`}>{subtitle}</span>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const MovementItem = ({ item, stats, navigate }) => {
+  const Icon = item.icon;
+  return (
+    <div className="executive-card p-6 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-all border-b-2" style={{ borderBottomColor: item.color }} onClick={() => navigate(`/customers?lifecycle_status=${item.path}`)}>
+       <div className="flex items-center gap-3">
+          <Icon size={16} style={{ color: item.color }} />
+          <div>
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">{item.label}</p>
+            <p className="text-xl font-bold text-gray-800 leading-none">{(item.val !== undefined ? item.val : (stats?.lifecycle?.[item.key] || 0)).toLocaleString()}</p>
+          </div>
+        </div>
+        <ChevronRight size={14} className="text-gray-300" />
+     </div>
+  );
+};
+
 export default function DashboardWrapper() {
   return <ErrorBoundary><Dashboard /></ErrorBoundary>;
 }
@@ -889,66 +928,39 @@ function Dashboard() {
 
         {/* SECTION: POPULATION (HIỆN TRẠNG) */}
         <div className="pop-grid">
-          {/* Main Population Stats */}
-          <div className="executive-card pop-card border-l-[6px] cursor-pointer" style={{ borderLeftColor: 'var(--crm-active-base)' }} onClick={() => navigate('/customers?lifecycle_status=active')}>
-            <div className="flex flex-col h-full justify-between">
-              <div className="flex items-center justify-between">
-                <span className="kpi-label">ACTIVE CUSTOMERS</span>
-                <Users size={24} className="opacity-10 text-slate-900" />
-              </div>
-              <div className="flex items-end justify-between">
-                <span className="kpi-number text-slate-800">{(stats?.lifecycle?.["active"] || 0).toLocaleString()}</span>
-                {stats.lifecycle_growth?.active !== undefined && (
-                  <span className={`text-sm font-bold ${stats.lifecycle_growth.active >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                    {stats.lifecycle_growth.active >= 0 ? "▲" : "▼"}{Math.abs(stats.lifecycle_growth.active)}%
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-          
-          <div className="executive-card pop-card border-l-[6px] cursor-pointer" style={{ borderLeftColor: 'var(--crm-warning-base)' }} onClick={() => navigate('/customers?lifecycle_status=at_risk')}>
-            <div className="flex flex-col h-full justify-between">
-              <div className="flex items-center justify-between">
-                <span className="kpi-label">AT RISK POPULATION</span>
-                <AlertCircle size={24} className="opacity-10 text-slate-900" />
-              </div>
-              <div className="flex items-end justify-between">
-                <span className="kpi-number text-slate-800">{(stats?.lifecycle?.["at_risk"] || 0).toLocaleString()}</span>
-                {stats.lifecycle_growth?.at_risk !== undefined && (
-                  <span className={`text-sm font-bold ${stats.lifecycle_growth.at_risk <= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                    {stats.lifecycle_growth.at_risk >= 0 ? "▲" : "▼"}{Math.abs(stats.lifecycle_growth.at_risk)}%
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="executive-card pop-card border-l-[6px] cursor-pointer" style={{ borderLeftColor: 'var(--crm-danger-base)' }} onClick={() => navigate('/customers?lifecycle_status=churn_pop')}>
-            <div className="flex flex-col h-full justify-between">
-              <div className="flex items-center justify-between">
-                <span className="kpi-label">CHURNED (60D+)</span>
-                <UserMinus size={24} className="opacity-10 text-slate-900" />
-              </div>
-              <div className="flex items-end justify-between">
-                <span className="kpi-number text-slate-800">{(stats?.lifecycle?.["churn_pop"] || 0).toLocaleString()}</span>
-                <span className="text-[10px] text-gray-400 font-bold uppercase italic tracking-wider">&gt; 60D Inactive</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="executive-card pop-card border-l-[6px] border-l-blue-600 bg-blue-50/5" onClick={() => navigate('/customers?rfm_segment=Kim Cương')}>
-            <div className="flex flex-col h-full justify-between">
-              <div className="flex items-center justify-between">
-                <span className="kpi-label text-blue-700">DIAMOND ELITE</span>
-                <Sparkles size={24} className="text-blue-400 opacity-20" />
-              </div>
-              <div className="flex items-end justify-between">
-                <span className="kpi-number text-slate-900">{(stats.potential_ranks?.["Kim Cương"] || 0).toLocaleString()}</span>
-                <span className="text-[10px] text-blue-500 font-bold uppercase">Elite Tier 1</span>
-              </div>
-            </div>
-          </div>
+          <StatCard 
+            label="ACTIVE CUSTOMERS" 
+            value={stats?.lifecycle?.["active"] || 0} 
+            growth={stats.lifecycle_growth?.active} 
+            color="var(--crm-active-base)" 
+            icon={Users} 
+            onClick={() => navigate('/customers?lifecycle_status=active')} 
+          />
+          <StatCard 
+            label="AT RISK POPULATION" 
+            value={stats?.lifecycle?.["at_risk"] || 0} 
+            growth={stats.lifecycle_growth?.at_risk} 
+            color="var(--crm-warning-base)" 
+            icon={AlertCircle} 
+            onClick={() => navigate('/customers?lifecycle_status=at_risk')} 
+          />
+          <StatCard 
+            label="CHURNED (60D+)" 
+            value={stats?.lifecycle?.["churn_pop"] || 0} 
+            subtitle="> 60D Inactive" 
+            color="var(--crm-danger-base)" 
+            icon={UserMinus} 
+            onClick={() => navigate('/customers?lifecycle_status=churn_pop')} 
+          />
+          <StatCard 
+            label="DIAMOND ELITE" 
+            value={stats.potential_ranks?.["Kim Cương"] || 0} 
+            subtitle="Elite Tier 1" 
+            color="rgb(37, 99, 235)" 
+            icon={Sparkles} 
+            onClick={() => navigate('/customers?rfm_segment=Kim Cương')}
+            labelColor="text-blue-700"
+          />
         </div>
 
         {/* Movement & Sub-States Row */}
@@ -957,22 +969,12 @@ function Dashboard() {
              { label: 'New Pop', key: 'new_pop', color: 'var(--crm-onboarding-base)', icon: Sparkles, path: 'new_pop' },
              { label: 'Recovered', key: 'recovered_pop', color: 'var(--crm-recovery-base)', icon: RefreshCw, path: 'recovered_pop' },
              { label: 'New Events', key: 'new_event', color: 'var(--crm-onboarding-base)', icon: Zap, path: 'new_event' },
-             { label: 'Diamond', key: 'Gold', val: stats.potential_ranks?.["Vàng"], color: 'var(--crm-vnpost-orange)', icon: Target, path: 'Vàng' },
-             { label: 'Silver', key: 'Silver', val: stats.potential_ranks?.["Bạc"], color: 'var(--crm-vnpost-blue)', icon: Shield, path: 'Bạc' }
+             { label: 'Diamond', key: 'Gold', val: stats.potential_ranks?.['Vàng'], color: 'var(--crm-vnpost-orange)', icon: Target, path: 'Vàng' },
+             { label: 'Silver', key: 'Silver', val: stats.potential_ranks?.['Bạc'], color: 'var(--crm-vnpost-blue)', icon: Shield, path: 'Bạc' }
            ].map((item, idx) => (
-             <div key={idx} className="executive-card p-6 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-all border-b-2" style={{ borderBottomColor: item.color }} onClick={() => navigate(`/customers?lifecycle_status=${item.path}`)}>
-                <div className="flex items-center gap-3">
-                   <item.icon size={16} style={{ color: item.color }} />
-                   <div>
-                     <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">{item.label}</p>
-                     <p className="text-xl font-bold text-gray-800 leading-none">{(item.val !== undefined ? item.val : (stats?.lifecycle?.[item.key] || 0)).toLocaleString()}</p>
-                   </div>
-                 </div>
-                 <ChevronRight size={14} className="text-gray-300" />
-              </div>
-            ))}
-         </div>
-         
+             <MovementItem key={idx} item={item} stats={stats} navigate={navigate} />
+           ))}
+        </div>
          {/* STRATEGIC AI INSIGHTS (INTEGRATED) */}
          <AIAssistantInsights summary={moversData.summary} stats={stats} churnPrediction={churnPrediction} heatmapData={heatmapData} />
 
