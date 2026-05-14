@@ -30,6 +30,10 @@ class CustomerService:
         offset: int = 0,
         include_all: bool = False # For Export
     ):
+        # [GOVERNANCE] Map 'total_pop' to None to trigger constitutional universe logic
+        if lifecycle_status == "total_pop":
+            lifecycle_status = None
+
         # 1. Xác định mốc thời gian (Vẫn dùng Full History theo Hiến pháp)
         if not start_date or not end_date:
             max_date_raw = db.query(func.max(Transaction.ngay_chap_nhan)).scalar()

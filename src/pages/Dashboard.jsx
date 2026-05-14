@@ -1048,10 +1048,10 @@ function Dashboard() {
                     <PieChart>
                       <Pie data={[
                         { name: 'Active', value: stats.lifecycle?.["active"] || 0 }, 
-                        { name: 'New', value: stats.lifecycle?.["new"] || 0 }, 
-                        { name: 'Recovered', value: stats.lifecycle?.["recovered"] || 0 }, 
+                        { name: 'New', value: stats.lifecycle?.["new_pop"] || 0 }, 
+                        { name: 'Recovered', value: stats.lifecycle?.["recovered_pop"] || 0 }, 
                         { name: 'At Risk', value: stats.lifecycle?.["at_risk"] || 0 }, 
-                        { name: 'Churned', value: stats.lifecycle?.["churned"] || 0 }
+                        { name: 'Churned', value: stats.lifecycle?.["churn_pop"] || 0 }
                       ]} innerRadius={45} outerRadius={65} paddingAngle={5} dataKey="value">
                         <Cell fill="#0054A6" /><Cell fill="#6366f1" /><Cell fill="#10b981" /><Cell fill="#F9A51A" /><Cell fill="#9ca3af" />
                       </Pie>
