@@ -27,13 +27,25 @@ const isTokenExpired = (token) => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(() => {
-    const savedToken = localStorage.getItem('token');
-    // Kiểm tra token hết hạn ngay khi khởi tạo
-    if (savedToken && isTokenExpired(savedToken)) {
+    try {
+      const savedToken = localStorage.getItem('token');
+      // [HOTFIX] Defensive Check for corrupted storage
+      if (!savedToken || savedToken === 'undefined' || savedToken === 'null' || savedToken === '[object Object]') {
+        localStorage.removeItem('token');
+        return null;
+      }
+      
+      // Kiểm tra token hết hạn ngay khi khởi tạo
+      if (isTokenExpired(savedToken)) {
+        localStorage.removeItem('token');
+        return null;
+      }
+      return savedToken;
+    } catch (e) {
+      console.error("Auth Storage Corruption Detected. Clearing...");
       localStorage.removeItem('token');
       return null;
     }
-    return savedToken;
   });
   const [loading, setLoading] = useState(true);
 

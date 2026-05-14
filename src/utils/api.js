@@ -15,15 +15,19 @@ const api = axios.create({
 
 // Thêm interceptor để đính kèm token vào mọi request
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  
-  // Elite Simulation Support (RBAC 3.0)
-  const simulateUserId = localStorage.getItem('simulate_user_id');
-  if (simulateUserId) {
-    config.headers['X-Simulate-User-ID'] = simulateUserId;
+  try {
+    const token = localStorage.getItem('token');
+    if (token && token !== 'undefined' && token !== 'null' && token !== '[object Object]') {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    // Elite Simulation Support (RBAC 3.0)
+    const simulateUserId = localStorage.getItem('simulate_user_id');
+    if (simulateUserId && simulateUserId !== 'undefined' && simulateUserId !== 'null') {
+      config.headers['X-Simulate-User-ID'] = simulateUserId;
+    }
+  } catch (e) {
+    console.error("Critical: Storage Access Failed in API Interceptor", e);
   }
   
   return config;
