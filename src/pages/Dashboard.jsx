@@ -637,28 +637,35 @@ function Dashboard() {
 
   return (
     <div className="flex bg-gray-50/50 min-h-screen">
-      <div className={`flex-1 p-4 md:p-6 space-y-3 ${isExporting ? 'is-exporting' : ''}`} ref={dashboardRef}>
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-3 rounded-2xl shadow-sm border border-gray-100 relative z-50">
-          <div>
-            <h2 className="text-xl font-black text-vnpost-blue uppercase tracking-tight">CRM 3.0 Dashboard</h2>
-            <div className="flex items-center gap-2 mt-0.5">
-              {selectedNode ? (
-                <span className="text-[10px] bg-vnpost-orange text-white px-2 py-0.5 rounded-full font-black uppercase shadow-sm">Đang soi: {selectedNode.title}</span>
-              ) : (
-                <span className="text-[10px] bg-vnpost-blue/10 text-vnpost-blue px-2 py-0.5 rounded-full font-bold uppercase border border-vnpost-blue/10">
-                  {user?.scope || "Toàn tỉnh"}
-                </span>
-              )}
-              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest bg-gray-100 px-1.5 py-0.5 rounded">Elite</span>
+      <div className={`flex-1 p-3 md:p-4 space-y-2 ${isExporting ? 'is-exporting' : ''}`} ref={dashboardRef}>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white px-4 py-2.5 rounded-xl shadow-sm border border-gray-100 relative z-50">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-vnpost-blue rounded-lg flex items-center justify-center text-white shadow-lg">
+              <BarChart3 size={20} />
+            </div>
+            <div>
+              <h2 className="text-lg font-black text-vnpost-blue uppercase tracking-tight leading-none">EXECUTIVE COMMAND CENTER</h2>
+              <div className="flex items-center gap-2 mt-1">
+                {selectedNode ? (
+                  <span className="text-[9px] bg-vnpost-orange text-white px-2 py-0.5 rounded-full font-black uppercase shadow-sm">VIEW: {selectedNode.title}</span>
+                ) : (
+                  <span className="text-[9px] bg-vnpost-blue/10 text-vnpost-blue px-2 py-0.5 rounded-full font-bold uppercase border border-vnpost-blue/10">
+                    {user?.scope || "Toàn tỉnh"}
+                  </span>
+                )}
+                <span className="text-[9px] text-gray-300 font-black uppercase tracking-widest bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">CRM 3.0 ELITE</span>
+              </div>
             </div>
           </div>
+          
           <div className="flex items-center gap-2">
-             <div className={`logic-mode-badge ${selectedMonth ? 'mode-snapshot' : 'mode-realtime'}`}>
-               <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${selectedMonth ? 'bg-slate-400' : 'bg-blue-500'}`}></div>
-               {selectedMonth ? `SN: ${selectedMonth}` : 'REALTIME'}
+             <div className={`logic-mode-badge ${selectedMonth ? 'mode-snapshot' : 'mode-realtime'} border shadow-sm`}>
+               <div className={`w-1.5 h-1.5 rounded-full ${selectedMonth ? 'bg-slate-400' : 'bg-blue-500 animate-pulse'}`}></div>
+               <span className="font-black">{selectedMonth ? `SN: ${selectedMonth}` : 'REALTIME'}</span>
              </div>
-             <button onClick={() => window.location.reload()} className="p-2 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-vnpost-blue transition-all shadow-sm"><RefreshCw size={14} /></button>
-             <button onClick={handleExportPDF} className="bg-vnpost-blue text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase shadow-md flex items-center gap-2 hover:scale-105 active:scale-95 transition-all"><DownloadCloud size={14} /> Xuất Báo Cáo</button>
+             <div className="h-6 w-[1px] bg-gray-100 mx-1"></div>
+             <button onClick={() => window.location.reload()} className="p-1.5 bg-white border border-gray-200 rounded-lg text-gray-400 hover:text-vnpost-blue hover:border-vnpost-blue transition-all shadow-sm"><RefreshCw size={14} /></button>
+             <button onClick={handleExportPDF} className="bg-vnpost-blue text-white px-4 py-1.5 rounded-lg font-black text-[10px] uppercase shadow-md flex items-center gap-2 hover:bg-[#003E7E] transition-all hover:scale-105 active:scale-95"><DownloadCloud size={14} /> EXPORT REPORT</button>
           </div>
         </div>
         {/* System Health Alert Banner */}
@@ -678,371 +685,193 @@ function Dashboard() {
         {/* Elite Morning Pulse Widget */}
         <EliteMorningPulse report={botReport} loading={loadingBot} />
 
-        {/* Filters Section */}
-        <div className="bg-white/70 backdrop-blur-md rounded-3xl p-4 border border-white/50 shadow-sm flex flex-col lg:flex-row items-end gap-4 no-pdf relative z-50">
-          <div className="flex-1 w-full space-y-2">
-            <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-1"><MapPin size={12} /> Phạm vi dữ liệu</label>
-            <div className="relative">
+        {/* Compact Filters Section */}
+        <div className="bg-white/80 backdrop-blur-md rounded-2xl p-2.5 border border-gray-100 shadow-sm flex flex-col lg:flex-row items-center gap-3 no-pdf relative z-50">
+          <div className="flex-1 w-full flex items-center gap-3">
+            <div className="relative flex-1">
                 <button 
                   onClick={() => setIsTreeOpen(!isTreeOpen)}
-                  className={`w-full bg-gray-50 border rounded-xl px-4 py-2.5 text-xs font-bold text-vnpost-blue flex justify-between items-center transition-all shadow-inner ${isTreeOpen ? 'ring-2 ring-vnpost-blue/20 border-vnpost-blue/30 bg-white' : 'border-gray-100 hover:bg-white'}`}
+                  className={`w-full bg-gray-50/50 border rounded-lg px-3 py-1.5 text-[11px] font-bold text-vnpost-blue flex justify-between items-center transition-all ${isTreeOpen ? 'ring-2 ring-vnpost-blue/20 border-vnpost-blue/30 bg-white' : 'border-gray-100 hover:bg-white'}`}
                 >
-                  <span className="truncate">{selectedNode ? selectedNode.title : (user?.scope || "Toàn tỉnh")}</span>
-                  <ArrowUpRight size={14} className={`transition-transform duration-300 ${isTreeOpen ? 'rotate-180 opacity-100' : 'rotate-90 opacity-40'}`} />
+                  <div className="flex items-center gap-2">
+                    <MapPin size={12} className="text-vnpost-blue/50" />
+                    <span className="truncate max-w-[150px]">{selectedNode ? selectedNode.title : (user?.scope || "Toàn tỉnh")}</span>
+                  </div>
+                  <ChevronRight size={14} className={`transition-transform duration-300 ${isTreeOpen ? 'rotate-90' : ''}`} />
                 </button>
-
-               {/* RF2B-A1: Filter Context Hint */}
-               {selectedNode && (
-                 <p className="mt-1.5 text-[11px] text-gray-400 font-bold px-1 flex items-center gap-1">
-                   <MapPin size={10} className="text-vnpost-blue/50" />
-                   {selectedNode.title}
-                   {selectedNode.type === "cum" ? " — Cum dia ban dang soi" : selectedNode.type === "buu_cuc" ? " — Buu cuc truc thuoc" : " — Diem giao dich"}
-                 </p>
-               )}
 
                {isTreeOpen && (
                  <>
-                  {/* Backdrop to close when click outside */}
-                  <div className="fixed inset-0 z-10" onClick={() => setIsTreeOpen(false)}></div>
-                  
-                  {/* Tree Explorer as Dropdown Overlay */}
-                  <div className="absolute top-full left-0 w-full mt-2 bg-white border border-gray-200 rounded-2xl shadow-2xl p-4 z-20 max-h-[450px] overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-top-2 duration-200">
-                      <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg mb-4">
-                        <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Chọn Cụm / Bưu cục / Điểm</span>
-                        <button onClick={() => setIsTreeOpen(false)} className="text-[11px] font-black text-vnpost-blue uppercase hover:underline">Đóng</button>
-                      </div>
-                      <TreeExplorer 
-                        onSelect={(node) => {
-                          handleNodeSelect(node);
-                          setIsTreeOpen(false); // Close after selection
-                        }} 
-                        selectedNode={selectedNode} 
-                      />
-                  </div>
+                   <div className="fixed inset-0 z-10" onClick={() => setIsTreeOpen(false)}></div>
+                   <div className="absolute top-full left-0 w-full mt-1.5 bg-white border border-gray-200 rounded-xl shadow-2xl p-3 z-20 max-h-[400px] overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-top-1 duration-200">
+                       <TreeExplorer onSelect={(node) => { handleNodeSelect(node); setIsTreeOpen(false); }} selectedNode={selectedNode} />
+                   </div>
                  </>
                )}
             </div>
-          </div>
-          <div className="flex-1 w-full space-y-2">
-            <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-1"><Calendar size={12} /> Thời điểm Tùy chọn</label>
-            <div className="grid grid-cols-2 gap-2">
-              <input type="date" value={startDate} onChange={e => { setStartDate(e.target.value); setSelectedMonth(""); }} className="bg-gray-50 border-none rounded-xl px-4 py-2.5 text-xs font-bold text-vnpost-blue focus:ring-2 focus:ring-vnpost-blue/10 transition-all" />
-              <input type="date" value={endDate} onChange={e => { setEndDate(e.target.value); setSelectedMonth(""); }} className="bg-gray-50 border-none rounded-xl px-4 py-2.5 text-xs font-bold text-vnpost-blue focus:ring-2 focus:ring-vnpost-blue/10 transition-all" />
+
+            <div className="flex items-center gap-2 bg-gray-50/50 border border-gray-100 rounded-lg px-2 py-1">
+              <Calendar size={12} className="text-gray-400" />
+              <input type="date" value={startDate} onChange={e => { setStartDate(e.target.value); setSelectedMonth(""); }} className="bg-transparent border-none p-0 text-[11px] font-black text-vnpost-blue focus:ring-0 w-28" />
+              <span className="text-gray-300 text-[10px]">→</span>
+              <input type="date" value={endDate} onChange={e => { setEndDate(e.target.value); setSelectedMonth(""); }} className="bg-transparent border-none p-0 text-[11px] font-black text-vnpost-blue focus:ring-0 w-28" />
             </div>
           </div>
-          <div className="flex-1 w-full space-y-2">
-            <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-1"><TrendingUp size={12} /> Chọn Nhanh Tháng</label>
-            <select className="w-full bg-gray-50 border-none rounded-xl px-4 py-2.5 text-xs font-bold text-vnpost-blue cursor-pointer focus:ring-2 focus:ring-vnpost-blue/10 transition-all" value={selectedMonth} onChange={(e) => handleQuickMonth(e.target.value)}>
-              <option value="">-- Chọn tháng --</option>
+
+          <div className="w-full lg:w-auto flex items-center gap-2">
+            <select className="bg-gray-50/50 border border-gray-100 rounded-lg px-3 py-1.5 text-[11px] font-black text-vnpost-blue cursor-pointer focus:ring-2 focus:ring-vnpost-blue/10 transition-all outline-none" value={selectedMonth} onChange={(e) => handleQuickMonth(e.target.value)}>
+              <option value="">QUICK SELECT MONTH</option>
               {coverage.months?.map(m => (<option key={m.value} value={m.value}>{m.label}</option>))}
             </select>
-          </div>
-          <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-2xl border border-gray-100">
-            <button onClick={() => setComparisonType('mom')} className={`px-4 py-2.5 rounded-xl text-[11px] font-black uppercase transition-all whitespace-nowrap ${comparisonType === 'mom' ? 'bg-vnpost-blue text-white shadow-lg' : 'text-gray-400 hover:bg-gray-200'}`}>MoM</button>
-            <button onClick={() => setComparisonType('yoy')} className={`px-4 py-2.5 rounded-xl text-[11px] font-black uppercase transition-all whitespace-nowrap ${comparisonType === 'yoy' ? 'bg-vnpost-blue text-white shadow-lg' : 'text-gray-400 hover:bg-gray-200'}`}>YoY</button>
+            
+            <div className="flex items-center gap-1 bg-gray-50/50 p-1 rounded-lg border border-gray-100">
+              <button onClick={() => setComparisonType('mom')} className={`px-3 py-1 rounded-md text-[10px] font-black uppercase transition-all ${comparisonType === 'mom' ? 'bg-vnpost-blue text-white shadow-sm' : 'text-gray-400 hover:bg-gray-200'}`}>MoM</button>
+              <button onClick={() => setComparisonType('yoy')} className={`px-3 py-1 rounded-md text-[10px] font-black uppercase transition-all ${comparisonType === 'yoy' ? 'bg-vnpost-blue text-white shadow-sm' : 'text-gray-400 hover:bg-gray-200'}`}>YoY</button>
+            </div>
           </div>
         </div>
 
         {/* SECTION: POPULATION (HIỆN TRẠNG) - TOP PRIORITY */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-[11px] font-black text-vnpost-blue uppercase tracking-[0.2em] flex items-center gap-2">
-              <Users size={14} /> 01. HIỆN TRẠNG TỆP KHÁCH HÀNG (POPULATION)
-            </h3>
-            <Link to="/guidelines#lifecycle" className="text-[9px] font-black text-vnpost-orange uppercase hover:underline">Định nghĩa</Link>
-          </div>
-          
-          {/* Row 1: Priority States */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {(!summaryData && !stats.lifecycle?.["active"]) ? (
-              Array(3).fill(0).map((_, i) => <Skeleton.KPIMini key={i} />)
-            ) : (
-              <>
-                {/* ACTIVE - CENTRAL KPI */}
-                <div 
-                  className="executive-card pop-card border-l-[6px]" 
-                  style={{ borderLeftColor: 'var(--crm-active-base)', background: 'linear-gradient(135deg, var(--crm-active-light) 0%, #ffffff 100%)' }}
-                  onClick={() => {
-                    const node = selectedNode;
-                    if (node) saveNavigationContext(node);
-                    navigate(`/customers?lifecycle_status=active${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
-                  }}
-                >
-                  <div className="flex flex-col h-full justify-between">
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <span className="kpi-label" style={{ color: 'var(--crm-active-base)' }}>HIỆN HỮU (ACTIVE)</span>
-                        <Users size={18} style={{ color: 'var(--crm-active-base)', opacity: 0.15 }} />
-                      </div>
-                      <div className="kpi-number text-3xl" style={{ color: 'var(--crm-active-base)' }}>{(stats?.lifecycle?.["active"] || 0).toLocaleString()}</div>
-                    </div>
-                    {stats.lifecycle_growth?.active !== undefined && (
-                      <div className={`text-xs font-black flex items-center gap-1 mt-2 ${stats.lifecycle_growth.active >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        {stats.lifecycle_growth.active >= 0 ? "▲" : "▼"} {Math.abs(stats.lifecycle_growth.active)}%
-                        <span className="text-gray-400 opacity-60 ml-0.5 uppercase font-bold text-[10px]">vs T-1</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* AT RISK */}
-                <div 
-                  className="executive-card pop-card border-l-[6px]" 
-                  style={{ borderLeftColor: 'var(--crm-warning-base)', background: 'linear-gradient(135deg, var(--crm-warning-light) 0%, #ffffff 100%)' }}
-                  onClick={() => {
-                    const node = selectedNode;
-                    if (node) saveNavigationContext(node);
-                    navigate(`/customers?lifecycle_status=at_risk${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
-                  }}
-                >
-                  <div className="flex flex-col h-full justify-between">
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <span className="kpi-label" style={{ color: 'var(--crm-active-base)' }}>NGUY CƠ (AT RISK)</span>
-                        <AlertCircle size={18} style={{ color: 'var(--crm-warning-base)', opacity: 0.15 }} />
-                      </div>
-                      <div className="kpi-number text-3xl" style={{ color: 'var(--crm-warning-base)' }}>{(stats?.lifecycle?.["at_risk"] || 0).toLocaleString()}</div>
-                    </div>
-                    {stats.lifecycle_growth?.at_risk !== undefined && (
-                      <div className={`text-xs font-black flex items-center gap-1 mt-2 ${stats.lifecycle_growth.at_risk <= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        {stats.lifecycle_growth.at_risk >= 0 ? "▲" : "▼"} {Math.abs(stats.lifecycle_growth.at_risk)}%
-                        <span className="text-gray-400 opacity-60 ml-0.5 uppercase font-bold text-[10px]">vs T-1</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* CHURN POP */}
-                <div 
-                  className="executive-card pop-card border-l-[6px]" 
-                  style={{ borderLeftColor: 'var(--crm-danger-base)', background: 'linear-gradient(135deg, var(--crm-danger-light) 0%, #ffffff 100%)' }}
-                  onClick={() => {
-                    const node = selectedNode;
-                    if (node) saveNavigationContext(node);
-                    navigate(`/customers?lifecycle_status=churn_pop${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
-                  }}
-                >
-                  <div className="flex flex-col h-full justify-between">
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <span className="kpi-label" style={{ color: 'var(--crm-active-base)' }}>RỜI BỎ (CHURNED POP)</span>
-                        <UserMinus size={18} style={{ color: 'var(--crm-danger-base)', opacity: 0.15 }} />
-                      </div>
-                      <div className="kpi-number text-3xl" style={{ color: 'var(--crm-danger-base)' }}>{(stats?.lifecycle?.["churn_pop"] || 0).toLocaleString()}</div>
-                    </div>
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mt-2 italic">Dừng giao dịch &gt; 60 ngày</div>
-                  </div>
-                </div>
-              </>
-            )}
+        {/* EXECUTIVE INTELLIGENCE MATRIX (Consolidated Section 01, 02, 03) */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+          {/* Main Population Stats */}
+          <div className="executive-card pop-card border-l-[4px] cursor-pointer" style={{ borderLeftColor: 'var(--crm-active-base)' }} onClick={() => navigate('/customers?lifecycle_status=active')}>
+            <div className="flex flex-col h-full justify-between">
+              <div className="flex items-center justify-between">
+                <span className="kpi-label" style={{ color: 'var(--crm-active-base)' }}>ACTIVE</span>
+                <Users size={14} className="opacity-20" />
+              </div>
+              <div className="flex items-end justify-between">
+                <span className="kpi-number text-2xl font-black" style={{ color: 'var(--crm-active-base)' }}>{(stats?.lifecycle?.["active"] || 0).toLocaleString()}</span>
+                {stats.lifecycle_growth?.active !== undefined && (
+                  <span className={`text-[10px] font-black ${stats.lifecycle_growth.active >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    {stats.lifecycle_growth.active >= 0 ? "▲" : "▼"}{Math.abs(stats.lifecycle_growth.active)}%
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* Row 2: Challenge/Onboarding States */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full lg:w-2/3">
-            {(!summaryData && !stats.lifecycle?.["new_pop"]) ? (
-              Array(2).fill(0).map((_, i) => <Skeleton.KPIMini key={i} />)
-            ) : (
-              <>
-                {/* NEW POP */}
-                <div 
-                  className="executive-card pop-card border-l-[6px]" 
-                  style={{ borderLeftColor: 'var(--crm-onboarding-base)', background: 'linear-gradient(135deg, var(--crm-onboarding-light) 0%, #ffffff 100%)' }}
-                  onClick={() => {
-                    const node = selectedNode;
-                    if (node) saveNavigationContext(node);
-                    navigate(`/customers?lifecycle_status=new_pop${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
-                  }}
-                >
-                  <div className="flex flex-col h-full justify-between">
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <span className="kpi-label" style={{ color: 'var(--crm-onboarding-base)' }}>MỚI (NEW POP)</span>
-                        <Sparkles size={18} style={{ color: 'var(--crm-onboarding-base)', opacity: 0.15 }} />
-                      </div>
-                      <div className="kpi-number text-2xl" style={{ color: 'var(--crm-onboarding-base)' }}>{(stats?.lifecycle?.["new_pop"] || 0).toLocaleString()}</div>
-                    </div>
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mt-2 italic">Tệp đang thử thách (30d)</div>
-                  </div>
-                </div>
+          <div className="executive-card pop-card border-l-[4px] cursor-pointer" style={{ borderLeftColor: 'var(--crm-warning-base)' }} onClick={() => navigate('/customers?lifecycle_status=at_risk')}>
+            <div className="flex flex-col h-full justify-between">
+              <div className="flex items-center justify-between">
+                <span className="kpi-label" style={{ color: 'var(--crm-warning-base)' }}>AT RISK</span>
+                <AlertCircle size={14} className="opacity-20" />
+              </div>
+              <div className="flex items-end justify-between">
+                <span className="kpi-number text-2xl font-black" style={{ color: 'var(--crm-warning-base)' }}>{(stats?.lifecycle?.["at_risk"] || 0).toLocaleString()}</span>
+                {stats.lifecycle_growth?.at_risk !== undefined && (
+                  <span className={`text-[10px] font-black ${stats.lifecycle_growth.at_risk <= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    {stats.lifecycle_growth.at_risk >= 0 ? "▲" : "▼"}{Math.abs(stats.lifecycle_growth.at_risk)}%
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
 
-                {/* RECOVERED POP */}
-                <div 
-                  className="executive-card pop-card border-l-[6px]" 
-                  style={{ borderLeftColor: 'var(--crm-recovery-base)', background: 'linear-gradient(135deg, var(--crm-recovery-light) 0%, #ffffff 100%)' }}
-                  onClick={() => {
-                    const node = selectedNode;
-                    if (node) saveNavigationContext(node);
-                    navigate(`/customers?lifecycle_status=recovered_pop${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
-                  }}
-                >
-                  <div className="flex flex-col h-full justify-between">
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <span className="kpi-label" style={{ color: 'var(--crm-recovery-base)' }}>TÁI BẢN (RECOVERED POP)</span>
-                        <RefreshCw size={18} style={{ color: 'var(--crm-recovery-base)', opacity: 0.15 }} />
-                      </div>
-                      <div className="kpi-number text-2xl" style={{ color: 'var(--crm-recovery-base)' }}>{(stats?.lifecycle?.["recovered_pop"] || 0).toLocaleString()}</div>
-                    </div>
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mt-2 italic">Tệp quay lại đang thử thách</div>
-                  </div>
-                </div>
-              </>
-            )}
+          <div className="executive-card pop-card border-l-[4px] cursor-pointer" style={{ borderLeftColor: 'var(--crm-danger-base)' }} onClick={() => navigate('/customers?lifecycle_status=churn_pop')}>
+            <div className="flex flex-col h-full justify-between">
+              <div className="flex items-center justify-between">
+                <span className="kpi-label" style={{ color: 'var(--crm-danger-base)' }}>CHURNED</span>
+                <UserMinus size={14} className="opacity-20" />
+              </div>
+              <div className="flex items-end justify-between">
+                <span className="kpi-number text-2xl font-black" style={{ color: 'var(--crm-danger-base)' }}>{(stats?.lifecycle?.["churn_pop"] || 0).toLocaleString()}</span>
+                <span className="text-[8px] text-gray-400 font-bold uppercase italic tracking-tighter">&gt; 60D Inactive</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Potential Ranks - Consolidated */}
+          <div className="executive-card pop-card border-l-[4px] cursor-pointer border-l-blue-600 bg-blue-50/10" onClick={() => navigate('/customers?rfm_segment=Kim Cương')}>
+            <div className="flex flex-col h-full justify-between">
+              <div className="flex items-center justify-between">
+                <span className="kpi-label text-blue-700">DIAMOND</span>
+                <Sparkles size={14} className="text-blue-400 opacity-40" />
+              </div>
+              <div className="flex items-end justify-between">
+                <span className="kpi-number text-2xl font-black text-blue-900">{(stats.potential_ranks?.["Kim Cương"] || 0).toLocaleString()}</span>
+                <span className="text-[8px] text-blue-500 font-bold uppercase">Elite T1</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* SECTION: EVENTS (BIẾN ĐỘNG TRONG KỲ) - SECONDARY PRIORITY */}
-        <div className="space-y-3 pt-2">
-          <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] flex items-center gap-2">
-            <Zap size={14} /> 02. BIẾN ĐỘNG TRONG KỲ (MOVEMENT INDICATORS)
-          </h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {(!summaryData && !stats.lifecycle?.["new_event"]) ? (
-              Array(3).fill(0).map((_, i) => <Skeleton.KPIMini key={i} />)
-            ) : (
-              <>
-                {/* NEW EVENT */}
-                <div 
-                  className="executive-card event-card border-l-4"
-                  style={{ borderLeftColor: 'var(--crm-onboarding-base)' }}
-                  onClick={() => {
-                    const node = selectedNode;
-                    if (node) saveNavigationContext(node);
-                    navigate(`/customers?lifecycle_status=new_event${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
-                  }}
-                >
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-4">
-                      <div className="p-2 rounded-xl" style={{ backgroundColor: 'var(--crm-onboarding-light)', color: 'var(--crm-onboarding-base)' }}>
-                        <Sparkles size={20} />
-                      </div>
-                      <div>
-                        <span className="kpi-label block" style={{ color: 'var(--crm-onboarding-base)' }}>Mới phát sinh</span>
-                        <span className="kpi-number text-xl" style={{ color: 'var(--crm-onboarding-base)' }}>{(stats?.lifecycle?.["new_event"] || 0).toLocaleString()}</span>
-                      </div>
-                    </div>
-                    <ChevronRight size={20} className="text-gray-200" />
-                  </div>
+        {/* Movement & Sub-States Row */}
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5 no-pdf">
+           {[
+             { label: 'New Pop', key: 'new_pop', color: 'var(--crm-onboarding-base)', icon: Sparkles, path: 'new_pop' },
+             { label: 'Recovered', key: 'recovered_pop', color: 'var(--crm-recovery-base)', icon: RefreshCw, path: 'recovered_pop' },
+             { label: 'New Events', key: 'new_event', color: 'var(--crm-onboarding-base)', icon: Zap, path: 'new_event' },
+             { label: 'Diamond', key: 'Gold', val: stats.potential_ranks?.["Vàng"], color: 'var(--crm-vnpost-orange)', icon: Target, path: 'Vàng' },
+             { label: 'Silver', key: 'Silver', val: stats.potential_ranks?.["Bạc"], color: 'var(--crm-vnpost-blue)', icon: Shield, path: 'Bạc' }
+           ].map((item, idx) => (
+             <div key={idx} className="executive-card p-2.5 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-all border-b-2" style={{ borderBottomColor: item.color }} onClick={() => navigate(`/customers?lifecycle_status=${item.path}`)}>
+                <div className="flex items-center gap-2">
+                   <item.icon size={12} style={{ color: item.color }} />
+                   <div>
+                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-tighter leading-none mb-1">{item.label}</p>
+                     <p className="text-sm font-black text-gray-800 leading-none">{(item.val !== undefined ? item.val : (stats?.lifecycle?.[item.key] || 0)).toLocaleString()}</p>
+                   </div>
                 </div>
-
-                {/* RECOVERED EVENT */}
-                <div 
-                  className="executive-card event-card border-l-4"
-                  style={{ borderLeftColor: 'var(--crm-recovery-base)' }}
-                  onClick={() => {
-                    const node = selectedNode;
-                    if (node) saveNavigationContext(node);
-                    navigate(`/customers?lifecycle_status=recovered_event${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
-                  }}
-                >
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-4">
-                      <div className="p-2 rounded-xl" style={{ backgroundColor: 'var(--crm-recovery-light)', color: 'var(--crm-recovery-base)' }}>
-                        <RefreshCw size={20} />
-                      </div>
-                      <div>
-                        <span className="kpi-label block" style={{ color: 'var(--crm-recovery-base)' }}>Tái bản trong kỳ</span>
-                        <span className="kpi-number text-xl" style={{ color: 'var(--crm-recovery-base)' }}>{(stats?.lifecycle?.["recovered_event"] || 0).toLocaleString()}</span>
-                      </div>
-                    </div>
-                    <ChevronRight size={20} className="text-gray-200" />
-                  </div>
-                </div>
-
-                {/* CHURN EVENT */}
-                <div 
-                  className="executive-card event-card border-l-4"
-                  style={{ borderLeftColor: 'var(--crm-danger-base)' }}
-                  onClick={() => {
-                    const node = selectedNode;
-                    if (node) saveNavigationContext(node);
-                    navigate(`/customers?lifecycle_status=churn_event${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
-                  }}
-                >
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-4">
-                      <div className="p-2 rounded-xl" style={{ backgroundColor: 'var(--crm-danger-light)', color: 'var(--crm-danger-base)' }}>
-                        <UserMinus size={20} />
-                      </div>
-                      <div>
-                        <span className="kpi-label block" style={{ color: 'var(--crm-danger-base)' }}>Rời bỏ trong kỳ</span>
-                        <span className="kpi-number text-xl" style={{ color: 'var(--crm-danger-base)' }}>{(stats?.lifecycle?.["churn_event"] || 0).toLocaleString()}</span>
-                      </div>
-                    </div>
-                    <ChevronRight size={20} className="text-gray-200" />
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+                <ChevronRight size={12} className="text-gray-300" />
+             </div>
+           ))}
         </div>
-            
-            {/* ELITE TIERS (Potentials) */}
-            <h3 className="text-[11px] font-black text-vnpost-orange uppercase tracking-widest flex items-center gap-2 mt-2 mb-2">
-              <ArrowUpRight size={14} /> 03. PHÂN HẠNG KHÁCH HÀNG TIỀM NĂNG (POTENTIALS)
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 transition-opacity duration-300">
-              {(!summaryData && !stats.potential_ranks?.["Kim Cương"]) ? (
-                <>
-                  <Skeleton.Card /><Skeleton.Card /><Skeleton.Card />
-                </>
+        {/* Visual Priority Row: Revenue Trend + Lifecycle Breakdown */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* REVENUE DAILY TREND (PRIORITY #1) */}
+          <div className="lg:col-span-2 executive-card p-4 overflow-hidden relative min-w-0">
+            <div className="flex items-center justify-between mb-3 border-b border-gray-50 pb-2">
+              <h3 className="text-xs font-black text-gray-800 uppercase tracking-widest flex items-center gap-2">
+                <TrendingUp size={16} className="text-vnpost-blue" /> Biến Động Doanh Thu Ngày
+              </h3>
+              <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Dữ liệu Realtime</div>
+            </div>
+            <div className="h-[220px] w-full">
+              {loadingTrend && !trendData.length ? (
+                <Skeleton.Chart height="h-56" />
               ) : (
-                <>
-                  <div 
-                    className="executive-card p-4 border-t-4 border-t-blue-600 relative overflow-hidden group cursor-pointer"
-                    onClick={() => {
-                      const node = selectedNode;
-                      if (node) saveNavigationContext(node);
-                      navigate(`/customers?rfm_segment=Kim Cương${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
-                    }}
-                  >
-                    <div className="absolute -right-4 -top-4 text-blue-100 group-hover:scale-110 transition-transform opacity-20">
-                      <DollarSign size={100} />
-                    </div>
-                    <p className="kpi-label mb-2 text-blue-700">💎 Kim Cương (Diamond)</p>
-                    <h3 className="kpi-number text-4xl text-blue-900">{(stats.potential_ranks?.["Kim Cương"] || 0).toLocaleString()}</h3>
-                    <p className="text-[10px] text-blue-500 font-bold mt-4 uppercase tracking-wider opacity-60">DT &gt; 5M & &gt; 20 đơn/tháng</p>
-                  </div>
-
-                  <div 
-                    className="executive-card p-6 border-t-[6px] border-t-vnpost-orange relative overflow-hidden group cursor-pointer"
-                    onClick={() => {
-                      const node = selectedNode;
-                      if (node) saveNavigationContext(node);
-                      navigate(`/customers?rfm_segment=Vàng${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
-                    }}
-                  >
-                    <div className="absolute -right-4 -top-4 text-orange-100 group-hover:scale-110 transition-transform opacity-20">
-                      <DollarSign size={100} />
-                    </div>
-                    <p className="kpi-label mb-2 text-vnpost-orange">🥇 Vàng (Gold)</p>
-                    <h3 className="kpi-number text-4xl text-vnpost-orange">{(stats.potential_ranks?.["Vàng"] || 0).toLocaleString()}</h3>
-                    <p className="text-[10px] text-vnpost-orange font-bold mt-4 uppercase tracking-wider opacity-60">DT &gt; 1M & &gt; 10 đơn/tháng</p>
-                  </div>
-
-                  <div 
-                    className="executive-card p-6 border-t-[6px] border-t-orange-800 relative overflow-hidden group cursor-pointer"
-                    onClick={() => {
-                      const node = selectedNode;
-                      if (node) saveNavigationContext(node);
-                      navigate(`/customers?rfm_segment=Bạc${node ? `&node_code=${node.key}&node_type=${node.type || ''}&node_title=${encodeURIComponent(node.title)}` : ''}`);
-                    }}
-                  >
-                    <div className="absolute -right-4 -top-4 text-orange-200 group-hover:scale-110 transition-transform opacity-20">
-                      <DollarSign size={100} />
-                    </div>
-                    <p className="kpi-label mb-2 text-orange-900">🥉 Bạc (Silver)</p>
-                    <h3 className="kpi-number text-4xl text-orange-950">{(stats.potential_ranks?.["Bạc"] || 0).toLocaleString()}</h3>
-                    <p className="text-[10px] text-orange-900 font-bold mt-4 uppercase tracking-wider opacity-60">DT &gt; 500K & &gt; 5 đơn/tháng</p>
-                  </div>
-                </>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={trendData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#0054A6" stopOpacity={0.15}/>
+                        <stop offset="95%" stopColor="#0054A6" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis 
+                      dataKey="date" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fontSize: 9, fill: '#94a3b8', fontWeight: 'bold' }}
+                      minTickGap={30}
+                      tickFormatter={(str) => {
+                        try { return new Date(str).toLocaleDateString('vi-VN', {day: '2-digit', month: '2-digit'}); }
+                        catch(e) { return str; }
+                      }}
+                    />
+                    <YAxis 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fontSize: 9, fill: '#94a3b8' }} 
+                      tickFormatter={(val) => val === 0 ? "0" : `${((val || 0) / 1000000).toFixed(0)}M`}
+                    />
+                    <RechartsTooltip content={<CustomTooltip unit="VND" />} />
+                    <Area type="monotone" dataKey="revenue" stroke="#0054A6" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
+                  </AreaChart>
+                </ResponsiveContainer>
               )}
             </div>
-          
-            <div className="card flex flex-col items-center justify-center p-6 bg-white/40 shadow-sm border border-white/60">
-              <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Cơ cấu Vòng đời</h4>
-              <div className="h-48 w-full flex items-center justify-center">
+          </div>
+
+          {/* LIFECYCLE PIE CHART (DENSITY) */}
+          <div className="executive-card p-4 flex flex-col items-center justify-between min-w-0">
+             <h3 className="text-xs font-black text-gray-800 uppercase tracking-widest self-start mb-3 border-b border-gray-50 pb-2 w-full">
+               Cơ cấu Vòng đời
+             </h3>
+             <div className="h-40 w-full flex items-center justify-center">
                 {stats.lifecycle && (
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -1059,70 +888,16 @@ function Dashboard() {
                     </PieChart>
                   </ResponsiveContainer>
                 )}
-              </div>
-              <div className="mt-4 space-y-1 w-full text-[9px] font-bold text-gray-500 uppercase tracking-tighter">
-                <div className="flex justify-between"><span>Active:</span> <span>{(stats.lifecycle?.["active"] || 0).toLocaleString()}</span></div>
-                <div className="flex justify-between"><span>At Risk:</span> <span className="text-vnpost-orange">{(stats.lifecycle?.["at_risk"] || 0).toLocaleString()}</span></div>
-              </div>
-            </div>
-
-      {/* Heatmap & Trends */}
-        <div className="grid grid-cols-1 gap-6">
-          <div className="card p-6 overflow-hidden relative z-10 min-w-0">
-            <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2 border-b border-gray-50 pb-3">
-              <TrendingUp size={18} className="text-vnpost-blue" /> Biến Động Doanh Thu Theo Ngày
-            </h3>
-            <div className="h-[300px] w-full">
-              {loadingTrend && !trendData.length ? (
-                <Skeleton.Chart height="h-80" />
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#0054A6" stopOpacity={0.2}/>
-                        <stop offset="95%" stopColor="#0054A6" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis 
-                      dataKey="date" 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 'bold' }}
-                      minTickGap={40}
-                      tickFormatter={(str) => {
-                        try { return new Date(str).toLocaleDateString('vi-VN', {day: '2-digit', month: '2-digit'}); }
-                        catch(e) { return str; }
-                      }}
-                    />
-                    <YAxis 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 'bold' }}
-                      tickFormatter={(val) => `${(Number(val) / 1000000).toFixed(0)}M`}
-                    />
-                    <RechartsTooltip 
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontWeight: 'bold', fontSize: '11px' }}
-                      wrapperStyle={{ pointerEvents: 'none', zIndex: 1000 }}
-                      formatter={(v) => [formatCurrency(v), "Doanh thu"]} 
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="value" 
-                      stroke="var(--crm-active-base)" 
-                      fill="url(#colorRev)" 
-                      strokeWidth={3} 
-                      dot={{ r: 0 }}
-                      activeDot={{ r: 5, strokeWidth: 0, fill: '#F9A51A' }}
-                      animationDuration={1500}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              )}
-            </div>
+             </div>
+             <div className="grid grid-cols-2 gap-2 w-full text-[9px] font-black text-gray-500 uppercase tracking-tighter mt-2 border-t border-gray-50 pt-2">
+                <div className="flex justify-between border-r border-gray-100 pr-2"><span>Active:</span> <span className="text-vnpost-blue">{(stats.lifecycle?.["active"] || 0).toLocaleString()}</span></div>
+                <div className="flex justify-between pl-2"><span>At Risk:</span> <span className="text-vnpost-orange">{(stats.lifecycle?.["at_risk"] || 0).toLocaleString()}</span></div>
+             </div>
           </div>
-          
+        </div>
+
+        {/* STRATEGIC AI INSIGHTS (INTEGRATED) */}
+        <AIAssistantInsights summary={moversData.summary} stats={stats} churnPrediction={churnPrediction} heatmapData={heatmapData} />
           <div className="card p-4 overflow-hidden relative z-20 min-w-0">
              <h3 className="text-sm font-bold text-gray-800 mb-2 flex justify-between items-center border-b border-gray-50 pb-2">
                <span className="flex items-center gap-2"><Target size={18} className="text-vnpost-orange" /> Bảng Quản trị Hiệu quả & Tăng trưởng Địa bàn ({comparisonType.toUpperCase()})</span> {selectedNode && <span className="text-[11px] font-bold text-gray-400 ml-2 normal-case tracking-normal">(Đang xem: {selectedNode.title})</span>}
@@ -1194,72 +969,62 @@ function Dashboard() {
 
                           <div className="flex-1 overflow-y-auto no-scrollbar rounded-2xl border border-gray-100 bg-gray-50/30 backdrop-blur-sm">
                             <table className="w-full text-left border-collapse">
-                              <thead className="sticky top-0 bg-white/80 backdrop-blur-md z-10">
-                                <tr className="border-b border-gray-100">
-                                  <th className="p-2.5 text-[11px] font-black text-gray-500 uppercase tracking-widest">Đơn vị địa bàn</th>
-                                  <th className="p-2.5 text-[11px] font-black text-gray-500 uppercase tracking-widest text-right">Doanh thu</th>
-                                  <th className="p-2.5 text-[11px] font-black text-gray-500 uppercase tracking-widest text-center">Tăng trưởng</th>
-                                  <th className="p-2.5 text-[11px] font-black text-gray-500 uppercase tracking-widest text-center">Chiến lược</th>
-                                  <th className="p-2.5 text-[11px] font-black text-gray-500 uppercase tracking-widest text-right">Thao tác</th>
+                              <thead className="sticky top-0 bg-white/90 backdrop-blur-md z-10 border-b border-gray-100 shadow-sm">
+                                <tr>
+                                  <th className="px-2.5 py-2 text-[10px] font-black text-gray-500 uppercase tracking-widest">Đơn vị địa bàn</th>
+                                  <th className="px-2.5 py-2 text-[10px] font-black text-gray-500 uppercase tracking-widest text-right">Doanh thu</th>
+                                  <th className="px-2.5 py-2 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Tăng trưởng</th>
+                                  <th className="px-2.5 py-2 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Chiến lược</th>
+                                  <th className="px-2.5 py-2 text-[10px] font-black text-gray-500 uppercase tracking-widest text-right">Thao tác</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {data.sort((a, b) => b.revenue - a.revenue).map((item, idx) => {
                                   const q = getQuadrant(item.revenue, item.growth);
-                                  // [FIX-02] Higher contrast severity highlight
                                   const _isWeak = q.label.includes("YEU") || q.label.includes("YẾU");
                                   const _isRisk = item.growth < -10;
                                   return (
                                     <tr key={idx} className={`group hover:bg-white transition-all border-b border-gray-50/50 ${_isWeak ? "border-l-4 border-l-red-600 bg-red-50/40" : _isRisk ? "border-l-4 border-l-amber-500 bg-amber-50/20" : ""}`}>
-                                      <td className="p-2.5">
+                                      <td className="px-2.5 py-1.5">
                                         <div 
                                           className="flex flex-col cursor-pointer hover:opacity-80 transition-all group/item"
                                           onClick={() => {
-                                            const q = getQuadrant(item.revenue, item.growth);
-                                            const _isWeak = q.label.includes("YEU") || q.label.includes("YẾU");
-                                            const _isRisk = item.growth < -10;
-                                            
                                             const node = { key: item.ma_don_vi, title: item.don_vi, type: item.type };
                                             saveNavigationContext(node);
-                                            
                                             let url = `/customers?node_code=${item.ma_don_vi}&node_type=${item.type || ''}&node_title=${encodeURIComponent(item.don_vi)}`;
-                                            if (_isWeak || _isRisk) {
-                                              url += `&lifecycle_status=at_risk`;
-                                            }
+                                            if (_isWeak || _isRisk) url += `&lifecycle_status=at_risk`;
                                             navigate(url);
                                           }}
-                                          title="Mở danh sách khách hàng của địa bàn này"
                                         >
-                                          <span className="text-[14px] font-black text-gray-800 group-hover:text-vnpost-blue transition-colors uppercase tracking-tight flex items-center gap-2">
+                                          <span className="text-[13px] font-black text-gray-800 group-hover:text-vnpost-blue transition-colors uppercase tracking-tight flex items-center gap-2">
                                             {item.don_vi}
-                                            <ArrowUpRight size={12} className="opacity-0 group-hover/item:opacity-100 transition-all text-vnpost-blue" />
+                                            <ArrowUpRight size={10} className="opacity-0 group-hover/item:opacity-100 transition-all text-vnpost-blue" />
                                           </span>
-                                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">ID: {item.ma_don_vi}</span>
+                                          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter leading-none">ID: {item.ma_don_vi}</span>
                                         </div>
                                       </td>
-                                      <td className="p-2.5 text-right">
-                                        <span className="text-[14px] font-black text-gray-800">{formatCurrency(item.revenue)}</span>
+                                      <td className="px-2.5 py-1.5 text-right">
+                                        <span className="text-[13px] font-black text-gray-800">{formatCurrency(item.revenue)}</span>
                                       </td>
-                                      <td className="p-2.5">
-                                        <div className={`flex items-center justify-center gap-1 font-black text-[12px] ${item.growth >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                                          {item.growth >= 0 ? <ArrowUpRight size={12}/> : <TrendingUp size={12} className="rotate-180"/>}
+                                      <td className="px-2.5 py-1.5">
+                                        <div className={`flex items-center justify-center gap-1 font-black text-[11px] ${item.growth >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                          {item.growth >= 0 ? <ArrowUpRight size={10}/> : <TrendingUp size={10} className="rotate-180"/>}
                                           {item.growth > 0 ? '+' : ''}{item.growth}%
                                         </div>
                                       </td>
-                                      <td className="p-2.5">
+                                      <td className="px-2.5 py-1.5">
                                         <div className="flex justify-center">
-                                          <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full ${q.bg} ${q.text} text-[9px] font-black border ${q.color.replace('bg-', 'border-')}/20 shadow-sm uppercase tracking-widest`}>
-                                            {q.icon} {q.label}
+                                          <div className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full ${q.bg} ${q.text} text-[8px] font-black border ${q.color.replace('bg-', 'border-')}/20 shadow-sm uppercase tracking-widest`}>
+                                            {q.label}
                                           </div>
                                         </div>
                                       </td>
-                                      <td className="p-2.5 text-right">
+                                      <td className="px-2.5 py-1.5 text-right">
                                         <button 
                                           onClick={() => handleDrillDown(item)}
-                                          className="p-1.5 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-vnpost-blue hover:border-vnpost-blue hover:bg-vnpost-blue/5 shadow-sm transition-all inline-flex items-center gap-2 group/btn"
+                                          className="p-1 bg-white border border-gray-200 rounded-lg text-gray-400 hover:text-vnpost-blue hover:border-vnpost-blue hover:bg-vnpost-blue/5 shadow-sm transition-all inline-flex items-center gap-2 group/btn"
                                         >
-                                          <span className="text-[8px] font-black uppercase opacity-0 group-hover/btn:opacity-100 transition-all">Chi tiết</span>
-                                          <TrendingUp size={12} className="rotate-90"/>
+                                          <TrendingUp size={10} className="rotate-90"/>
                                         </button>
                                       </td>
                                     </tr>
@@ -1447,52 +1212,33 @@ function Dashboard() {
                   return null;
                 })()}
               </div>
-              <AIAssistantInsights summary={moversData.summary} stats={stats} churnPrediction={churnPrediction} heatmapData={heatmapData} />
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Revenue Comparison */}
-                <div className="card p-4 bg-white border-l-4 border-l-vnpost-blue shadow-lg">
-                  <div className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-2 mb-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="p-1 bg-blue-50 rounded-lg text-vnpost-blue"><TrendingUp size={16} /></div>
-                          <h3 className="text-sm font-bold text-gray-800 uppercase tracking-tight">Biến động Doanh thu</h3>
-                        </div>
-                      </div>
-                      {moversData?.period && (
-                        <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold">
-                          <span className="px-2.5 py-1 bg-vnpost-blue/10 text-vnpost-blue rounded-full border border-vnpost-blue/20 flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-vnpost-blue inline-block"></span>
-                            Kỳ này: {moversData.period.current.start} – {moversData.period.current.end}
-                          </span>
-                          <span className="text-gray-300">vs</span>
-                          <span className="px-2.5 py-1 bg-gray-100 text-gray-500 rounded-full border border-gray-200 flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-gray-400 inline-block"></span>
-                            Kỳ trước: {moversData.period.previous.start} – {moversData.period.previous.end}
-                          </span>
-                          <span className="px-2 py-0.5 bg-gray-50 text-gray-400 rounded border border-gray-100 uppercase tracking-widest">{moversData.period.type?.toUpperCase()}</span>
-                        </div>
-                      )}
+                <div className="executive-card p-4 border-l-4 border-l-vnpost-blue">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between border-b border-gray-50 pb-2">
+                       <div className="flex items-center gap-2">
+                          <TrendingUp size={14} className="text-vnpost-blue" />
+                          <h3 className="text-[11px] font-black text-gray-800 uppercase tracking-widest">Biến động Doanh thu</h3>
+                       </div>
+                       <div className="text-right">
+                          <p className="text-lg font-black text-vnpost-blue leading-none">{formatCurrency(moversData.summary.revenue.current)}</p>
+                          <p className={`text-[10px] font-black ${(moversData?.summary?.revenue?.current || 0) >= (moversData?.summary?.revenue?.previous || 0) ? 'text-emerald-600' : 'text-rose-600'}`}>
+                             {(moversData?.summary?.revenue?.current || 0) >= (moversData?.summary?.revenue?.previous || 0) ? '↑' : '↓'}
+                             {Math.abs((((moversData?.summary?.revenue?.current || 0) - (moversData?.summary?.revenue?.previous || 0)) / (moversData?.summary?.revenue?.previous || 1) * 100)).toFixed(1)}%
+                          </p>
+                       </div>
                     </div>
-                    <div className="p-4 bg-gradient-to-br from-blue-50 to-white rounded-2xl border border-blue-100 relative group overflow-hidden">
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Tổng Doanh Thu Kỳ Này</p>
-                      <p className="text-2xl font-black text-vnpost-blue mb-1">{formatCurrency(moversData.summary.revenue.current)}</p>
-                      <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${(moversData?.summary?.revenue?.current || 0) >= (moversData?.summary?.revenue?.previous || 0) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                        {(moversData?.summary?.revenue?.current || 0) >= (moversData?.summary?.revenue?.previous || 0) ? '↑' : '↓'}
-                        {Math.abs((((moversData?.summary?.revenue?.current || 0) - (moversData?.summary?.revenue?.previous || 0)) / (moversData?.summary?.revenue?.previous || 1) * 100)).toFixed(1)}%
-                      </div>
-                    </div>
-                    <div className="h-48">
+                    <div className="h-40">
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={revData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }} barGap={5}>
+                        <BarChart data={revData} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }} barGap={2}>
                           <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                           <XAxis type="number" hide />
-                          <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold', fill: '#1e293b' }} width={80} />
+                          <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: '900', fill: '#1e293b' }} width={70} />
                           <RechartsTooltip content={<CustomTooltip unit="VND" />} cursor={{ fill: '#f8fafc', opacity: 0.4 }} />
-                          <Legend verticalAlign="top" align="right" iconType="circle" />
                           {activeServices.map((svc, idx) => (
-                            <Bar key={idx} dataKey={svc} name={svc} stackId="a" fill={SERVICE_COLORS[svc] || '#cbd5e1'} barSize={35} />
+                            <Bar key={idx} dataKey={svc} name={svc} stackId="a" fill={SERVICE_COLORS[svc] || '#cbd5e1'} barSize={25} />
                           ))}
                         </BarChart>
                       </ResponsiveContainer>
@@ -1501,48 +1247,30 @@ function Dashboard() {
                 </div>
 
                 {/* Volume Comparison */}
-                <div className="card p-4 bg-white border-l-4 border-l-vnpost-orange shadow-lg">
+                <div className="executive-card p-4 border-l-4 border-l-vnpost-orange">
                   <div className="flex flex-col gap-3">
-                    <div className="flex flex-col gap-1.5 mb-1">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="p-1 bg-orange-50 rounded-lg text-vnpost-orange"><BarChart3 size={16} /></div>
-                          <h3 className="text-sm font-bold text-gray-800 uppercase tracking-tight">Biến động Sản lượng</h3>
-                        </div>
-                      </div>
-                      {moversData?.period && (
-                        <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold">
-                          <span className="px-2.5 py-1 bg-vnpost-orange/10 text-vnpost-orange rounded-full border border-vnpost-orange/20 flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-vnpost-orange inline-block"></span>
-                            Kỳ này: {moversData.period.current.start} – {moversData.period.current.end}
-                          </span>
-                          <span className="text-gray-300">vs</span>
-                          <span className="px-2.5 py-1 bg-gray-100 text-gray-500 rounded-full border border-gray-200 flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-gray-400 inline-block"></span>
-                            Kỳ trước: {moversData.period.previous.start} – {moversData.period.previous.end}
-                          </span>
-                          <span className="px-2 py-0.5 bg-gray-50 text-gray-400 rounded border border-gray-100 uppercase tracking-widest">{moversData.period.type?.toUpperCase()}</span>
-                        </div>
-                      )}
+                    <div className="flex items-center justify-between border-b border-gray-50 pb-2">
+                       <div className="flex items-center gap-2">
+                          <BarChart3 size={14} className="text-vnpost-orange" />
+                          <h3 className="text-[11px] font-black text-gray-800 uppercase tracking-widest">Biến động Sản lượng</h3>
+                       </div>
+                       <div className="text-right">
+                          <p className="text-lg font-black text-vnpost-orange leading-none">{(moversData.summary.volume.current || 0).toLocaleString()} <span className="text-[10px] opacity-60">đơn</span></p>
+                          <p className={`text-[10px] font-black ${(moversData?.summary?.volume?.current || 0) >= (moversData?.summary?.volume?.previous || 0) ? 'text-emerald-600' : 'text-rose-600'}`}>
+                             {(moversData?.summary?.volume?.current || 0) >= (moversData?.summary?.volume?.previous || 0) ? '↑' : '↓'}
+                             {Math.abs((((moversData?.summary?.volume?.current || 0) - (moversData?.summary?.volume?.previous || 0)) / (moversData?.summary?.volume?.previous || 1) * 100)).toFixed(1)}%
+                          </p>
+                       </div>
                     </div>
-                    <div className="p-4 bg-gradient-to-br from-orange-50 to-white rounded-2xl border border-orange-100 relative group overflow-hidden">
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Tổng Sản Lượng Kỳ Này</p>
-                      <p className="text-2xl font-black text-vnpost-orange mb-1">{(moversData.summary.volume.current || 0).toLocaleString()} <span className="text-sm font-bold opacity-60">đơn</span></p>
-                      <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${(moversData?.summary?.volume?.current || 0) >= (moversData?.summary?.volume?.previous || 0) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                        {(moversData?.summary?.volume?.current || 0) >= (moversData?.summary?.volume?.previous || 0) ? '↑' : '↓'}
-                        {Math.abs((((moversData?.summary?.volume?.current || 0) - (moversData?.summary?.volume?.previous || 0)) / (moversData?.summary?.volume?.previous || 1) * 100)).toFixed(1)}%
-                      </div>
-                    </div>
-                    <div className="h-48">
+                    <div className="h-40">
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={volData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }} barGap={5}>
+                        <BarChart data={volData} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }} barGap={2}>
                           <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                           <XAxis type="number" hide />
-                          <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold', fill: '#1e293b' }} width={80} />
+                          <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: '900', fill: '#1e293b' }} width={70} />
                           <RechartsTooltip content={<CustomTooltip unit="UNIT" />} cursor={{ fill: '#f8fafc', opacity: 0.4 }} />
-                          <Legend verticalAlign="top" align="right" iconType="circle" />
                           {activeServices.map((svc, idx) => (
-                            <Bar key={idx} dataKey={svc} name={svc} stackId="a" fill={SERVICE_COLORS[svc] || '#cbd5e1'} barSize={35} />
+                            <Bar key={idx} dataKey={svc} name={svc} stackId="a" fill={SERVICE_COLORS[svc] || '#cbd5e1'} barSize={25} />
                           ))}
                         </BarChart>
                       </ResponsiveContainer>
