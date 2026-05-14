@@ -405,6 +405,45 @@ const ChurnList = ({ churnPrediction, setSelectedCustomer }) => {
   );
 };
 
+const ScoringPanel = ({ customerScoring, setSelectedCustomer }) => {
+  return (
+    <div className="executive-card p-0 overflow-hidden w-[320px] min-w-[320px]">
+        <div className="p-8 border-b border-gray-100 bg-indigo-50/20">
+          <h3 className="section-title flex items-center gap-3">
+             <Star size={20} className="text-indigo-600" /> Khách hàng Diamond
+          </h3>
+        </div>
+        <div className="p-6 space-y-4">
+          {customerScoring?.length > 0 ? customerScoring.slice(0, 5).map((s, idx) => (
+            <div key={idx} className="flex flex-col p-5 border-b border-gray-50 last:border-0 hover:bg-indigo-50/50 transition-all rounded-2xl gap-3 cursor-pointer border border-transparent hover:border-indigo-100" onClick={() => setSelectedCustomer(s)}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center font-bold text-white text-base shadow-lg shadow-indigo-200">
+                    {s.score}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-bold text-gray-800 truncate uppercase">{s.ten_kh}</p>
+                    <span className="text-[10px] px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-lg font-bold uppercase">{s.rank}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 mt-1">
+                 <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                    <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Doanh thu</p>
+                    <p className="text-sm font-bold text-gray-800">{formatCurrency(s.revenue)}</p>
+                 </div>
+                 <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                    <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Tần suất</p>
+                    <p className="text-sm font-bold text-gray-800">{s.frequency} đơn</p>
+                 </div>
+              </div>
+            </div>
+          )) : <div className="p-12 text-center text-gray-300 italic text-sm">Đang đồng bộ điểm số...</div>}
+        </div>
+    </div>
+  );
+};
+
 export default function DashboardWrapper() {
   return <ErrorBoundary><Dashboard /></ErrorBoundary>;
 }
@@ -941,41 +980,8 @@ function Dashboard() {
           {/* CUSTOMER CHURN LIST (LEFT) */}
           <ChurnList churnPrediction={churnPrediction} setSelectedCustomer={setSelectedCustomer} />
           
-          {/* CUSTOMER SCORING (RIGHT PANEL) */}
-          <div className="executive-card p-0 overflow-hidden w-[320px] min-w-[320px]">
-              <div className="p-8 border-b border-gray-100 bg-indigo-50/20">
-                <h3 className="section-title flex items-center gap-3">
-                   <Star size={20} className="text-indigo-600" /> Khách hàng Diamond
-                </h3>
-              </div>
-              <div className="p-6 space-y-4">
-                {customerScoring?.length > 0 ? customerScoring.slice(0, 5).map((s, idx) => (
-                  <div key={idx} className="flex flex-col p-5 border-b border-gray-50 last:border-0 hover:bg-indigo-50/50 transition-all rounded-2xl gap-3 cursor-pointer border border-transparent hover:border-indigo-100" onClick={() => setSelectedCustomer(s)}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4 min-w-0">
-                        <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center font-bold text-white text-base shadow-lg shadow-indigo-200">
-                          {s.score}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-[13px] font-bold text-gray-800 truncate uppercase">{s.ten_kh}</p>
-                          <span className="text-[10px] px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-lg font-bold uppercase">{s.rank}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3 mt-1">
-                       <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
-                          <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Doanh thu</p>
-                          <p className="text-sm font-bold text-gray-800">{formatCurrency(s.revenue)}</p>
-                       </div>
-                       <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
-                          <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Tần suất</p>
-                          <p className="text-sm font-bold text-gray-800">{s.frequency} đơn</p>
-                       </div>
-                    </div>
-                  </div>
-                )) : <div className="p-12 text-center text-gray-300 italic text-sm">Đang đồng bộ điểm số...</div>}
-              </div>
-          </div>
+           {/* CUSTOMER SCORING (RIGHT PANEL) */}
+           <ScoringPanel customerScoring={customerScoring} setSelectedCustomer={setSelectedCustomer} />
         </div>
 
         {/* Global Footer Stats */}
