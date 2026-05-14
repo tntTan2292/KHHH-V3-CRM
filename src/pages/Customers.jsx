@@ -533,10 +533,21 @@ export default function Customers() {
       console.log("[API SUCCESS] /api/analytics/dashboard");
       // API Dashboard trả về phím 'lifecycle' chứa các con số định danh
       const ls = d.lifecycle || {};
+      const constitutionalUniverse = Number(
+        d.tong_kh ??
+        (
+          (ls.active || 0) +
+          (ls.new_pop || 0) +
+          (ls.recovered_pop || 0) +
+          (ls.at_risk || 0) +
+          (ls.churn_pop || 0)
+        )
+      ) || 0;
       
       setLifecycleStats({
         ...ls,
-        "Tất cả": d.tong_kh || total
+        "Tất cả": constitutionalUniverse,
+        total_pop: constitutionalUniverse
       });
     } catch (err) { 
       if (api.isCancel?.(err) || err?.name === 'AbortError') {
