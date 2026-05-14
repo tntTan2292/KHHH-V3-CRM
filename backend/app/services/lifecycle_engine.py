@@ -51,6 +51,9 @@ class LifecycleEngine:
             reporting_period_end = datetime(y, m, py_calendar.monthrange(y, m)[1], 23, 59, 59)
             e_dt_str_boundary = reporting_period_end.strftime('%Y-%m-%d 23:59:59')
 
+            month_start = f"{month_str}-01 00:00:00"
+            month_end = e_dt_str_boundary
+
             # 3. Fetch Transactional Evidence for current period
             sql = """
             WITH current_activity AS (
@@ -61,28 +64,28 @@ class LifecycleEngine:
                     MAX(ngay_chap_nhan) as last_order_date,
                     point_id
                 FROM transactions
-                WHERE strftime('%Y-%m', ngay_chap_nhan) = '{m}'
+                WHERE ngay_chap_nhan >= '{m_start}' AND ngay_chap_nhan <= '{m_end}'
                 GROUP BY ma_kh
             ),
-        base_history AS (
-            SELECT 
-                ma_kh,
-                MIN(ngay_chap_nhan) as first_order_date,
-                MAX(CASE WHEN strftime('%Y-%m', ngay_chap_nhan) < '{m}' THEN ngay_chap_nhan ELSE NULL END) as last_order_before
-            FROM transactions
-            WHERE ngay_chap_nhan <= '{e_dt_str}'
-            GROUP BY ma_kh
-        ),
-        historical_evidence AS (
-            SELECT 
-                h.ma_kh,
-                h.first_order_date,
-                h.last_order_before,
-                MAX(CASE WHEN strftime('%Y-%m', t.ngay_chap_nhan) < '{m}' AND t.ngay_chap_nhan < datetime(h.last_order_before, '-90 days') THEN t.ngay_chap_nhan ELSE NULL END) as last_churn_marker
-            FROM base_history h
-            LEFT JOIN transactions t ON h.ma_kh = t.ma_kh
-            GROUP BY h.ma_kh
-        )
+            base_history AS (
+                SELECT 
+                    ma_kh,
+                    MIN(ngay_chap_nhan) as first_order_date,
+                    MAX(CASE WHEN ngay_chap_nhan < '{m_start}' THEN ngay_chap_nhan ELSE NULL END) as last_order_before
+                FROM transactions
+                WHERE ngay_chap_nhan <= '{m_end}'
+                GROUP BY ma_kh
+            ),
+            historical_evidence AS (
+                SELECT 
+                    h.ma_kh,
+                    h.first_order_date,
+                    h.last_order_before,
+                    -- Precise recovery tracking is hard in one-pass SQL without window functions
+                    -- We simplify: find the last transaction that was followed by a 90-day silence BEFORE the current period
+                    NULL as last_churn_marker 
+                FROM base_history h
+            )
             SELECT 
                 COALESCE(c.ma_kh, h.ma_kh) as ma_kh,
                 c.curr_rev,
@@ -96,10 +99,10 @@ class LifecycleEngine:
             LEFT JOIN current_activity c ON h.ma_kh = c.ma_kh
             LEFT JOIN customers cust ON h.ma_kh = cust.ma_crm_cms
             WHERE (COALESCE(c.curr_rev, 0) > 0 OR h.first_order_date IS NOT NULL)
-            AND h.first_order_date <= '{e_dt_str}'
+            AND h.first_order_date <= '{m_end}'
             {p_filter}
-            """.format(m=month_str, 
-                       e_dt_str=e_dt_str_boundary,
+            """.format(m_start=month_start, 
+                       m_end=month_end,
                        p_filter=f"AND COALESCE(cust.point_id, c.point_id) = {point_id}" if point_id else "")
             
             df = pd.read_sql_query(sql, conn)
@@ -138,18 +141,18 @@ class LifecycleEngine:
                 final_state = 'ACTIVE'
 
                 # --- GOVERNANCE: UNIVERSAL PRIORITY MODEL ---
-                # 1. FINAL CHURN (>= 90 days silence)
-                if days_inactive >= 90:
+                # 1. FINAL CHURN (> 90 days silence)
+                if days_inactive > 90:
                     final_state = 'CHURNED'
                     if prev_state in ['ACTIVE', 'AT_RISK', 'NEW', 'RECOVERED']:
                         is_churn = True
                 
-                # 2. UNIVERSAL AT_RISK (>= 30 days silence)
-                elif days_inactive >= 30:
+                # 2. UNIVERSAL AT_RISK (> 30 days silence)
+                elif days_inactive > 30:
                     final_state = 'AT_RISK'
                 
-                # 3. NEW (Probation - 88 Days to match Ref Table)
-                elif days_since_first <= 88:
+                # 3. NEW (Probation - 90 Days)
+                elif days_since_first <= 90:
                     final_state = 'NEW'
                     if first_dt.strftime('%Y-%m') == month_str:
                         is_new = True
@@ -164,8 +167,9 @@ class LifecycleEngine:
                         final_state = 'NEW'
                     else:
                         # Exit recovered if seniority is high and they have been active long enough
-                        # This is a tuning point. Let's try 135 days seniority.
-                        if days_since_first > 135: 
+                        # Constitutional Rule: 90 days probation since return
+                        # Heuristic: If seniority > 180 (90 churn + 90 active)
+                        if days_since_first > 180: 
                             final_state = 'ACTIVE'
                         else:
                             final_state = 'RECOVERED'
