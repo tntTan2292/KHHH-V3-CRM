@@ -20,6 +20,8 @@ echo [1.5] Kiem tra dong bo du lieu (Startup Sync - Background)...
 start "" "%PY_PATH%" backend\scripts\check_sync_on_startup.py
 
 echo [2] Khoi dong Backend API (Port 8000)...
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$port=8000; $conns=Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue; if ($conns) { $conns | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue } ; Start-Sleep -Seconds 2 }"
 netstat -ano | findstr ":8000" | findstr "LISTENING" >nul
 if %errorlevel% equ 0 (
     echo [OK] Backend API dang chay tren Port 8000.

@@ -29,7 +29,8 @@ End If
 RunHidden """" & pyPath & """ """ & baseDir & "\backend\scripts\governance_cleanup.py"" >> """ & logDir & "\startup_sync.log"" 2>>&1", True
 RunHidden """" & pyPath & """ """ & baseDir & "\backend\scripts\check_sync_on_startup.py"" >> """ & logDir & "\startup_sync.log"" 2>>&1", False
 
-If Not IsPortListening(8000) Then
+If Not BackendIsHealthy() Then
+    KillPort 8000
     RunHidden "cd /d """ & backendDir & """ && set PATH=" & nodeRoot & ";%PATH% && """ & pyPath & """ -m uvicorn app.main:app --host 0.0.0.0 --port 8000 >> """ & logDir & "\backend_runtime.log"" 2>>&1", False
 End If
 
@@ -51,6 +52,12 @@ Set shell = Nothing
 
 Sub RunHidden(commandText, waitForExit)
     shell.Run comspecPath & " /c " & commandText, 0, waitForExit
+End Sub
+
+Sub KillPort(port)
+    Dim cmd
+    cmd = "powershell -NoProfile -ExecutionPolicy Bypass -Command ""$conns = Get-NetTCPConnection -LocalPort " & port & " -State Listen -ErrorAction SilentlyContinue; if ($conns) { $conns | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue } ; Start-Sleep -Seconds 2 }"""
+    shell.Run comspecPath & " /c " & cmd, 0, True
 End Sub
 
 Function IsPortListening(port)
