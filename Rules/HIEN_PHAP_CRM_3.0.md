@@ -6,7 +6,7 @@
 # I. GOVERNANCE PRINCIPLES
 1.  **SSOT (Single Source Of Truth)**: Mọi quyết định điều hành, báo cáo và đánh giá đều dựa trên một nguồn dữ liệu chuẩn duy nhất từ Transaction Database.
 2.  **Transaction-first architecture**: Dữ liệu giao dịch thật (đã được đối soát) là nền tảng của mọi logic. Tuyệt đối không dùng dữ liệu nhập tay để tính toán KPI.
-3.  **Ownership & hierarchy**: Quản lý theo cấu trúc cây 5 cấp (Tỉnh -> Trung tâm -> Cụm -> Phường/Xã -> Điểm). Mọi khách hàng phải có "Chủ sở hữu" (Owner) rõ ràng.
+3.  **Ownership & hierarchy**: Quản lý theo cấu trúc 5 cấp chức danh (BĐTP -> Trung tâm -> Trưởng đại diện -> Giám đốc Phường/Xã -> Nhân viên). Mọi khách hàng phải có "Chủ sở hữu" (Owner) rõ ràng.
 4.  **No fake KPI / No activity-driven scoring**: Không tính điểm dựa trên số lượng hoạt động (Activity) ảo. Mọi điểm số phải được chứng thực bằng hiệu quả kinh doanh thực tế.
 5.  **Triết lý CRM ưu tiên**: **Giữ khách > Ổn định > Tăng trưởng > Mở mới**.
 
@@ -252,9 +252,11 @@ Quy chuẩn quản trị và thẩm quyền của các chỉ số hiệu năng (
 ---
 
 ## 🏛️ PHỤ LỤC: PHÂN CẤP & PHÂN QUYỀN TRUY CẬP
-1.  **Cấu trúc 5 cấp**: Tỉnh -> Trung tâm -> Cụm -> Phường/Xã -> Điểm.
-2.  **Cơ chế "Nhìn xuống"**: Cấp trên thấy dữ liệu tất cả cấp dưới.
-3.  **Cơ chế "Cô lập"**: Cấp dưới không thấy dữ liệu cấp trên hoặc nhánh ngang.
+1.  **Cấu trúc 5 cấp**: BĐTP -> Trung tâm -> Trưởng đại diện -> Giám đốc Phường/Xã -> Nhân viên.
+2.  **Thẩm quyền Trung tâm Kinh doanh**: Quản lý dải từ Cấp 3 đến Cấp 5.
+3.  **Ngoại lệ Trung tâm Vận hành**: Quản lý trực tiếp Bưu cục 531120 (Cấp 5).
+4.  **Cơ chế "Nhìn xuống"**: Cấp trên thấy dữ liệu tất cả cấp dưới.
+5.  **Cơ chế "Cô lập"**: Cấp dưới không thấy dữ liệu cấp trên hoặc nhánh ngang.
 
 ---
 
