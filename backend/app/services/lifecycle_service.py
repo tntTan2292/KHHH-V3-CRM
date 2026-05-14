@@ -136,19 +136,15 @@ class LifecycleService:
                         query = query.filter(Customer.point_id.in_(scope_point_ids))
                     results[res_key] = query.scalar() or 0
 
-        # TOTAL KHÁCH HÀNG - [RF5F] Unified Universe (Month-Bounded)
-        total_universe_query = db.query(func.count(Customer.id)).filter(
-            exists().where(
-                and_(
-                    Transaction.ma_kh == Customer.ma_crm_cms,
-                    Transaction.ngay_chap_nhan <= end_date
-                )
-            )
+        # TOTAL KHÁCH HÀNG - Constitutional Universe = sum of the 5 population buckets.
+        # This must stay aligned with the SSOT table and must not use Alive Population alone.
+        results["total"] = (
+            int(results.get("active", 0))
+            + int(results.get("new_pop", 0))
+            + int(results.get("recovered_pop", 0))
+            + int(results.get("at_risk", 0))
+            + int(results.get("churn_pop", 0))
         )
-        if scope_point_ids: 
-            total_universe_query = total_universe_query.filter(Customer.point_id.in_(scope_point_ids))
-        
-        results["total"] = total_universe_query.scalar() or 0
         return results
 
     @staticmethod
