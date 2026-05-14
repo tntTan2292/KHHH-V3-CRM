@@ -82,19 +82,17 @@ async def trigger_summary_refresh(
         raise HTTPException(status_code=500, detail="Lỗi trong quá trình làm mới dữ liệu tổng hợp.")
 
 @router.get("/dashboard")
-# @cache_response(ttl_hours=1)
+# @cache_response(ttl_hours=4)
 async def get_dashboard_stats(
     start_date: str = None,
     end_date: str = None,
-    node_code: str = None, 
+    node_code: str = None,
     comparison_type: str = "mom",
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # 1. Xác định phạm vi dữ liệu hiệu lực (Elite RBAC 3.0)
+    # 1. Xác định phạm vi (Elite RBAC 3.0)
     scope_point_ids = ScopingService.get_effective_scope_ids(db, current_user, node_code)
-    
-    # NEU KHONG TIM THAY ID NAO TRONG PHAM VI -> PHAI TRA VE 0
     if scope_point_ids is not None and not scope_point_ids:
         return {
             "tong_doanh_thu": 0, "tong_kh": 0, "kh_moi": 0, "kh_roi_bo": 0,
@@ -104,28 +102,28 @@ async def get_dashboard_stats(
     # 2. Xác định dải thời gian được quản trị (Governed Temporal Range)
     curr_start, curr_end, prev_start, prev_end, max_data_date = get_governed_comparison_periods(db, start_date, end_date, comparison_type)
     
-    # Override with Governed Dates
     governed_start = curr_start.strftime("%Y-%m-%d")
     governed_end = curr_end.strftime("%Y-%m-%d")
     prev_start_str = prev_start.strftime("%Y-%m-%d")
     prev_end_str = prev_end.strftime("%Y-%m-%d")
-
-    # 3. Kiểm tra xem có thể dùng bảng Summary không (Nếu filter theo tháng trọn vẹn)
-    is_monthly = False
-    if governed_start and governed_end:
-        if curr_start.day == 1 and (curr_end + timedelta(days=1)).day == 1:
-            is_monthly = True
-
-    # 4. Lấy dữ liệu Lifecycle và Doanh thu (ƯU TIÊN SUMMARY)
-    # [RF5C] Strict temporal derivation from governed range
     month_str = governed_start[:7]
     current_month_str = max_data_date.strftime("%Y-%m")
+
+    # 3. FETCH REVENUE KPI (GOVERNANCE RULE 1: Total Revenue -> Transaction)
+    def get_rev_for_range(start_str, end_str, s_ids):
+        q = db.query(func.sum(Transaction.doanh_thu)).filter(
+            Transaction.ngay_chap_nhan >= start_str,
+            Transaction.ngay_chap_nhan <= f"{end_str} 23:59:59"
+        )
+        if s_ids is not None:
+            q = q.filter(Transaction.point_id.in_(s_ids))
+        return q.scalar() or 0.0
+
+    latest_val = get_rev_for_range(governed_start, governed_end, scope_point_ids)
+    prev_val = get_rev_for_range(prev_start_str, prev_end_str, scope_point_ids)
+    rev_growth = ((latest_val - prev_val) / prev_val * 100) if prev_val > 0 else 0
     
-    logger.info(f"[DIAGNOSTIC-DASHBOARD] start_date={start_date}, end_date={end_date}")
-    logger.info(f"DASHBOARD TEMPORAL FLOW: Selected={month_str} | Latest={current_month_str} | Range={governed_start} to {governed_end}")
-    
-    # [GOVERNANCE] Lifecycle is a Historical State Machine. 
-    # Fetch Lifecycle from Unified SSOT Service for the SELECTED period.
+    # 4. FETCH LIFECYCLE POPULATIONS (GOVERNANCE: Derived from LifecycleService)
     lifecycle_stats = LifecycleService.get_customer_lifecycle_stats(
         db, 
         month_str=month_str, 
@@ -133,125 +131,44 @@ async def get_dashboard_stats(
         start_date=governed_start,
         end_date=governed_end
     )
-
-    # Fetch Revenue and Growth from FILTERED month summary
-    growth_stats = {"GROWTH": 0, "STABLE": 0, "DECLINING": 0}
-    summary_exists = db.query(MonthlyAnalyticsSummary).filter(MonthlyAnalyticsSummary.year_month == month_str).first() is not None
-
-    if summary_exists:
-        summary_query = db.query(
-            MonthlyAnalyticsSummary.lifecycle_stage,
-            func.sum(MonthlyAnalyticsSummary.total_revenue).label("revenue"),
-            func.sum(MonthlyAnalyticsSummary.total_customers).label("customers"),
-            func.sum(MonthlyAnalyticsSummary.total_orders).label("orders"),
-            MonthlyAnalyticsSummary.growth_tag
-        ).filter(MonthlyAnalyticsSummary.year_month == month_str)
-        
-        if scope_point_ids is not None:
-            summary_query = summary_query.filter(MonthlyAnalyticsSummary.point_id.in_(scope_point_ids))
-            
-        summary_res = summary_query.group_by(MonthlyAnalyticsSummary.lifecycle_stage, MonthlyAnalyticsSummary.growth_tag).all()
-        
-        for stage, rev, cust, ords, growth in summary_res:
-            if growth in growth_stats:
-                growth_stats[growth] += (cust or 0)
-        
-        tong_dt = sum(r[1] for r in summary_res)
-    else:
-        # [GOVERNANCE] Enforce Summary-First: Refuse to scan millions of raw transactions for Dashboard KPIs.
-        # This forces the system to run the SummaryEngine before data is visible.
-        logger.warning(f"Governance Warning: Dashboard blocked raw scan for month {month_str}. Data must be summarized first.")
-        tong_dt = 0.0
-        # Optional: Trigger summary refresh logic here or return 425 Too Early
     
-    # 4. KPIs Lấy trực tiếp từ Lifecycle Engine (Sử dụng Slugs mới)
-    # [RF5C] Map to Constitutional Fields: Big Number = Event, Small Number = Population
+    # [RF5C] Map to Constitutional Fields
     kh_moi = lifecycle_stats.get("new_event", 0)
-    kh_moi_pop = lifecycle_stats.get("new_pop", 0)
     kh_roi_bo = lifecycle_stats.get("churn_event", 0)
-    kh_roi_bo_pop = lifecycle_stats.get("churn_pop", 0)
-    kh_hien_huu = lifecycle_stats.get("active", 0)
-    kh_tai_ban = lifecycle_stats.get("recovered_event", 0)
-    kh_tai_ban_pop = lifecycle_stats.get("recovered_pop", 0)
-    kh_nguy_co = lifecycle_stats.get("at_risk", 0)
-    
-    # [GOVERNANCE] tong_kh is the month-bounded Universe (Sum of all 5 populations)
     tong_kh = lifecycle_stats.get("total", 0)
-    
-    # 5. KH Tiềm Năng (Vãng lai - Gọi trực tiếp từ Service để đảm bảo đồng bộ logic gom tên)
-    _, kh_tiem_nang, potential_ranks, _ = PotentialService.get_potential_data(
-        db=db,
-        current_user=current_user,
-        start_date=start_date,
-        end_date=end_date,
-        node_code=node_code,
-        min_days=1, # Theo Hiến pháp
-        include_all=True
-    )
-    
-    # 5. Tính toán tăng trưởng (MoM hoặc YoY) - GOVERNED SSOT
-    curr_start, curr_end, prev_start, prev_end, max_data_date = get_governed_comparison_periods(
-        db, start_date, end_date, comparison_type
-    )
 
-    # [FIX-07] Lifecycle Delta calculation (Current vs Previous) - Unified SSOT
+    # 5. KH Tiềm Năng (PotentialService)
+    _, kh_tiem_nang, potential_ranks, _ = PotentialService.get_potential_data(
+        db=db, current_user=current_user, start_date=governed_start, end_date=governed_end,
+        node_code=node_code, min_days=1, include_all=True
+    )
+    
+    # 6. Lifecycle Delta & Growth (Unified SSOT)
     lifecycle_delta = {k: 0 for k in lifecycle_stats.keys() if k != 'total'}
     lifecycle_growth = {k: 0 for k in lifecycle_stats.keys() if k != 'total'}
-    
     if prev_start:
-        prev_month_str = prev_start.strftime("%Y-%m")
         prev_lifecycle_stats = LifecycleService.get_customer_lifecycle_stats(
-            db, 
-            month_str=prev_month_str, 
-            scope_point_ids=scope_point_ids,
-            start_date=prev_start.strftime("%Y-%m-%d"),
-            end_date=prev_end.strftime("%Y-%m-%d")
+            db, month_str=prev_start_str[:7], scope_point_ids=scope_point_ids,
+            start_date=prev_start_str, end_date=prev_end_str
         )
-        
         for k in lifecycle_delta.keys():
-            curr_v = lifecycle_stats.get(k, 0)
-            prev_v = prev_lifecycle_stats.get(k, 0)
+            curr_v, prev_v = lifecycle_stats.get(k, 0), prev_lifecycle_stats.get(k, 0)
             lifecycle_delta[k] = curr_v - prev_v
-            if prev_v > 0:
-                lifecycle_growth[k] = round(((curr_v - prev_v) / prev_v) * 100, 1)
-            else:
-                lifecycle_growth[k] = 100.0 if curr_v > 0 else 0.0
-    
-    rev_growth = 0
-    latest_val = db.query(func.sum(Transaction.doanh_thu)).filter(Transaction.id == -1) # Default empty query
-    prev_val_q = db.query(func.sum(Transaction.doanh_thu)).filter(Transaction.id == -1) # Default empty query
+            lifecycle_growth[k] = round(((curr_v - prev_v) / prev_v) * 100, 1) if prev_v > 0 else (100.0 if curr_v > 0 else 0.0)
 
-    if curr_start:
-        latest_val = db.query(func.sum(Transaction.doanh_thu)).filter(
-            Transaction.ngay_chap_nhan.between(curr_start, curr_end)
-        )
-        prev_val_q = db.query(func.sum(Transaction.doanh_thu)).filter(
-            Transaction.ngay_chap_nhan.between(prev_start, prev_end)
-        )
-
+    # 7. Growth Distribution from Summary
+    growth_stats = {"GROWTH": 0, "STABLE": 0, "DECLINING": 0}
+    summary_res = db.query(
+        MonthlyAnalyticsSummary.growth_tag,
+        func.sum(MonthlyAnalyticsSummary.total_customers).label("customers")
+    ).filter(MonthlyAnalyticsSummary.year_month == month_str)
     if scope_point_ids is not None:
-        latest_val = latest_val.filter(Transaction.point_id.in_(scope_point_ids))
-        prev_val_q = prev_val_q.filter(Transaction.point_id.in_(scope_point_ids))
-    
-    latest_val = latest_val.scalar() or 0
-    prev_val = prev_val_q.scalar() or 0
-    
-    rev_growth = 0
-    if prev_val > 0:
-        rev_growth = ((latest_val - prev_val) / prev_val) * 100
+        summary_res = summary_res.filter(MonthlyAnalyticsSummary.point_id.in_(scope_point_ids))
+    for tag, cust in summary_res.group_by(MonthlyAnalyticsSummary.growth_tag).all():
+        if tag in growth_stats: growth_stats[tag] = cust or 0
 
-    # 6. Ngày cập nhật mới nhất
-    latest_date = parse_db_date(db.query(func.max(Transaction.ngay_chap_nhan)).scalar())
-    
-    # Xử lý an toàn cho SQLite (có thể trả về string thay vì object datetime)
-    latest_date_str = None
-    if latest_date:
-        if isinstance(latest_date, str):
-            latest_date_str = latest_date
-        elif hasattr(latest_date, 'isoformat'):
-            latest_date_str = latest_date.isoformat()
-        else:
-            latest_date_str = str(latest_date)
+    latest_date_raw = db.query(func.max(Transaction.ngay_chap_nhan)).scalar()
+    latest_date_str = str(latest_date_raw).split('.')[0] if latest_date_raw else None
 
     response_data = {
         "tong_doanh_thu": latest_val,
@@ -266,48 +183,28 @@ async def get_dashboard_stats(
         "lifecycle_growth": lifecycle_growth,
         "growth": growth_stats,
         "potential_ranks": potential_ranks,
-        "debug_info": {
-            "month": current_month_str,
-            "scope_ids": scope_point_ids,
-            "is_admin": ScopingService.is_admin(current_user)
-        },
+        "debug_info": {"month": month_str, "scope_ids": scope_point_ids},
         "governance": {
             "metrics": {
                 "tong_doanh_thu": {
                     "code": "REVENUE",
-                    "authority": KPIRegistry.get_kpi("REVENUE").authority if KPIRegistry.get_kpi("REVENUE") else "GOVERNED",
+                    "authority": "GOVERNED",
                     "score": KPIScoringService.calculate_normalized_score("REVENUE", latest_val),
                     "status": KPIScoringService.get_performance_status("REVENUE", KPIScoringService.calculate_normalized_score("REVENUE", latest_val)),
-                    "unit": KPIRegistry.get_kpi("REVENUE").unit if KPIRegistry.get_kpi("REVENUE") else "VND"
+                    "unit": "VND"
                 },
                 "revenue_growth": {
                     "code": "REVENUE_GROWTH",
-                    "authority": KPIRegistry.get_kpi("REVENUE_GROWTH").authority if KPIRegistry.get_kpi("REVENUE_GROWTH") else "DERIVED",
+                    "authority": "DERIVED",
                     "score": KPIScoringService.calculate_normalized_score("REVENUE_GROWTH", rev_growth),
                     "status": KPIScoringService.get_performance_status("REVENUE_GROWTH", KPIScoringService.calculate_normalized_score("REVENUE_GROWTH", rev_growth)),
                     "unit": "%"
-                },
-                "kh_roi_bo": {
-                    "code": "CHURN_CUSTOMERS",
-                    "authority": KPIRegistry.get_kpi("CHURN_CUSTOMERS").authority if KPIRegistry.get_kpi("CHURN_CUSTOMERS") else "SSOT",
-                    "score": KPIScoringService.calculate_normalized_score("CHURN_CUSTOMERS", kh_roi_bo),
-                    "status": KPIScoringService.get_performance_status("CHURN_CUSTOMERS", KPIScoringService.calculate_normalized_score("CHURN_CUSTOMERS", kh_roi_bo)),
-                    "unit": "KH"
                 }
             }
         }
     }
-    
-    logger.info(f"DASHBOARD API SUCCESS: {current_month_str} | Scope: {scope_point_ids} | Results: {lifecycle_stats}")
-    # [GOVERNANCE] Prevent Browser Caching for Dashboard Data
-    from fastapi import Response
-    response_headers = {
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-        "Pragma": "no-cache",
-        "Expires": "0"
-    }
-    
     return response_data
+
 
 @router.get("/summary")
 # @cache_response(ttl_hours=24) # Tạm thời tắt để refresh số liệu SSOT
