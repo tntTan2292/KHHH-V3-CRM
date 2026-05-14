@@ -9,7 +9,7 @@ import {
 } from 'recharts';
 import {
   ArrowUpRight, Users, UserMinus, DollarSign, UploadCloud, DownloadCloud, Loader2,
-  Calendar, MapPin, TrendingUp, Info, UserPlus, X, BarChart3, Target, Sparkles, AlertCircle, RefreshCw, ArrowLeft, ChevronRight, Zap, Send
+  Calendar, MapPin, TrendingUp, Info, UserPlus, X, BarChart3, Target, Sparkles, AlertCircle, RefreshCw, ArrowLeft, ChevronRight, Zap, Send, Shield
 } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import TreeExplorer from '../components/TreeExplorer';
@@ -1526,7 +1526,8 @@ function Dashboard() {
               </div>
            </div>
         </div>
-      </div>
+
+
 
 
       {/* ELITE CUSTOMER PROFILE MODAL */}
