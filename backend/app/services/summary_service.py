@@ -8,6 +8,7 @@ import logging
 from .lifecycle_engine import LifecycleEngine
 from .vip_tier_engine import VIPTierEngine
 from .priority_engine import PriorityEngine
+from backend.app.models import CustomerMonthlySnapshot
 
 logger = logging.getLogger(__name__)
 
@@ -90,61 +91,79 @@ class SummaryService:
         last_day = py_calendar.monthrange(y, m)[1]
         end_date = f"{month_str}-{last_day} 23:59:59"
         
-        # Mốc thời gian cho Churn/Recovered (3 tháng)
-        t_minus_3_dt = datetime(y, m, 1) - dateutil.relativedelta.relativedelta(months=3)
-        t_minus_3_str = t_minus_3_dt.strftime('%Y-%m')
-
         print(f"  - Rebuilding {month_str} using Constitutional Logic...")
-        
-        print(f"    - Processing identified customers using LifecycleEngine...")
-        ident_results = LifecycleEngine.process_month_summary(month_str)
         
         print(f"    - Processing VIP Tiers using VIPTierEngine...")
         vip_results = VIPTierEngine.process_vip_month(month_str)
         vip_df = pd.DataFrame(vip_results) if vip_results else pd.DataFrame()
         
         print(f"    - Calculating Priority using PriorityEngine...")
+        # Snapshot-first lifecycle truth set
+        sql_snapshot = """
+        SELECT
+            ma_kh,
+            point_id,
+            lifecycle_state,
+            COALESCE(vip_tier, 'NORMAL') AS vip_tier,
+            COALESCE(rfm_segment, 'NORMAL') AS rfm_segment,
+            COALESCE(revenue, 0) AS revenue,
+            COALESCE(orders, 0) AS orders,
+            CASE WHEN is_new_transition = 1 THEN 1 ELSE 0 END AS is_new_transition,
+            CASE WHEN is_recovered_transition = 1 THEN 1 ELSE 0 END AS is_recovered_transition,
+            CASE WHEN is_churn_transition = 1 THEN 1 ELSE 0 END AS is_churn_transition
+        FROM customer_monthly_snapshots
+        WHERE year_month = ?
+        """
+        df_snap = pd.read_sql_query(sql_snapshot, conn, params=(month_str,))
+        ident_results = []
+        if not df_snap.empty:
+            ident_results = df_snap.to_dict('records')
+
         priority_results = PriorityEngine.process_priority_month(month_str, ident_results, vip_results)
         priority_df = pd.DataFrame(priority_results) if priority_results else pd.DataFrame()
 
         summary_data = []
 
-        if ident_results:
-            df_ident = pd.DataFrame(ident_results)
-            
+        if not df_snap.empty:
             # Merge with VIP and Priority data
             if not vip_df.empty:
-                df_ident = pd.merge(df_ident, vip_df[['ma_kh', 'vip_tier']], on='ma_kh', how='left')
-                df_ident['vip_tier'] = df_ident['vip_tier'].fillna('NORMAL')
+                df_snap = pd.merge(df_snap, vip_df[['ma_kh', 'vip_tier']], on='ma_kh', how='left')
+                df_snap['vip_tier'] = df_snap['vip_tier_y'].fillna(df_snap['vip_tier_x']).fillna('NORMAL') if 'vip_tier_x' in df_snap.columns else df_snap['vip_tier'].fillna('NORMAL')
+                for col in ['vip_tier_x', 'vip_tier_y']:
+                    if col in df_snap.columns:
+                        df_snap = df_snap.drop(columns=[col])
             else:
-                df_ident['vip_tier'] = 'NORMAL'
+                df_snap['vip_tier'] = df_snap['vip_tier'].fillna('NORMAL')
                 
             if not priority_df.empty:
-                df_ident = pd.merge(df_ident, priority_df[['ma_kh', 'priority_level']], on='ma_kh', how='left')
-                df_ident['priority_level'] = df_ident['priority_level'].fillna('LOW')
+                df_snap = pd.merge(df_snap, priority_df[['ma_kh', 'priority_level']], on='ma_kh', how='left')
+                df_snap['priority_level'] = df_snap['priority_level'].fillna('LOW')
             else:
-                df_ident['priority_level'] = 'LOW'
+                df_snap['priority_level'] = 'LOW'
 
-            # 1. AGGREGATE SNAPSHOT STATES
-            snapshot_agg = df_ident.groupby(['point_id', 'lifecycle_state', 'vip_tier', 'priority_level'], dropna=False).size().reset_index(name='count')
+            # 1. AGGREGATE SNAPSHOT STATES FROM SNAPSHOT SOURCE OF TRUTH
+            snapshot_agg = df_snap.groupby(['point_id', 'lifecycle_state', 'vip_tier', 'priority_level'], dropna=False).agg({
+                'revenue': 'sum',
+                'orders': 'sum',
+                'ma_kh': 'count'
+            }).reset_index()
+            snapshot_agg = snapshot_agg.rename(columns={'ma_kh': 'count'})
             for _, r in snapshot_agg.iterrows():
-                summary_data.append((month_str, int(r['point_id']), r['lifecycle_state'], None, r['vip_tier'], r['priority_level'], 'ALL', 'ALL', 0.0, 0, int(r['count'])))
+                summary_data.append((month_str, int(r['point_id']), r['lifecycle_state'], None, r['vip_tier'], r['priority_level'], 'ALL', 'ALL', float(r['revenue'] or 0.0), int(r['orders'] or 0), int(r['count'] or 0)))
             
-            # 2. AGGREGATE TRANSITION EVENTS
-            # NEW Transitions
-            new_agg = df_ident[df_ident['is_new_transition'] == True].groupby(['point_id', 'vip_tier', 'priority_level']).size().reset_index(name='count')
-            for _, r in new_agg.iterrows():
-                summary_data.append((month_str, int(r['point_id']), 'NEW_TRANSITION', None, r['vip_tier'], r['priority_level'], 'ALL', 'ALL', 0.0, 0, int(r['count'])))
-                
-            # RECOVERED Transitions
-            rec_agg = df_ident[df_ident['is_recovered_transition'] == True].groupby(['point_id', 'vip_tier', 'priority_level']).size().reset_index(name='count')
-            for _, r in rec_agg.iterrows():
-                summary_data.append((month_str, int(r['point_id']), 'RECOVERED_TRANSITION', None, r['vip_tier'], r['priority_level'], 'ALL', 'ALL', 0.0, 0, int(r['count'])))
-                
-            # CHURN Transitions
-            chu_agg = df_ident[df_ident['is_churn_transition'] == True].groupby(['point_id', 'vip_tier', 'priority_level']).size().reset_index(name='count')
-            for _, r in chu_agg.iterrows():
-                summary_data.append((month_str, int(r['point_id']), 'CHURN_TRANSITION', None, r['vip_tier'], r['priority_level'], 'ALL', 'ALL', 0.0, 0, int(r['count'])))
+            # 2. AGGREGATE TRANSITION EVENTS FROM SNAPSHOT FLAGS
+            event_agg = df_snap.groupby(['point_id', 'vip_tier', 'priority_level'], dropna=False).agg({
+                'is_new_transition': 'sum',
+                'is_recovered_transition': 'sum',
+                'is_churn_transition': 'sum'
+            }).reset_index()
+            for _, r in event_agg.iterrows():
+                if int(r['is_new_transition'] or 0) > 0:
+                    summary_data.append((month_str, int(r['point_id']), 'NEW_TRANSITION', None, r['vip_tier'], r['priority_level'], 'ALL', 'ALL', 0.0, 0, int(r['is_new_transition'] or 0)))
+                if int(r['is_recovered_transition'] or 0) > 0:
+                    summary_data.append((month_str, int(r['point_id']), 'RECOVERED_TRANSITION', None, r['vip_tier'], r['priority_level'], 'ALL', 'ALL', 0.0, 0, int(r['is_recovered_transition'] or 0)))
+                if int(r['is_churn_transition'] or 0) > 0:
+                    summary_data.append((month_str, int(r['point_id']), 'CHURN_TRANSITION', None, r['vip_tier'], r['priority_level'], 'ALL', 'ALL', 0.0, 0, int(r['is_churn_transition'] or 0)))
             
             # Tính doanh thu thực tế cho nhóm định danh
             sql_rev_ident = """
