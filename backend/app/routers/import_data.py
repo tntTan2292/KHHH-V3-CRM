@@ -15,6 +15,7 @@ from ..services.sftp_service import SFTPManager
 from ..services.rfm import compute_rfm
 from ..core.cache import CacheService
 from ..services.summary_service import SummaryService
+from ..core.maintenance import is_sync_locked
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,12 @@ import_status = {"running": False, "message": "Chưa khởi tạo", "done": Fals
 
 def do_import(db: Session, full_reset: bool = True, target_files: list = None):
     global import_status
+    
+    if is_sync_locked():
+        logger.warning("🚫 IMPORT BLOCKED: System is in Maintenance Mode (Phase 1).")
+        import_status = {"running": False, "message": "🚫 Hệ thống đang tạm khóa Import để bảo trì (Phase 1).", "done": False, "error": "MAINTENANCE_LOCK"}
+        return 0
+
     import_status = {"running": True, "message": "Đang chuẩn bị dữ liệu...", "done": False, "error": None}
     
     try:
@@ -226,6 +233,11 @@ async def sync_worker(db_in: Session, folders: list):
     # Tạo session mới riêng cho worker để tránh lỗi đóng session của FastAPI
     db = SessionLocal()
     try:
+        if is_sync_locked():
+            logger.warning("🚫 SYNC WORKER BLOCKED: System is in Maintenance Mode (Phase 1).")
+            import_status = {"running": False, "message": "🚫 Hệ thống đang tạm khóa Sync SFTP để bảo trì.", "done": False, "error": "MAINTENANCE_LOCK"}
+            return
+
         # 1. Kiểm tra danh sách cần nạp
         check = await check_sftp_sync(db)
         to_sync = folders or [g["folder"] for g in check.get("gaps", [])]

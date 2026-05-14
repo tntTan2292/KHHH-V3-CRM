@@ -11,6 +11,7 @@ from app.models import SyncLog, SyncAttempt
 from app.services.sftp_service import SFTPManager
 from app.routers.import_data import do_import
 from app.core.cache import CacheService
+from app.core.maintenance import is_sync_locked
 
 # Setup Logging
 logging.basicConfig(
@@ -24,6 +25,11 @@ logging.basicConfig(
 logger = logging.getLogger("AUTOMATE_SYNC")
 
 def run_sync():
+    if is_sync_locked():
+        logger.warning("🚫 AUTOMATE_SYNC BLOCKED: System is in Maintenance Mode (Phase 1).")
+        print("🚫 System is in Maintenance Mode (Phase 1). Sync is locked.")
+        return
+
     db = SessionLocal()
     expected_str = (datetime.now() - timedelta(days=1)).strftime("%Y%m%d")
     
