@@ -140,6 +140,7 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None):
 
         total_transactions = 0
         skipped_duplicates = 0
+        affected_months = set()
         from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
         for filepath in bf_files:
@@ -183,6 +184,10 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None):
                     "dich_vu_chinh": str(row.get("dich_vu_chinh", "")),
                 }
                 raw_records.append(record)
+                
+                # Track affected months for incremental summary
+                if record["ngay_chap_nhan"]:
+                    affected_months.add(str(record["ngay_chap_nhan"])[:7])
 
                 if len(raw_records) >= 2000:
                     # [ANTI-DUPLICATE GOVERNANCE]
@@ -215,10 +220,23 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None):
             GROUP BY t.ma_kh
         """))
         db.commit()
+        
+        # [OPTIMIZATION] Batch Update using SQLite UPDATE FROM (Performance Boost)
+        # 1. Create temporary aggregate to avoid repeated scanning of transactions
+        db.execute(text("CREATE TEMP TABLE temp_agg AS SELECT ma_kh, SUM(doanh_thu) as total FROM transactions WHERE ma_kh IS NOT NULL GROUP BY ma_kh"))
+        db.execute(text("CREATE INDEX temp_idx_ma_kh ON temp_agg(ma_kh)"))
+        
+        # 2. Update customers in a single pass (O(N) instead of O(N*M))
         db.execute(text("""
-            UPDATE customers SET tong_doanh_thu = (SELECT SUM(doanh_thu) FROM transactions WHERE transactions.ma_kh = customers.ma_crm_cms),
-            is_churn = CASE WHEN (SELECT SUM(doanh_thu) FROM transactions WHERE transactions.ma_kh = customers.ma_crm_cms) > 0 THEN 0 ELSE 1 END
+            UPDATE customers 
+            SET tong_doanh_thu = agg.total,
+                is_churn = CASE WHEN agg.total > 0 THEN 0 ELSE 1 END
+            FROM temp_agg AS agg
+            WHERE customers.ma_crm_cms = agg.ma_kh
         """))
+        
+        # 3. Cleanup
+        db.execute(text("DROP TABLE temp_agg"))
         db.commit()
         # RFM (Tối ưu nhẹ cho data lớn)
         all_customers = db.query(Customer).all()
@@ -231,7 +249,12 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None):
 
         # 4. [GOVERNANCE] Tự động cập nhật Summary & Sync Lifecycle (SSOT)
         import_status["message"] = "Đang tổng hợp dữ liệu KPI & Lifecycle..."
-        SummaryService.refresh_summary_incremental()
+        # [OPTIMIZATION] Incremental refresh only for affected months
+        target_months = sorted(list(affected_months))
+        if not target_months:
+             SummaryService.refresh_summary_incremental() # Fallback to default
+        else:
+             SummaryService.refresh_summary_incremental(target_months=target_months)
         
         import_status = {
             "running": False,

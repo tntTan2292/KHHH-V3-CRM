@@ -218,12 +218,10 @@ async def get_analytics_summary(
 ):
     logger.info(f"[DIAGNOSTIC-SUMMARY] start_date={start_date}, end_date={end_date}, node_code={node_code}")
     """ Endpoint hợp nhất: KPIs + Service Mix + Region Mix """
-    # Chạy song song các query độc lập để tối ưu thời gian phản hồi
-    stats_task = get_dashboard_stats(start_date=start_date, end_date=end_date, node_code=node_code, comparison_type=comparison_type, db=db, current_user=current_user)
-    services_task = get_revenue_by_service(start_date=start_date, end_date=end_date, node_code=node_code, db=db, current_user=current_user)
-    regions_task = get_revenue_by_region(start_date=start_date, end_date=end_date, node_code=node_code, db=db, current_user=current_user)
-    
-    stats, services, regions = await asyncio.gather(stats_task, services_task, regions_task)
+    # Chạy tuần tự các query (do dùng chung 1 Session DB không an toàn cho concurrency)
+    stats = await get_dashboard_stats(start_date=start_date, end_date=end_date, node_code=node_code, comparison_type=comparison_type, db=db, current_user=current_user)
+    services = await get_revenue_by_service(start_date=start_date, end_date=end_date, node_code=node_code, db=db, current_user=current_user)
+    regions = await get_revenue_by_region(start_date=start_date, end_date=end_date, node_code=node_code, db=db, current_user=current_user)
     
     # Lấy thông tin tháng gần nhất có dữ liệu
     latest_trans_raw = db.query(func.max(Transaction.ngay_chap_nhan)).scalar()

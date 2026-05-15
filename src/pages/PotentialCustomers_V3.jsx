@@ -33,6 +33,7 @@ import {
 import TreeExplorer from '../components/TreeExplorer';
 import CustomerHistoryModal from '../components/CustomerHistoryModal';
 import PotentialTransactionModal from '../components/PotentialTransactionModal';
+import Skeleton from '../components/Skeleton';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 import { saveDateContext, getDateContext } from '../utils/navigationMemory';
