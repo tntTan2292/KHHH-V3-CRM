@@ -13,11 +13,17 @@ const ChangePassword = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (newPassword !== confirmPassword) {
+    
+    // Trim values to avoid whitespace issues
+    const trimmedOld = oldPassword.trim();
+    const trimmedNew = newPassword.trim();
+    const trimmedConfirm = confirmPassword.trim();
+
+    if (trimmedNew !== trimmedConfirm) {
       toast.error('Mật khẩu xác nhận không khớp');
       return;
     }
-    if (newPassword.length < 8) {
+    if (trimmedNew.length < 8) {
         toast.error('Mật khẩu phải có ít nhất 8 ký tự');
         return;
     }
@@ -25,8 +31,8 @@ const ChangePassword = () => {
     setIsSubmitting(true);
     try {
       await api.post('/api/auth/change-password', {
-        old_password: oldPassword,
-        new_password: newPassword
+        old_password: trimmedOld,
+        new_password: trimmedNew
       });
       toast.success('Đổi mật khẩu thành công! Hãy đăng nhập lại bằng mật khẩu mới.');
       // Logout and redirect to login
@@ -56,11 +62,14 @@ const ChangePassword = () => {
 
             <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Mật khẩu hiện tại</label>
+                    <label htmlFor="old_password" size={18} className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Mật khẩu hiện tại</label>
                     <div className="relative">
                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
                         <input 
                             type="password"
+                            id="old_password"
+                            name="old_password"
+                            autoComplete="current-password"
                             required
                             className="w-full bg-black/30 border border-white/10 rounded-2xl py-3.5 pl-11 pr-4 text-white focus:ring-2 focus:ring-vnpost-orange/50 outline-none transition-all"
                             placeholder="Nhập mật khẩu cũ..."
@@ -71,11 +80,14 @@ const ChangePassword = () => {
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Mật khẩu mới (Chuẩn an toàn)</label>
+                    <label htmlFor="new_password" size={18} className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Mật khẩu mới (Chuẩn an toàn)</label>
                     <div className="relative">
                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
                         <input 
                             type="password"
+                            id="new_password"
+                            name="new_password"
+                            autoComplete="new-password"
                             required
                             className="w-full bg-black/30 border border-white/10 rounded-2xl py-3.5 pl-11 pr-4 text-white focus:ring-2 focus:ring-vnpost-orange/50 outline-none transition-all"
                             placeholder="Ít nhất 8 ký tự..."
@@ -86,11 +98,14 @@ const ChangePassword = () => {
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Xác nhận mật khẩu mới</label>
+                    <label htmlFor="confirm_password" size={18} className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Xác nhận mật khẩu mới</label>
                     <div className="relative">
                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
                         <input 
                             type="password"
+                            id="confirm_password"
+                            name="confirm_password"
+                            autoComplete="new-password"
                             required
                             className="w-full bg-black/30 border border-white/10 rounded-2xl py-3.5 pl-11 pr-4 text-white focus:ring-2 focus:ring-vnpost-orange/50 outline-none transition-all"
                             placeholder="Nhập lại mật khẩu mới..."
