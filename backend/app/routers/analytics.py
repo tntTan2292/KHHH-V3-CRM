@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func, text, case
+from sqlalchemy import func, text, case, and_
 from datetime import datetime, timedelta
+from functools import lru_cache
+import calendar
 
 from ..database import get_db
 from ..models import Customer, Transaction, SyncAttempt, SyncLog, HierarchyNode, MonthlyAnalyticsSummary, CustomerMonthlySnapshot
@@ -38,12 +40,18 @@ router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 from ..services.hierarchy_service import HierarchyService
 from ..services.summary_service import SummaryService
 
-def get_governed_comparison_periods(db, start_date, end_date, comparison_type="mom"):
+def get_governed_comparison_periods(db, start_date, end_date, comparison_type="mom", scope_ids=None):
     """
     [GOVERNANCE] Centralized Like-for-Like date calculation.
-    Enforces max_data_date capping for ALL widgets to ensure SSOT MoM alignment.
+    [ELITE 3.0] Scope-Aware Max Data Detection.
+    Enforces max_data_date capping for ALL widgets to ensure SSOT MoM/YoY alignment.
     """
-    max_data_date_raw = db.query(func.max(Transaction.ngay_chap_nhan)).scalar()
+    # [ELITE] Scope-specific max data date detection
+    q_max = db.query(func.max(Transaction.ngay_chap_nhan))
+    if scope_ids is not None:
+        q_max = q_max.filter(Transaction.point_id.in_(scope_ids))
+    
+    max_data_date_raw = q_max.scalar()
     max_data_date = parse_db_date(max_data_date_raw)
     
     if not start_date or not end_date:
@@ -65,6 +73,48 @@ def get_governed_comparison_periods(db, start_date, end_date, comparison_type="m
         prev_end = curr_end - dateutil.relativedelta.relativedelta(months=1)
         
     return curr_start, curr_end, prev_start, prev_end, max_data_date
+
+def get_revenue_for_range_governed(db, start_dt, end_dt, scope_ids, use_summary=True):
+    """
+    [ELITE ENGINE] Unified Comparator Source Selector.
+    - If Month is COMPLETE (Historical) -> Use MonthlyAnalyticsSummary (Fast).
+    - If Month is PARTIAL (Current) -> Use Bounded Transaction (SSOT/Safe).
+    """
+    month_str = start_dt.strftime("%Y-%m")
+    
+    # 1. Scope-specific max date detection for partial check
+    q_max = db.query(func.max(Transaction.ngay_chap_nhan))
+    if scope_ids is not None:
+        q_max = q_max.filter(Transaction.point_id.in_(scope_ids))
+    max_dt = parse_db_date(q_max.scalar())
+    
+    if not max_dt: return 0.0
+    
+    last_day = calendar.monthrange(start_dt.year, start_dt.month)[1]
+    is_full_month_requested = (start_dt.day == 1 and end_dt.day == last_day)
+    
+    # Month is complete if it's strictly before current max_dt month 
+    # OR if it's the current month and data has reached the last day.
+    is_complete = (month_str < max_dt.strftime("%Y-%m")) or (is_full_month_requested and max_dt.day == last_day)
+
+    if use_summary and is_complete and is_full_month_requested:
+        # Tầng Analytical Layer (Fast)
+        q = db.query(func.sum(MonthlyAnalyticsSummary.revenue)).filter(
+            MonthlyAnalyticsSummary.year_month == month_str,
+            MonthlyAnalyticsSummary.ma_dv == 'ALL'
+        )
+        if scope_ids is not None:
+            q = q.filter(MonthlyAnalyticsSummary.point_id.in_(scope_ids))
+        return float(q.scalar() or 0.0)
+    else:
+        # Tầng SSOT Layer (Bounded Transaction - Verified Index-Optimal)
+        q = db.query(func.sum(Transaction.doanh_thu)).filter(
+            Transaction.ngay_chap_nhan >= start_dt.strftime("%Y-%m-%d"),
+            Transaction.ngay_chap_nhan <= f"{end_dt.strftime('%Y-%m-%d')} 23:59:59"
+        )
+        if scope_ids is not None:
+            q = q.filter(Transaction.point_id.in_(scope_ids))
+        return float(q.scalar() or 0.0)
 
 @router.post("/refresh-summary")
 async def trigger_summary_refresh(
@@ -100,7 +150,7 @@ async def get_dashboard_stats(
         }
         
     # 2. Xác định dải thời gian được quản trị (Governed Temporal Range)
-    curr_start, curr_end, prev_start, prev_end, max_data_date = get_governed_comparison_periods(db, start_date, end_date, comparison_type)
+    curr_start, curr_end, prev_start, prev_end, max_data_date = get_governed_comparison_periods(db, start_date, end_date, comparison_type, scope_point_ids)
     
     governed_start = curr_start.strftime("%Y-%m-%d")
     governed_end = curr_end.strftime("%Y-%m-%d")
@@ -109,18 +159,9 @@ async def get_dashboard_stats(
     month_str = governed_start[:7]
     current_month_str = max_data_date.strftime("%Y-%m")
 
-    # 3. FETCH REVENUE KPI (GOVERNANCE RULE 1: Total Revenue -> Transaction)
-    def get_rev_for_range(start_str, end_str, s_ids):
-        q = db.query(func.sum(Transaction.doanh_thu)).filter(
-            Transaction.ngay_chap_nhan >= start_str,
-            Transaction.ngay_chap_nhan <= f"{end_str} 23:59:59"
-        )
-        if s_ids is not None:
-            q = q.filter(Transaction.point_id.in_(s_ids))
-        return q.scalar() or 0.0
-
-    latest_val = get_rev_for_range(governed_start, governed_end, scope_point_ids)
-    prev_val = get_rev_for_range(prev_start_str, prev_end_str, scope_point_ids)
+    # 3. FETCH REVENUE KPI (GOVERNANCE RULE 1: Total Revenue -> Bounded Source Selector)
+    latest_val = get_revenue_for_range_governed(db, curr_start, curr_end, scope_point_ids)
+    prev_val = get_revenue_for_range_governed(db, prev_start, prev_end, scope_point_ids)
     rev_growth = ((latest_val - prev_val) / prev_val * 100) if prev_val > 0 else 0
     
     # 4. FETCH LIFECYCLE POPULATIONS (GOVERNANCE: Derived from LifecycleService)
@@ -167,8 +208,7 @@ async def get_dashboard_stats(
     for tag, cust in summary_res.group_by(MonthlyAnalyticsSummary.growth_tag).all():
         if tag in growth_stats: growth_stats[tag] = cust or 0
 
-    latest_date_raw = db.query(func.max(Transaction.ngay_chap_nhan)).scalar()
-    latest_date_str = str(latest_date_raw).split('.')[0] if latest_date_raw else None
+    latest_date_str = max_data_date.strftime("%Y-%m-%d %H:%M:%S") if max_data_date else None
 
     response_data = {
         "tong_doanh_thu": latest_val,
@@ -352,23 +392,31 @@ async def get_revenue_monthly(
     start_month_str = months_range[0]
     max_month_str = months_range[-1]
 
-    # 3. Query dữ liệu (GOVERNANCE: Pull from Transaction for Realtime Trend)
-    query = db.query(
-        func.strftime('%Y-%m', Transaction.ngay_chap_nhan).label("month"),
-        func.sum(Transaction.doanh_thu).label("total")
-    ).filter(
-        Transaction.ngay_chap_nhan >= f"{start_month_str}-01",
-        Transaction.ngay_chap_nhan <= f"{max_month_str}-31 23:59:59"
-    )
-    
-    if scope_ids is not None:
-        query = query.filter(Transaction.point_id.in_(scope_ids))
+    # 3. Query dữ liệu (GOVERNANCE: Smart Source Selection)
+    results = []
+    for m in months_range:
+        m_start = datetime.strptime(m, "%Y-%m")
+        last_day = calendar.monthrange(m_start.year, m_start.month)[1]
+        m_end = m_start.replace(day=last_day)
         
-    stats = query.group_by("month").all()
-    
-    # Mapping kết quả vào dải tháng (Điền 0 nếu khuyết dữ liệu)
-    data_map = {r[0]: (r[1] or 0) for r in stats}
-    return [{"month": m, "total": data_map.get(m, 0)} for m in months_range]
+        # Use governed engine to get total and LfL growth
+        total = get_revenue_for_range_governed(db, m_start, m_end, scope_ids)
+        
+        # Calculate LfL growth for the latest month point
+        growth_lfl = 0
+        if m == max_month_str:
+            # Special Like-for-Like calculation for the last point
+            curr_s, curr_e, prev_s, prev_e, _ = get_governed_comparison_periods(db, f"{m}-01", m_end.strftime("%Y-%m-%d"), "mom", scope_ids)
+            latest_v = get_revenue_for_range_governed(db, curr_s, curr_e, scope_ids, use_summary=False)
+            prev_v = get_revenue_for_range_governed(db, prev_s, prev_e, scope_ids, use_summary=False)
+            growth_lfl = round(((latest_v - prev_v) / prev_v * 100), 1) if prev_v > 0 else 0
+            
+        results.append({
+            "month": m, 
+            "total": total,
+            "growth_lfl": growth_lfl if m == max_month_str else None # Only last point for now to avoid overhead
+        })
+    return results
 
 @router.get("/revenue-by-service")
 # @cache_response(ttl_hours=12)
@@ -482,38 +530,45 @@ async def get_top_movers(
             "period": {"current": {"start": "", "end": ""}, "previous": {"start": "", "end": ""}}
         }
 
-    # [GOVERNANCE] Summary-First Boundary Check
-    # Top Movers is a heavy operation. We ONLY allow it if the month has been summarized.
-    month_str = curr_start.strftime("%Y-%m")
-    summary_exists = db.query(MonthlyAnalyticsSummary).filter(MonthlyAnalyticsSummary.year_month == month_str).first() is not None
-    if not summary_exists:
-        logger.error(f"Governance Block: Top Movers refused for un-summarized month {month_str}")
-        return {
-            "summary": {"revenue": {"current": 0, "previous": 0}, "volume": {"current": 0, "previous": 0}, "services": []},
-            "movers": {"gainers": [], "losers": []},
-            "period": {"current": {"start": "", "end": ""}, "previous": {"start": "", "end": ""}},
-            "governance_alert": "Data pending summary. Please run maintenance."
-        }
+    # 2 & 3. Query Doanh thu kỳ hiện tại và kỳ trước (GOVERNANCE: Smart Source Selector)
+    async def get_period_data(start_dt, end_dt, ids):
+        month_str = start_dt.strftime("%Y-%m")
+        # Check if partial month for this scope
+        q_max = db.query(func.max(Transaction.ngay_chap_nhan))
+        if ids: q_max = q_max.filter(Transaction.point_id.in_(ids))
+        max_dt = parse_db_date(q_max.scalar())
+        
+        last_day = calendar.monthrange(start_dt.year, start_dt.month)[1]
+        is_partial = not max_dt or max_dt < end_dt.replace(hour=23, minute=59, second=59) or end_dt.day < last_day
 
-    # 2 & 3. Query Doanh thu kỳ hiện tại và kỳ trước (GOVERNANCE: Pull from CustomerMonthlySnapshot)
-    async def get_period_data(month_str, ids):
-        q = db.query(
-            CustomerMonthlySnapshot.ma_kh, 
-            func.sum(CustomerMonthlySnapshot.revenue).label("val")
-        ).filter(
-            CustomerMonthlySnapshot.year_month == month_str,
-            CustomerMonthlySnapshot.ma_kh != None,
-            CustomerMonthlySnapshot.ma_kh != ''
-        )
-        if ids:
-            q = q.filter(CustomerMonthlySnapshot.point_id.in_(ids))
-        return q.group_by(CustomerMonthlySnapshot.ma_kh).all()
+        if not is_partial and start_dt.day == 1 and end_dt.day == last_day:
+            # Tầng Analytical Layer (Fast)
+            q = db.query(
+                CustomerMonthlySnapshot.ma_kh, 
+                func.sum(CustomerMonthlySnapshot.revenue).label("val")
+            ).filter(
+                CustomerMonthlySnapshot.year_month == month_str,
+                CustomerMonthlySnapshot.ma_kh != None,
+                CustomerMonthlySnapshot.ma_kh != ''
+            )
+            if ids: q = q.filter(CustomerMonthlySnapshot.point_id.in_(ids))
+            return q.group_by(CustomerMonthlySnapshot.ma_kh).all()
+        else:
+            # Tầng SSOT Layer (Bounded/Realtime)
+            q = db.query(
+                Transaction.ma_kh,
+                func.sum(Transaction.doanh_thu).label("val")
+            ).filter(
+                Transaction.ngay_chap_nhan >= start_dt.strftime("%Y-%m-%d"),
+                Transaction.ngay_chap_nhan <= f"{end_dt.strftime('%Y-%m-%d')} 23:59:59",
+                Transaction.ma_kh != None,
+                Transaction.ma_kh != ''
+            )
+            if ids: q = q.filter(Transaction.point_id.in_(ids))
+            return q.group_by(Transaction.ma_kh).all()
 
-    curr_month_str = curr_start.strftime("%Y-%m")
-    prev_month_str = prev_start.strftime("%Y-%m")
-
-    curr_task = get_period_data(curr_month_str, scope_ids)
-    prev_task = get_period_data(prev_month_str, scope_ids)
+    curr_task = get_period_data(curr_start, curr_end, scope_ids)
+    prev_task = get_period_data(prev_start, prev_end, scope_ids)
     
     curr_results, prev_results = await asyncio.gather(curr_task, prev_task)
     prev_data = {r[0]: (r[1] or 0) for r in prev_results if r[0]}
@@ -561,26 +616,44 @@ async def get_top_movers(
                 "diff": -prev_val
             })
 
-    # 5. Phân tích TỔNG THỂ (MoM Summary by Service) - (GOVERNANCE: Pull from MonthlyAnalyticsSummary)
-    async def get_service_stats(month_str, ids):
-        q = db.query(
-            MonthlyAnalyticsSummary.ma_dv,
-            func.sum(MonthlyAnalyticsSummary.total_revenue).label("rev"),
-            func.sum(MonthlyAnalyticsSummary.total_orders).label("vol")
-        ).filter(MonthlyAnalyticsSummary.year_month == month_str)
+    # 5. Phân tích TỔNG THỂ (MoM/YoY Summary by Service) - (GOVERNANCE: Bounded Engine)
+    async def get_service_stats(start_dt, end_dt, ids):
+        month_str = start_dt.strftime("%Y-%m")
+        # Check if partial month for this scope
+        q_max = db.query(func.max(Transaction.ngay_chap_nhan))
+        if ids: q_max = q_max.filter(Transaction.point_id.in_(ids))
+        max_dt = parse_db_date(q_max.scalar())
         
-        if ids:
-            q = q.filter(MonthlyAnalyticsSummary.point_id.in_(ids))
+        last_day = calendar.monthrange(start_dt.year, start_dt.month)[1]
+        is_partial = not max_dt or max_dt < end_dt.replace(hour=23, minute=59, second=59) or end_dt.day < last_day
+
+        if not is_partial and start_dt.day == 1 and end_dt.day == last_day:
+            # Tầng Analytical Layer (Fast)
+            q = db.query(
+                MonthlyAnalyticsSummary.ma_dv,
+                func.sum(MonthlyAnalyticsSummary.total_revenue).label("rev"),
+                func.sum(MonthlyAnalyticsSummary.total_orders).label("vol")
+            ).filter(MonthlyAnalyticsSummary.year_month == month_str)
+            if ids: q = q.filter(MonthlyAnalyticsSummary.point_id.in_(ids))
+            raw = q.group_by(MonthlyAnalyticsSummary.ma_dv).all()
+        else:
+            # Tầng SSOT Layer (Bounded/Realtime)
+            q = db.query(
+                Transaction.ma_dv,
+                func.sum(Transaction.doanh_thu).label("rev"),
+                func.count(Transaction.id).label("vol")
+            ).filter(
+                Transaction.ngay_chap_nhan >= start_dt.strftime("%Y-%m-%d"),
+                Transaction.ngay_chap_nhan <= f"{end_dt.strftime('%Y-%m-%d')} 23:59:59"
+            )
+            if ids: q = q.filter(Transaction.point_id.in_(ids))
+            raw = q.group_by(Transaction.ma_dv).all()
             
-        raw = q.group_by(MonthlyAnalyticsSummary.ma_dv).all()
-        
         svc_map = {"EMS": {"rev": 0, "vol": 0}, "Bưu kiện": {"rev": 0, "vol": 0}, 
                    "KT1": {"rev": 0, "vol": 0}, "BĐBD": {"rev": 0, "vol": 0}, 
                    "Quốc tế": {"rev": 0, "vol": 0}, "Khác": {"rev": 0, "vol": 0}}
         
-        service_id_map = {
-            'E': 'EMS', 'C': 'Bưu kiện', 'M': 'KT1', 'R': 'BĐBD', 'L': 'Quốc tế'
-        }
+        service_id_map = {'E': 'EMS', 'C': 'Bưu kiện', 'M': 'KT1', 'R': 'BĐBD', 'L': 'Quốc tế'}
         
         for ma_dv, rev, vol in raw:
             s_key = service_id_map.get(ma_dv, "Khác")
@@ -589,8 +662,8 @@ async def get_top_movers(
             
         return svc_map
 
-    curr_svc_task = get_service_stats(curr_month_str, scope_ids)
-    prev_svc_task = get_service_stats(prev_month_str, scope_ids)
+    curr_svc_task = get_service_stats(curr_start, curr_end, scope_ids)
+    prev_svc_task = get_service_stats(prev_start, prev_end, scope_ids)
     
     curr_svc, prev_svc = await asyncio.gather(curr_svc_task, prev_svc_task)
     
@@ -805,26 +878,17 @@ async def get_churn_prediction_alerts(
 ):
     """Phát hiện khách hàng có dấu hiệu rời bỏ sớm"""
     
-    # Xác định phạm vi dữ liệu hiệu lực (Elite RBAC 3.0)
+    # 1. Xác định phạm vi dữ liệu hiệu lực (Elite RBAC 3.0)
     scope_ids = ScopingService.get_effective_scope_ids(db, current_user, node_code)
     if scope_ids is not None and not scope_ids: return []
     
-    if not end_date:
-        max_date = parse_db_date(db.query(func.max(Transaction.ngay_chap_nhan)).scalar())
-        if not max_date: return []
-    else:
-        max_date = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
-    
+    # 2. Xác định dải thời gian được quản trị (GOVERNANCE: Unified Logic)
+    curr_start, curr_end, prev_start, prev_end, max_date = get_governed_comparison_periods(
+        db, None, end_date, "mom", scope_ids
+    )
+    if not max_date: return []
 
-    # 1. Tháng hiện tại
-    curr_start = max_date.replace(day=1)
-    curr_end = max_date
-
-    # 2. Tháng trước
-    prev_start = curr_start - dateutil.relativedelta.relativedelta(months=1)
-    prev_end = curr_end - dateutil.relativedelta.relativedelta(months=1)
-    
-    # Subqueries
+    # Subqueries (Bounded SSOT)
     curr_q = db.query(Transaction.ma_kh, func.sum(Transaction.doanh_thu).label("rev"))\
                .filter(Transaction.ngay_chap_nhan.between(curr_start, curr_end))
     

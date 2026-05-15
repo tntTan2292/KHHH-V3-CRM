@@ -1352,7 +1352,12 @@ function Dashboard() {
                 const curr = d.total || d.value || 0;
                 if (i === 0) return { ...d, total: curr, growth: 0 };
                 const prev = arr[i-1].total || arr[i-1].value || 1;
-                const growth = ((curr - prev) / prev) * 100;
+                
+                // [GOVERNANCE] Use backend-calculated LfL growth for partial months if available
+                const growth = (d.growth_lfl !== null && d.growth_lfl !== undefined && d.growth_lfl !== 0) 
+                  ? d.growth_lfl 
+                  : ((curr - prev) / prev) * 100;
+                  
                 return { ...d, total: curr, growth: isFinite(growth) ? parseFloat(growth.toFixed(1)) : 0 };
               });
               
