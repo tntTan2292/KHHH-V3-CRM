@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
+from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 from datetime import timedelta, datetime
 from jose import jwt, JWTError
@@ -32,7 +33,8 @@ async def get_name(username: str, db: Session = Depends(get_db)):
 @router.post("/login")
 async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     print(f"DEBUG: Login attempt for username: '{form_data.username}'")
-    user = db.query(User).filter(User.username == form_data.username).first()
+    normalized_username = form_data.username.strip().lower()
+    user = db.query(User).filter(func.lower(User.username) == normalized_username).first()
     
     if not user:
         print(f"DEBUG: User '{form_data.username}' not found in DB")
