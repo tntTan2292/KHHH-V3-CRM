@@ -392,30 +392,76 @@ async def get_revenue_monthly(
     start_month_str = months_range[0]
     max_month_str = months_range[-1]
 
-    # 3. Query dữ liệu (GOVERNANCE: Smart Source Selection)
-    results = []
+    # 3. Query dữ liệu (GOVERNANCE: Elite Bulk Source Selection)
+    # 3.1 Phát hiện Max Date một lần duy nhất cho toàn bộ dải
+    q_max = db.query(func.max(Transaction.ngay_chap_nhan))
+    if scope_ids is not None:
+        q_max = q_max.filter(Transaction.point_id.in_(scope_ids))
+    max_dt = parse_db_date(q_max.scalar())
+    
+    if not max_dt:
+        return [{"month": m, "total": 0, "growth_lfl": 0} for m in months_range]
+
+    # 3.2 Phân loại dải tháng: Complete vs Partial
+    complete_months = []
+    partial_months = []
+    
     for m in months_range:
         m_start = datetime.strptime(m, "%Y-%m")
         last_day = calendar.monthrange(m_start.year, m_start.month)[1]
         m_end = m_start.replace(day=last_day)
         
-        # Use governed engine to get total and LfL growth
-        total = get_revenue_for_range_governed(db, m_start, m_end, scope_ids)
+        is_complete = (m < max_dt.strftime("%Y-%m")) or (max_dt.day == last_day)
+        if is_complete:
+            complete_months.append(m)
+        else:
+            partial_months.append(m)
+
+    # 3.3 Fetch dữ liệu Summary hàng loạt (Analytical Layer)
+    summary_data = {}
+    if complete_months:
+        q_sum = db.query(
+            MonthlyAnalyticsSummary.year_month,
+            func.sum(MonthlyAnalyticsSummary.revenue)
+        ).filter(
+            MonthlyAnalyticsSummary.year_month.in_(complete_months),
+            MonthlyAnalyticsSummary.ma_dv == 'ALL'
+        )
+        if scope_ids is not None:
+            q_sum = q_sum.filter(MonthlyAnalyticsSummary.point_id.in_(scope_ids))
         
-        # Calculate LfL growth for the latest month point
-        growth_lfl = 0
-        if m == max_month_str:
-            # Special Like-for-Like calculation for the last point
-            curr_s, curr_e, prev_s, prev_e, _ = get_governed_comparison_periods(db, f"{m}-01", m_end.strftime("%Y-%m-%d"), "mom", scope_ids)
-            latest_v = get_revenue_for_range_governed(db, curr_s, curr_e, scope_ids, use_summary=False)
-            prev_v = get_revenue_for_range_governed(db, prev_s, prev_e, scope_ids, use_summary=False)
-            growth_lfl = round(((latest_v - prev_v) / prev_v * 100), 1) if prev_v > 0 else 0
+        raw_sum = q_sum.group_by(MonthlyAnalyticsSummary.year_month).all()
+        summary_data = {r[0]: float(r[1] or 0) for r in raw_sum}
+
+    # 3.4 Duyệt và đóng gói kết quả
+    results = []
+    for m in months_range:
+        total = 0
+        growth_lfl = None
+        
+        if m in summary_data:
+            total = summary_data[m]
+        else:
+            # Xử lý các tháng Partial hoặc chưa có summary (SSOT Layer)
+            m_start = datetime.strptime(m, "%Y-%m")
+            last_day = calendar.monthrange(m_start.year, m_start.month)[1]
+            m_end = min(m_start.replace(day=last_day), max_dt.replace(hour=23, minute=59, second=59))
             
+            total = get_revenue_for_range_governed(db, m_start, m_end, scope_ids, use_summary=False)
+            
+            # Tính LfL cho điểm cuối cùng nếu là Partial
+            if m == max_month_str:
+                curr_s, curr_e, prev_s, prev_e, _ = get_governed_comparison_periods(db, f"{m}-01", m_end.strftime("%Y-%m-%d"), "mom", scope_ids)
+                latest_v = get_revenue_for_range_governed(db, curr_s, curr_e, scope_ids, use_summary=False)
+                prev_v = get_revenue_for_range_governed(db, prev_s, prev_e, scope_ids, use_summary=False)
+                growth_lfl = round(((latest_v - prev_v) / prev_v * 100), 1) if prev_v > 0 else 0
+        
         results.append({
-            "month": m, 
+            "month": m,
             "total": total,
-            "growth_lfl": growth_lfl if m == max_month_str else None # Only last point for now to avoid overhead
+            "growth_lfl": growth_lfl
         })
+        
     return results
 
 @router.get("/revenue-by-service")

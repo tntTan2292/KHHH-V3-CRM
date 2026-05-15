@@ -1345,18 +1345,31 @@ function Dashboard() {
               }
               
               console.log("[DEBUG CHART] API raw data:", monthlyDataRes);
-              console.log("[DEBUG CHART] API months:", monthlyDataRes.map(x => x.month));
+              
+              if (!Array.isArray(monthlyDataRes)) {
+                console.error("[ERROR CHART] API returned non-array data:", monthlyDataRes);
+                return (
+                  <div className="flex flex-col h-full">
+                    <h3 className="text-xs font-bold text-gray-800 mb-2 flex justify-between items-center border-b border-gray-50 pb-2">
+                      <span className="flex items-center gap-2"><BarChart3 size={14} className="text-vnpost-orange" /> Hiệu Suất & Tốc Độ Tăng Trưởng</span>
+                    </h3>
+                    <div className="flex-1 flex items-center justify-center text-red-400 italic text-xs uppercase font-black tracking-widest">Dữ liệu biểu đồ không hợp lệ.</div>
+                  </div>
+                );
+              }
+
+              console.log("[DEBUG CHART] API months:", monthlyDataRes.map(x => x?.month));
               console.log("[DEBUG CHART] API length:", monthlyDataRes.length);
 
               const chartDataRaw = monthlyDataRes.slice(-14).map((d, i, arr) => {
-                const curr = d.total || d.value || 0;
+                const curr = d?.total || d?.value || 0;
                 if (i === 0) return { ...d, total: curr, growth: 0 };
-                const prev = arr[i-1].total || arr[i-1].value || 1;
+                const prev = arr[i-1]?.total || arr[i-1]?.value || 1;
                 
                 // [GOVERNANCE] Use backend-calculated LfL growth for partial months if available
-                const growth = (d.growth_lfl !== null && d.growth_lfl !== undefined && d.growth_lfl !== 0) 
+                const growth = (d?.growth_lfl !== null && d?.growth_lfl !== undefined) 
                   ? d.growth_lfl 
-                  : ((curr - prev) / prev) * 100;
+                  : ((curr - prev) / (prev || 1)) * 100;
                   
                 return { ...d, total: curr, growth: isFinite(growth) ? parseFloat(growth.toFixed(1)) : 0 };
               });
