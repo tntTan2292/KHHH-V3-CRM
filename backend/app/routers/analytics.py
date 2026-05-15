@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func, text
+from sqlalchemy import func, text, case
 from datetime import datetime, timedelta
 
 from ..database import get_db
@@ -429,16 +429,21 @@ async def get_revenue_by_region(
     # 2. Xác định dải thời gian (GOVERNANCE: Pull from Transaction for Realtime Region Mix)
     curr_start, curr_end, _, _, _ = get_governed_comparison_periods(db, start_date, end_date)
 
-    # Ưu tiên lấy từ bảng Transaction
+    # Ưu tiên lấy từ bảng Transaction (SSOT Realtime)
+    # [GOVERNANCE] Map từ lien_tinh_noi_tinh và trong_nuoc_quoc_te
     query = db.query(
-        Transaction.region_type, 
+        case(
+            (Transaction.trong_nuoc_quoc_te == "Quốc tế", "Quốc tế"),
+            (Transaction.lien_tinh_noi_tinh == "Nội tỉnh", "Nội tỉnh"),
+            else_="Liên tỉnh"
+        ).label("region"),
         func.sum(Transaction.doanh_thu).label("total")
     ).filter(Transaction.ngay_chap_nhan.between(curr_start, curr_end))
     
     if scope_ids is not None:
         query = query.filter(Transaction.point_id.in_(scope_ids))
         
-    stats = query.group_by(Transaction.region_type).all()
+    stats = query.group_by(text("region")).all()
         
     result = { "Nội tỉnh": 0, "Liên tỉnh": 0, "Quốc tế": 0 }
     
