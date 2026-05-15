@@ -99,7 +99,7 @@ def get_revenue_for_range_governed(db, start_dt, end_dt, scope_ids, use_summary=
 
     if use_summary and is_complete and is_full_month_requested:
         # Tầng Analytical Layer (Fast)
-        q = db.query(func.sum(MonthlyAnalyticsSummary.revenue)).filter(
+        q = db.query(func.sum(MonthlyAnalyticsSummary.total_revenue)).filter(
             MonthlyAnalyticsSummary.year_month == month_str,
             MonthlyAnalyticsSummary.ma_dv == 'ALL'
         )
@@ -422,7 +422,7 @@ async def get_revenue_monthly(
     if complete_months:
         q_sum = db.query(
             MonthlyAnalyticsSummary.year_month,
-            func.sum(MonthlyAnalyticsSummary.revenue)
+            func.sum(MonthlyAnalyticsSummary.total_revenue)
         ).filter(
             MonthlyAnalyticsSummary.year_month.in_(complete_months),
             MonthlyAnalyticsSummary.ma_dv == 'ALL'
