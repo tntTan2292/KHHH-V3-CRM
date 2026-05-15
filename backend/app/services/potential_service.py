@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, case
 import re
 from datetime import datetime
 from ..database import get_db
@@ -43,44 +43,37 @@ class PotentialService:
                 except:
                     return None
 
-        # 2. Default date logic
-        if not start_date or not end_date:
-            latest_date_raw = db.query(func.max(Transaction.ngay_chap_nhan)).scalar()
-            if latest_date_raw:
-                latest_dt = parse_db_date(latest_date_raw)
-                if latest_dt:
-                    import calendar
-                    year, month = latest_dt.year, latest_dt.month
-                    last_day = calendar.monthrange(year, month)[1]
-                    if not start_date: start_date = f"{year}-{month:02d}-01"
-                    if not end_date: end_date = f"{year}-{month:02d}-{last_day:02d}"
-
-        applied_dates = {"start": start_date, "end": end_date}
+        # 2. Xác định mốc thời gian (CONSTITUTIONAL UNIFIED COMPARATOR)
+        from ..routers.analytics import get_governed_comparison_periods
+        curr_start, curr_end, prev_start, prev_end, _ = get_governed_comparison_periods(db, start_date, end_date, "mom")
+        
+        applied_dates = {"start": curr_start.strftime("%Y-%m-%d"), "end": curr_end.strftime("%Y-%m-%d")}
 
         # 3. Base Query
         scope_ids = ScopingService.get_effective_scope_ids(db, current_user, node_code)
         if scope_ids is not None and not scope_ids:
              return [], 0, {"Kim Cương": 0, "Vàng": 0, "Bạc": 0, "Thường": 0, "Tất cả": 0}, applied_dates
 
+        # 3. Base Query (Conditional Aggregation for MoM - Bounded SSOT)
         query = db.query(
             Transaction.ten_nguoi_gui.label('raw_name'),
             Transaction.dia_chi_nguoi_gui.label('raw_address'),
             Transaction.ma_dv_chap_nhan.label('ma_bc'),
-            func.count(Transaction.id).label('tong_so_don'),
-            func.sum(Transaction.doanh_thu).label("tong_doanh_thu"),
-            func.count(func.distinct(func.date(Transaction.ngay_chap_nhan))).label("so_ngay_gui"),
+            # Current Period Metrics
+            func.count(case((Transaction.ngay_chap_nhan.between(curr_start, curr_end), Transaction.id))).label('tong_so_don'),
+            func.sum(case((Transaction.ngay_chap_nhan.between(curr_start, curr_end), Transaction.doanh_thu), else_=0)).label("tong_doanh_thu"),
+            func.count(func.distinct(case((Transaction.ngay_chap_nhan.between(curr_start, curr_end), func.date(Transaction.ngay_chap_nhan))))).label("so_ngay_gui"),
+            # Previous Period Metrics (Like-for-Like)
+            func.sum(case((Transaction.ngay_chap_nhan.between(prev_start, prev_end), Transaction.doanh_thu), else_=0)).label("prev_doanh_thu"),
+            # Absolute helpers
             func.max(Transaction.ngay_chap_nhan).label("ngay_gan_nhat")
         ).filter(
-            (Transaction.ma_kh == '') | (Transaction.ma_kh == None)
+            (Transaction.ma_kh == '') | (Transaction.ma_kh == None),
+            Transaction.ngay_chap_nhan >= prev_start # Filter broad to include both ranges
         )
         
         if scope_ids is not None:
             query = query.filter(Transaction.point_id.in_(scope_ids))
-        
-        if start_date:
-            query = query.filter(Transaction.ngay_chap_nhan >= start_date)
-        if end_date:
-            query = query.filter(Transaction.ngay_chap_nhan <= f"{end_date} 23:59:59")
             
         grouped_results = query.group_by(Transaction.ten_nguoi_gui, Transaction.dia_chi_nguoi_gui, Transaction.ma_dv_chap_nhan).all()
         
@@ -125,6 +118,7 @@ class PotentialService:
             cg = canonical_groups[group_key]
             cg["tong_so_don"] += (r.tong_so_don or 0)
             cg["tong_doanh_thu"] += (r.tong_doanh_thu or 0.0)
+            cg["prev_doanh_thu"] = cg.get("prev_doanh_thu", 0.0) + (r.prev_doanh_thu or 0.0)
             cg["so_ngay_gui"] += (r.so_ngay_gui or 0)
             
             # Lưu vết tên và địa chỉ phổ biến nhất
@@ -173,6 +167,11 @@ class PotentialService:
                 addr_parts = [p.strip() for p in cg["display_address"].split(',')]
                 short_address = ", ".join(addr_parts[-2:]) if len(addr_parts) >= 2 else cg["display_address"]
 
+                # Calculate Growth
+                curr_rev = cg["tong_doanh_thu"]
+                prev_rev = cg.get("prev_doanh_thu", 0.0)
+                growth = round(((curr_rev - prev_rev) / prev_rev * 100), 1) if prev_rev > 0 else 0.0
+
                 result_all.append({
                     "ten_kh": cg["display_name"],
                     "dia_chi_rut_gon": short_address,
@@ -182,6 +181,7 @@ class PotentialService:
                     "so_ngay_gui": cg["so_ngay_gui"],
                     "tong_so_don": cg["tong_so_don"],
                     "tong_doanh_thu": cg["tong_doanh_thu"],
+                    "growth_velocity": growth,
                     "ngay_gan_nhat": cg["ngay_gan_nhat"].strftime("%Y-%m-%d %H:%M:%S") if cg["ngay_gan_nhat"] else "N/A",
                     "rfm_segment": segment
                 })

@@ -94,6 +94,10 @@ def export_customers_excel(
                 "churned": "Khách hàng mất",
             }
             lifecycle_label = lifecycle_label_map.get(status_key, status_key)
+            curr_rev = float(getattr(row, 'dynamic_revenue', 0) or 0)
+            prev_rev = float(getattr(row, 'previous_revenue', 0) or 0)
+            growth = round(((curr_rev - prev_rev) / prev_rev * 100), 1) if prev_rev > 0 else 0.0
+
             data.append({
                 "STT": idx + 1,
                 "Mã CRM/CMS": getattr(c, 'ma_crm_cms', "N/A"),
@@ -101,7 +105,8 @@ def export_customers_excel(
                 "Loại Khách hàng": getattr(c, 'loai_kh', "N/A") or "N/A",
                 "Vòng đời khách hàng": lifecycle_label,
                 "Phân khúc RFM": getattr(c, 'rfm_segment', "Thường") or "Thường",
-                "Doanh thu (Kỳ báo cáo)": float(getattr(row, 'dynamic_revenue', 0) or 0),
+                "Doanh thu (Kỳ báo cáo)": curr_rev,
+                "Tăng trưởng (%)": growth,
                 "Sản lượng (Kỳ báo cáo)": int(getattr(row, 'transaction_count', 0) or 0),
                 "Bưu cục Quản lý": point_map.get(getattr(c, 'ma_bc_phu_trach', None), "N/A"),
                 "Nhân sự phụ trách": getattr(row, 'assigned_staff_name', "Chưa giao") or "Chưa giao"
@@ -225,6 +230,7 @@ async def export_potential_excel(
                 "Tần suất gửi (Ngày)": item["so_ngay_gui"],
                 "Tổng sản lượng (Đơn)": item["tong_so_don"],
                 "Tổng doanh thu (VNĐ)": item["tong_doanh_thu"],
+                "Tăng trưởng (%)": item.get("growth_velocity", 0.0),
                 "Ngày giao dịch gần nhất": item["ngay_gan_nhat"],
                 "Phân hạng tiềm năng": item["rfm_segment"]
             })
