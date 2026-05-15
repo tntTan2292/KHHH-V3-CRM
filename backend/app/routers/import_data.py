@@ -132,7 +132,7 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None):
                 raise Exception("Không tìm thấy bất kỳ file giao dịch BF nào.")
             else:
                 import_status["message"] = "Đã hoàn thành - Không có file mới"
-                return
+                return 0
 
         # 2. Chuẩn bị Map cho Hierarchy (Lấy tất cả các loại node để đảm bảo ánh xạ đầy đủ)
         from ..models import HierarchyNode
@@ -261,11 +261,12 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None):
             "message": f"✅ Hoàn thành! Đã nạp {total_transactions} giao dịch mới.",
             "done": True, "error": None
         }
-        return total_transactions # Bổ sung return để các worker khác biết số lượng
+        return total_transactions 
     except Exception as e:
         logger.error(f"Lỗi khi import: {e}", exc_info=True)
         db.rollback()
         import_status = {"running": False, "message": f"❌ Lỗi: {e}", "done": False, "error": str(e)}
+        raise e 
 
 @router.get("/sftp-check")
 async def check_sftp_sync(db: Session = Depends(get_db)):
@@ -328,6 +329,8 @@ async def sync_worker(db_in: Session, folders: list):
             return
 
         downloaded_files = []
+        sync_results = []
+        
         for f_name in to_sync:
             import_status["message"] = f"Đang tải dữ liệu ngày {f_name}..."
             target = SFTPManager.get_target_bf_file(f_name)
@@ -335,25 +338,30 @@ async def sync_worker(db_in: Session, folders: list):
             
             local_path = SFTPManager.download_file(f_name, target["name"])
             downloaded_files.append(local_path)
-            
-            # Lưu log
-            log = db.query(SyncLog).filter(SyncLog.folder_name == f_name).first()
-            if not log:
-                log = SyncLog(folder_name=f_name)
-                db.add(log)
-            log.file_name = target["name"]
-            log.file_size = target["size"]
-            log.remote_mtime = target["mtime"]
-            log.status = "COMPLETED"
-            db.commit()
+            sync_results.append({"folder": f_name, "target": target})
             
         # 2. Chạy Import Incremental
         import_status["message"] = "Đang nạp dữ liệu vào Database..."
         total = do_import(db, full_reset=False, target_files=downloaded_files)
         
+        # 3. Cập nhật SyncLog CHỈ KHI import thành công (Governance)
+        if total is not None:
+            for res in sync_results:
+                f_name = res["folder"]
+                target = res["target"]
+                log = db.query(SyncLog).filter(SyncLog.folder_name == f_name).first()
+                if not log:
+                    log = SyncLog(folder_name=f_name)
+                    db.add(log)
+                log.file_name = target["name"]
+                log.file_size = target["size"]
+                log.remote_mtime = target["mtime"]
+                log.status = "COMPLETED"
+                db.commit()
+        
         import_status = {
             "running": False, 
-            "message": f"✅ Thành công! Đã nạp {total} giao dịch mới của tháng 04 vào SQLite.", 
+            "message": f"✅ Thành công! Đã nạp {total} giao dịch mới vào SQLite.", 
             "done": True, "error": None
         }
         # Tự động cập nhật Summary sau khi sync SFTP thành công
@@ -361,7 +369,7 @@ async def sync_worker(db_in: Session, folders: list):
         
         # Tự động xóa cache sau khi đồng bộ dữ liệu mới thành công
         CacheService.clear()
-        logger.info("Sync completed - Cache cleared to ensure data freshness.")
+        logger.info(f"Sync completed: {total} records. Cache cleared.")
     except Exception as e:
         logger.error(f"Sync Worker Error: {e}")
         import_status = {"running": False, "message": f"❌ Lỗi: {e}", "done": False, "error": str(e)}
