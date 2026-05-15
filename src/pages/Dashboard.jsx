@@ -1361,17 +1361,10 @@ function Dashboard() {
               console.log("[DEBUG CHART] API months:", monthlyDataRes.map(x => x?.month));
               console.log("[DEBUG CHART] API length:", monthlyDataRes.length);
 
-              const chartDataRaw = monthlyDataRes.slice(-14).map((d, i, arr) => {
-                const curr = d?.total || d?.value || 0;
-                if (i === 0) return { ...d, total: curr, growth: 0 };
-                const prev = arr[i-1]?.total || arr[i-1]?.value || 1;
-                
-                // [GOVERNANCE] Use backend-calculated LfL growth for partial months if available
-                const growth = (d?.growth_lfl !== null && d?.growth_lfl !== undefined) 
-                  ? d.growth_lfl 
-                  : ((curr - prev) / (prev || 1)) * 100;
-                  
-                return { ...d, total: curr, growth: isFinite(growth) ? parseFloat(growth.toFixed(1)) : 0 };
+              const chartDataRaw = monthlyDataRes.slice(-14).map((d) => {
+                const total = d?.total || 0;
+                const growth = d?.growth || 0;
+                return { ...d, total, growth };
               });
               
               const chartData = chartDataRaw.length > 1 ? chartDataRaw.slice(1) : chartDataRaw;

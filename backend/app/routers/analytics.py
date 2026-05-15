@@ -4,6 +4,7 @@ from sqlalchemy import func, text, case, and_
 from datetime import datetime, timedelta
 from functools import lru_cache
 import calendar
+import random
 
 from ..database import get_db
 from ..models import Customer, Transaction, SyncAttempt, SyncLog, HierarchyNode, MonthlyAnalyticsSummary, CustomerMonthlySnapshot
@@ -369,6 +370,7 @@ async def get_revenue_monthly(
     start_date: str = None,
     end_date: str = None,
     node_code: str = None,
+    comparison_type: str = "mom",
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -392,74 +394,91 @@ async def get_revenue_monthly(
     start_month_str = months_range[0]
     max_month_str = months_range[-1]
 
-    # 3. Query dữ liệu (GOVERNANCE: Elite Bulk Source Selection)
-    # 3.1 Phát hiện Max Date một lần duy nhất cho toàn bộ dải
+    # 3. Query dữ liệu (GOVERNANCE: Elite Parity Engine)
+    # 3.1 Phát hiện Max Date
     q_max = db.query(func.max(Transaction.ngay_chap_nhan))
     if scope_ids is not None:
         q_max = q_max.filter(Transaction.point_id.in_(scope_ids))
     max_dt = parse_db_date(q_max.scalar())
     
     if not max_dt:
-        return [{"month": m, "total": 0, "growth_lfl": 0} for m in months_range]
+        return [{"month": m, "total": 0, "growth": 0} for m in months_range]
 
-    # 3.2 Phân loại dải tháng: Complete vs Partial
-    complete_months = []
-    partial_months = []
-    
+    # 3.2 Spot-Check Parity (Current, Last, Random)
+    # Mục tiêu: Xác định xem Summary có tin cậy không (Accuracy > Speed)
+    spot_check_months = []
+    # a. Tháng hiện tại (Partial)
+    spot_check_months.append(max_month_str)
+    # b. Tháng trước (Complete)
+    if len(months_range) > 1:
+        spot_check_months.append(months_range[-2])
+    # c. Random 1-2 tháng cũ
+    historical_pool = [m for m in months_range if m not in spot_check_months]
+    if historical_pool:
+        spot_check_months.extend(random.sample(historical_pool, min(2, len(historical_pool))))
+
+    force_transaction = False
+    for m in spot_check_months:
+        m_start = datetime.strptime(m, "%Y-%m")
+        last_day = calendar.monthrange(m_start.year, m_start.month)[1]
+        m_end = min(m_start.replace(day=last_day), max_dt.replace(hour=23, minute=59, second=59))
+        
+        v_sum = get_revenue_for_range_governed(db, m_start, m_end, scope_ids, use_summary=True)
+        v_ssot = get_revenue_for_range_governed(db, m_start, m_end, scope_ids, use_summary=False)
+        
+        if abs(v_sum - v_ssot) > 0.1: # Sai số chấp nhận được cực thấp
+            logger.warning(f"[GOVERNANCE DRIFT] Month {m}: Summary({v_sum}) vs SSOT({v_ssot}). Diff: {v_sum - v_ssot}")
+            force_transaction = True
+            break
+
+    if force_transaction:
+        logger.info("[GOVERNANCE FALLBACK] Triggered Transaction Fallback for full trend range.")
+
+    # 3.3 Fetch dữ liệu Summary (nếu không fallback)
+    summary_data = {}
+    if not force_transaction:
+        complete_months = [m for m in months_range if m < max_dt.strftime("%Y-%m") or max_dt.day == calendar.monthrange(max_dt.year, max_dt.month)[1]]
+        if complete_months:
+            q_sum = db.query(
+                MonthlyAnalyticsSummary.year_month,
+                func.sum(MonthlyAnalyticsSummary.total_revenue)
+            ).filter(
+                MonthlyAnalyticsSummary.year_month.in_(complete_months),
+                MonthlyAnalyticsSummary.ma_dv == 'ALL'
+            )
+            if scope_ids is not None:
+                q_sum = q_sum.filter(MonthlyAnalyticsSummary.point_id.in_(scope_ids))
+            
+            raw_sum = q_sum.group_by(MonthlyAnalyticsSummary.year_month).all()
+            summary_data = {r[0]: float(r[1] or 0) for r in raw_sum}
+
+    # 3.4 Duyệt và tính toán Doanh thu + Tăng trưởng (MoM/YoY) cho 14 tháng
+    results = []
     for m in months_range:
         m_start = datetime.strptime(m, "%Y-%m")
         last_day = calendar.monthrange(m_start.year, m_start.month)[1]
-        m_end = m_start.replace(day=last_day)
+        m_end = min(m_start.replace(day=last_day), max_dt.replace(hour=23, minute=59, second=59))
         
-        is_complete = (m < max_dt.strftime("%Y-%m")) or (max_dt.day == last_day)
-        if is_complete:
-            complete_months.append(m)
-        else:
-            partial_months.append(m)
-
-    # 3.3 Fetch dữ liệu Summary hàng loạt (Analytical Layer)
-    summary_data = {}
-    if complete_months:
-        q_sum = db.query(
-            MonthlyAnalyticsSummary.year_month,
-            func.sum(MonthlyAnalyticsSummary.total_revenue)
-        ).filter(
-            MonthlyAnalyticsSummary.year_month.in_(complete_months),
-            MonthlyAnalyticsSummary.ma_dv == 'ALL'
-        )
-        if scope_ids is not None:
-            q_sum = q_sum.filter(MonthlyAnalyticsSummary.point_id.in_(scope_ids))
-        
-        raw_sum = q_sum.group_by(MonthlyAnalyticsSummary.year_month).all()
-        summary_data = {r[0]: float(r[1] or 0) for r in raw_sum}
-
-    # 3.4 Duyệt và đóng gói kết quả
-    results = []
-    for m in months_range:
+        # 3.4.1 Get Current Total
         total = 0
-        growth_lfl = None
-        
         if m in summary_data:
             total = summary_data[m]
         else:
-            # Xử lý các tháng Partial hoặc chưa có summary (SSOT Layer)
-            m_start = datetime.strptime(m, "%Y-%m")
-            last_day = calendar.monthrange(m_start.year, m_start.month)[1]
-            m_end = min(m_start.replace(day=last_day), max_dt.replace(hour=23, minute=59, second=59))
-            
             total = get_revenue_for_range_governed(db, m_start, m_end, scope_ids, use_summary=False)
             
-            # Tính LfL cho điểm cuối cùng nếu là Partial
-            if m == max_month_str:
-                curr_s, curr_e, prev_s, prev_e, _ = get_governed_comparison_periods(db, f"{m}-01", m_end.strftime("%Y-%m-%d"), "mom", scope_ids)
-                latest_v = get_revenue_for_range_governed(db, curr_s, curr_e, scope_ids, use_summary=False)
-                prev_v = get_revenue_for_range_governed(db, prev_s, prev_e, scope_ids, use_summary=False)
-                growth_lfl = round(((latest_v - prev_v) / prev_v * 100), 1) if prev_v > 0 else 0
+        # 3.4.2 Get Previous Total (Like-for-Like)
+        curr_s, curr_e, prev_s, prev_e, _ = get_governed_comparison_periods(db, f"{m}-01", m_end.strftime("%Y-%m-%d"), comparison_type, scope_ids)
+        
+        # Để đảm bảo Parity 100%, dùng SSOT cho điểm so sánh nếu không chắc chắn
+        prev_total = get_revenue_for_range_governed(db, prev_s, prev_e, scope_ids, use_summary=not force_transaction)
+        
+        growth = round(((total - prev_total) / prev_total * 100), 1) if prev_total > 0 else 0
         
         results.append({
             "month": m,
             "total": total,
-            "growth_lfl": growth_lfl
+            "growth": growth,
+            "is_fallback": force_transaction
         })
         
     return results
