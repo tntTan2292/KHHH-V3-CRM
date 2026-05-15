@@ -207,6 +207,7 @@ class CustomerService:
             final_query = db.query(
                 Customer,
                 func.coalesce(metrics_sub.c.dynamic_revenue, 0).label("dynamic_revenue"),
+                func.coalesce(prev_metrics_sub.c.previous_revenue, 0).label("previous_revenue"),
                 func.coalesce(metrics_sub.c.transaction_count, 0).label("transaction_count"),
                 metrics_sub.c.last_shipped_absolute,
                 NhanSu.full_name.label("assigned_staff_name"),
@@ -227,6 +228,7 @@ class CustomerService:
             ).select_from(snapshot_sub)\
              .outerjoin(Customer, Customer.ma_crm_cms == snapshot_sub.c.ma_kh)\
              .outerjoin(metrics_sub, snapshot_sub.c.ma_kh == metrics_sub.c.ma_kh)\
+             .outerjoin(prev_metrics_sub, snapshot_sub.c.ma_kh == prev_metrics_sub.c.ma_kh)\
              .outerjoin(NhanSu, Customer.assigned_staff_id == NhanSu.id)\
              .filter(*filters)
         else:
