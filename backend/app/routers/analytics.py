@@ -106,10 +106,11 @@ def get_revenue_for_range_governed(db, start_dt, end_dt, scope_ids, use_summary=
         )
         if scope_ids is not None:
             q = q.filter(MonthlyAnalyticsSummary.point_id.in_(scope_ids))
-        return float(q.scalar() or 0.0)
+        val = q.scalar() or 0.0
+        return float(round(val, 0))
     else:
         # Tầng SSOT Layer (Bounded Transaction - Verified Index-Optimal)
-        q = db.query(func.sum(Transaction.doanh_thu)).filter(
+        q = db.query(func.round(func.sum(Transaction.doanh_thu), 0)).filter(
             Transaction.ngay_chap_nhan >= start_dt.strftime("%Y-%m-%d"),
             Transaction.ngay_chap_nhan <= f"{end_dt.strftime('%Y-%m-%d')} 23:59:59"
         )
@@ -160,9 +161,9 @@ async def get_dashboard_stats(
     month_str = governed_start[:7]
     current_month_str = max_data_date.strftime("%Y-%m")
 
-    # 3. FETCH REVENUE KPI (GOVERNANCE RULE 1: Total Revenue -> Bounded Source Selector)
-    latest_val = get_revenue_for_range_governed(db, curr_start, curr_end, scope_point_ids)
-    prev_val = get_revenue_for_range_governed(db, prev_start, prev_end, scope_point_ids)
+    # 3. FETCH REVENUE KPI (CONSTITUTIONAL SSOT: Always use Transaction)
+    latest_val = get_revenue_for_range_governed(db, curr_start, curr_end, scope_point_ids, use_summary=False)
+    prev_val = get_revenue_for_range_governed(db, prev_start, prev_end, scope_point_ids, use_summary=False)
     rev_growth = ((latest_val - prev_val) / prev_val * 100) if prev_val > 0 else 0
     
     # 4. FETCH LIFECYCLE POPULATIONS (GOVERNANCE: Derived from LifecycleService)
@@ -380,7 +381,12 @@ async def get_revenue_monthly(
 
     # 2. Xác định dải thời gian (CỐ ĐỊNH: Tháng dữ liệu cuối cùng lùi 13 tháng)
     # [GOVERNANCE] Global Financial Trend ignores temporal filters to show historical context.
-    target_month = db.query(func.max(MonthlyAnalyticsSummary.year_month)).scalar() or datetime.now().strftime("%Y-%m")
+    # [CONSTITUTION] Pull max_dt from Transaction SSOT
+    q_max = db.query(func.max(Transaction.ngay_chap_nhan))
+    if scope_ids is not None:
+        q_max = q_max.filter(Transaction.point_id.in_(scope_ids))
+    max_dt = parse_db_date(q_max.scalar()) or datetime.now()
+    target_month = max_dt.strftime("%Y-%m")
     
     end_dt = datetime.strptime(target_month, "%Y-%m")
     print(f"[DEBUG BACKEND] target_month: {target_month}, start_date_param: {start_date}, end_date_param: {end_date}")
@@ -394,83 +400,35 @@ async def get_revenue_monthly(
     start_month_str = months_range[0]
     max_month_str = months_range[-1]
 
-    # 3. Query dữ liệu (GOVERNANCE: Elite Parity Engine)
-    # 3.1 Phát hiện Max Date
-    q_max = db.query(func.max(Transaction.ngay_chap_nhan))
+    # 3. Query dữ liệu (CONSTITUTIONAL SSOT: Always use Transaction)
+    # 3.1 Fetch Doanh thu 14 tháng xu hướng
+    q_trend = db.query(
+        func.strftime('%Y-%m', Transaction.ngay_chap_nhan).label('m'),
+        func.round(func.sum(Transaction.doanh_thu), 0).label('total')
+    ).filter(
+        Transaction.ngay_chap_nhan >= datetime.strptime(start_month_str, "%Y-%m"),
+        Transaction.ngay_chap_nhan <= max_dt.replace(hour=23, minute=59, second=59)
+    )
     if scope_ids is not None:
-        q_max = q_max.filter(Transaction.point_id.in_(scope_ids))
-    max_dt = parse_db_date(q_max.scalar())
+        q_trend = q_trend.filter(Transaction.point_id.in_(scope_ids))
     
-    if not max_dt:
-        return [{"month": m, "total": 0, "growth": 0} for m in months_range]
+    trend_raw = q_trend.group_by(func.strftime('%Y-%m', Transaction.ngay_chap_nhan)).all()
+    trend_map = {r.m: float(r.total or 0) for r in trend_raw}
 
-    # 3.2 Spot-Check Parity (Current, Last, Random)
-    # Mục tiêu: Xác định xem Summary có tin cậy không (Accuracy > Speed)
-    spot_check_months = []
-    # a. Tháng hiện tại (Partial)
-    spot_check_months.append(max_month_str)
-    # b. Tháng trước (Complete)
-    if len(months_range) > 1:
-        spot_check_months.append(months_range[-2])
-    # c. Random 1-2 tháng cũ
-    historical_pool = [m for m in months_range if m not in spot_check_months]
-    if historical_pool:
-        spot_check_months.extend(random.sample(historical_pool, min(2, len(historical_pool))))
-
-    force_transaction = False
-    for m in spot_check_months:
-        m_start = datetime.strptime(m, "%Y-%m")
-        last_day = calendar.monthrange(m_start.year, m_start.month)[1]
-        m_end = min(m_start.replace(day=last_day), max_dt.replace(hour=23, minute=59, second=59))
-        
-        v_sum = get_revenue_for_range_governed(db, m_start, m_end, scope_ids, use_summary=True)
-        v_ssot = get_revenue_for_range_governed(db, m_start, m_end, scope_ids, use_summary=False)
-        
-        if abs(v_sum - v_ssot) > 0.1: # Sai số chấp nhận được cực thấp
-            logger.warning(f"[GOVERNANCE DRIFT] Month {m}: Summary({v_sum}) vs SSOT({v_ssot}). Diff: {v_sum - v_ssot}")
-            force_transaction = True
-            break
-
-    if force_transaction:
-        logger.info("[GOVERNANCE FALLBACK] Triggered Transaction Fallback for full trend range.")
-
-    # 3.3 Fetch dữ liệu Summary (nếu không fallback)
-    summary_data = {}
-    if not force_transaction:
-        complete_months = [m for m in months_range if m < max_dt.strftime("%Y-%m") or max_dt.day == calendar.monthrange(max_dt.year, max_dt.month)[1]]
-        if complete_months:
-            q_sum = db.query(
-                MonthlyAnalyticsSummary.year_month,
-                func.sum(MonthlyAnalyticsSummary.total_revenue)
-            ).filter(
-                MonthlyAnalyticsSummary.year_month.in_(complete_months),
-                MonthlyAnalyticsSummary.ma_dv == 'ALL'
-            )
-            if scope_ids is not None:
-                q_sum = q_sum.filter(MonthlyAnalyticsSummary.point_id.in_(scope_ids))
-            
-            raw_sum = q_sum.group_by(MonthlyAnalyticsSummary.year_month).all()
-            summary_data = {r[0]: float(r[1] or 0) for r in raw_sum}
-
-    # 3.4 Duyệt và tính toán Doanh thu + Tăng trưởng (MoM/YoY) cho 14 tháng
+    # 3.2 Duyệt và tính toán Tăng trưởng (MoM/YoY) theo SSOT
     results = []
     for m in months_range:
+        total = trend_map.get(m, 0)
+        
+        # 3.2.1 Get Previous Total (Like-for-Like SSOT)
         m_start = datetime.strptime(m, "%Y-%m")
         last_day = calendar.monthrange(m_start.year, m_start.month)[1]
         m_end = min(m_start.replace(day=last_day), max_dt.replace(hour=23, minute=59, second=59))
         
-        # 3.4.1 Get Current Total
-        total = 0
-        if m in summary_data:
-            total = summary_data[m]
-        else:
-            total = get_revenue_for_range_governed(db, m_start, m_end, scope_ids, use_summary=False)
-            
-        # 3.4.2 Get Previous Total (Like-for-Like)
-        curr_s, curr_e, prev_s, prev_e, _ = get_governed_comparison_periods(db, f"{m}-01", m_end.strftime("%Y-%m-%d"), comparison_type, scope_ids)
+        _, _, prev_s, prev_e, _ = get_governed_comparison_periods(db, f"{m}-01", m_end.strftime("%Y-%m-%d"), comparison_type, scope_ids)
         
-        # Để đảm bảo Parity 100%, dùng SSOT cho điểm so sánh nếu không chắc chắn
-        prev_total = get_revenue_for_range_governed(db, prev_s, prev_e, scope_ids, use_summary=not force_transaction)
+        # Bắt buộc dùng SSOT Transaction cho cả điểm so sánh
+        prev_total = get_revenue_for_range_governed(db, prev_s, prev_e, scope_ids, use_summary=False)
         
         growth = round(((total - prev_total) / prev_total * 100), 1) if prev_total > 0 else 0
         
@@ -478,7 +436,7 @@ async def get_revenue_monthly(
             "month": m,
             "total": total,
             "growth": growth,
-            "is_fallback": force_transaction
+            "is_ssot": True
         })
         
     return results

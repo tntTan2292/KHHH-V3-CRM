@@ -102,6 +102,11 @@ async def get_customers(
         }
         status_final = status_map.get(status_raw, status_raw)
         
+        curr_rev = float(row.dynamic_revenue or 0)
+        prev_rev = float(row.previous_revenue or 0)
+        # RF5C: Restore dynamic growth calculation
+        growth = round(((curr_rev - prev_rev) / prev_rev * 100), 1) if prev_rev > 0 else 0.0
+        
         result_items.append({
             "id": c.id,
             "ma_crm_cms": c.ma_crm_cms,
@@ -112,13 +117,13 @@ async def get_customers(
             "priority_score": c.priority_score,
             "priority_level": c.priority_level,
             "rfm_segment": c.rfm_segment or "Thường",
-            "dynamic_revenue": float(row[1] or 0),
-            "transaction_count": int(row[2] or 0),
-            "growth_velocity": 0.0, # Removed dynamic calculation for performance, can be restored if needed
+            "dynamic_revenue": curr_rev,
+            "transaction_count": int(row.transaction_count or 0),
+            "growth_velocity": growth,
             "health_score": 100,
-            "last_shipped": row[3].strftime("%Y-%m-%d") if row[3] else None,
+            "last_shipped": row.last_shipped_absolute.strftime("%Y-%m-%d") if row.last_shipped_absolute else None,
             "assigned_staff_id": c.assigned_staff_id,
-            "assigned_staff_name": row[4],
+            "assigned_staff_name": row.assigned_staff_name,
             "point_name": point_map.get(c.ma_bc_phu_trach, None),
             "point_code": c.ma_bc_phu_trach
         })

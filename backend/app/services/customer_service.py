@@ -11,6 +11,11 @@ from ..core.config_segments import (
     THRESHOLD_BRONZE_SHIP, MIN_REVENUE_ACTIVE
 )
 
+# [GOVERNANCE] Shared utilities from analytics
+def get_governed_comparison_periods_import():
+    from ..routers.analytics import get_governed_comparison_periods
+    return get_governed_comparison_periods
+
 class CustomerService:
     @staticmethod
     def get_customers_data(
@@ -34,26 +39,14 @@ class CustomerService:
         if lifecycle_status == "total_pop":
             lifecycle_status = None
 
-        # 1. Xác định mốc thời gian (Vẫn dùng Full History theo Hiến pháp)
-        if not start_date or not end_date:
-            max_date_raw = db.query(func.max(Transaction.ngay_chap_nhan)).scalar()
-            if not max_date_raw:
-                return [], 0
-            
-            from ..routers.analytics import parse_db_date
-            curr_end = parse_db_date(max_date_raw)
-            curr_start = curr_end.replace(day=1)
-        else:
-            curr_start = datetime.strptime(start_date, "%Y-%m-%d")
-            curr_end = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
-
-        prev_end = curr_start - timedelta(days=1)
-        prev_3m_start = curr_start - dateutil.relativedelta.relativedelta(months=3)
-
-        # 2. Scoping
+        # 1. Scoping (Elite RBAC 3.0)
         scope_ids = ScopingService.get_effective_scope_ids(db, current_user, node_code)
         if scope_ids is not None and not scope_ids:
             return [], 0
+
+        # 2. Xác định mốc thời gian (CONSTITUTIONAL UNIFIED COMPARATOR)
+        get_periods = get_governed_comparison_periods_import()
+        curr_start, curr_end, prev_start, prev_end, _ = get_periods(db, start_date, end_date, "mom", scope_ids)
 
         # 3. Build Shared Filters (Governance: Single Source of Truth for Queries)
         filters = []
@@ -187,14 +180,24 @@ class CustomerService:
             base_query = db.query(Customer).filter(*filters)
         total = base_query.count()
 
-        # 5. Metrics Subquery (Revenue month-locked)
+        # 5. Metrics Subqueries (CONSTITUTIONAL SSOT - Current & Previous)
+        # 5.1 Current Period
         metrics_sub = db.query(
             Transaction.ma_kh.label("ma_kh"),
-            func.sum(Transaction.doanh_thu).label("dynamic_revenue"),
+            func.round(func.sum(Transaction.doanh_thu), 0).label("dynamic_revenue"),
             func.count(Transaction.id).label("transaction_count"),
             func.max(Transaction.ngay_chap_nhan).label("last_shipped_absolute")
         ).filter(
             Transaction.ngay_chap_nhan.between(curr_start, curr_end),
+            Transaction.ma_kh.isnot(None)
+        ).group_by(Transaction.ma_kh).subquery()
+
+        # 5.2 Previous Period (Like-for-Like)
+        prev_metrics_sub = db.query(
+            Transaction.ma_kh.label("ma_kh"),
+            func.round(func.sum(Transaction.doanh_thu), 0).label("previous_revenue")
+        ).filter(
+            Transaction.ngay_chap_nhan.between(prev_start, prev_end),
             Transaction.ma_kh.isnot(None)
         ).group_by(Transaction.ma_kh).subquery()
 
@@ -230,12 +233,14 @@ class CustomerService:
             final_query = db.query(
                 Customer,
                 func.coalesce(metrics_sub.c.dynamic_revenue, 0).label("dynamic_revenue"),
+                func.coalesce(prev_metrics_sub.c.previous_revenue, 0).label("previous_revenue"),
                 func.coalesce(metrics_sub.c.transaction_count, 0).label("transaction_count"),
                 metrics_sub.c.last_shipped_absolute,
                 NhanSu.full_name.label("assigned_staff_name"),
                 Customer.lifecycle_state.label("snapshot_stage")
             ).select_from(Customer)\
              .outerjoin(metrics_sub, Customer.ma_crm_cms == metrics_sub.c.ma_kh)\
+             .outerjoin(prev_metrics_sub, Customer.ma_crm_cms == prev_metrics_sub.c.ma_kh)\
              .outerjoin(NhanSu, Customer.assigned_staff_id == NhanSu.id)\
              .filter(*filters)
 
