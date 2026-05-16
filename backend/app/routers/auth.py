@@ -195,10 +195,16 @@ async def change_password(
     
     if len(payload.new_password) < 8:
         raise HTTPException(status_code=400, detail="Mật khẩu mới phải có ít nhất 8 ký tự")
+        
+    # [CRITICAL FIX] Ensure current_user is persistent in the current db session
+    # Previously, it was detached or from a different session, causing commit() to ignore changes.
+    current_user = db.merge(current_user)
     
     current_user.hashed_password = get_password_hash(payload.new_password)
     current_user.must_change_password = False
+    
     db.commit()
+    db.refresh(current_user)
     
     LogService.log_action(
         db=db,

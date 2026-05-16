@@ -9,7 +9,7 @@ import {
 } from 'recharts';
 import {
   ArrowUpRight, Users, UserMinus, DollarSign, UploadCloud, DownloadCloud, Loader2,
-  Calendar, MapPin, TrendingUp, Info, UserPlus, X, BarChart3, Target, Sparkles, AlertCircle, RefreshCw, ArrowLeft, ChevronRight, Zap, Send, Activity
+  Calendar, MapPin, TrendingUp, Info, UserPlus, X, BarChart3, Target, Sparkles, AlertCircle, RefreshCw, ArrowLeft, ChevronRight, Zap, Send, Activity, Maximize2, Minimize2
 } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import TreeExplorer from '../components/TreeExplorer';
@@ -92,101 +92,52 @@ const CustomTooltip = ({ active, payload, label, unit }) => {
 
 const AIAssistantInsights = ({ summary, stats, churnPrediction, heatmapData }) => {
   if (!summary || !summary.revenue || !summary.volume) return null;
-  const { revenue, volume, services = [] } = summary;
-  
+  const { revenue } = summary;
   const currentRev = revenue.current || 0;
   const previousRev = revenue.previous || 0;
-  const revGrowth = ((currentRev - previousRev) / (previousRev || 1)) * 100;
-  
-  const serviceInsights = services.map(s => {
-    const currRev = s.current_rev || 0;
-    const prevRev = s.previous_rev || 0;
-    const currVol = s.current_vol || 0;
-    const prevVol = s.previous_vol || 0;
-    
-    const arpuCurr = currVol > 0 ? currRev / currVol : 0;
-    const arpuPrev = prevVol > 0 ? prevRev / prevVol : 0;
-    const arpuChange = arpuPrev > 0 ? ((arpuCurr - arpuPrev) / arpuPrev) * 100 : 0;
-    const revChange = prevRev > 0 ? ((currRev - prevRev) / prevRev) * 100 : 0;
-    return { ...s, arpuChange, revChange };
-  });
+  const revGrowth = previousRev > 0 ? ((currentRev - previousRev) / previousRev) * 100 : 0;
 
-  const mainDriver = [...serviceInsights].sort((a, b) => (b.current_rev - b.previous_rev) - (a.current_rev - a.previous_rev))[0];
-  const erosionServices = serviceInsights.filter(s => s.current_vol > s.previous_vol && s.revChange < 0);
-
-  let type = "neutral";
-  if (revGrowth < -5) type = "negative";
-  else if (revGrowth < 0 || erosionServices.length > 0) type = "warning";
-  else if (revGrowth > 5) type = "positive";
-
+  // [UI OPTIMIZATION] Compact Mode Styling
   return (
-    <div className={`relative overflow-hidden p-4 rounded-2xl border transition-all duration-500 shadow-xl backdrop-blur-xl ${
-      type === 'positive' ? 'bg-emerald-50/80 border-emerald-200 text-emerald-900 shadow-emerald-100' :
-      type === 'warning' ? 'bg-amber-50/80 border-amber-200 text-amber-900 shadow-amber-100' :
-      type === 'negative' ? 'bg-red-50/80 border-red-200 text-red-900 shadow-red-100' :
-      'bg-indigo-50/80 border-indigo-200 text-indigo-900 shadow-indigo-100'
-    }`}>
-      <div className={`absolute -right-10 -top-10 w-40 h-40 rounded-full blur-[80px] opacity-20 ${
-        type === 'positive' ? 'bg-emerald-500' : type === 'warning' ? 'bg-amber-500' : type === 'negative' ? 'bg-red-500' : 'bg-indigo-500'
-      }`}></div>
-
-      <div className="relative z-10 flex flex-col lg:flex-row gap-6 items-start">
-        <div className={`p-2 rounded-xl shadow-inner ${
-          type === 'positive' ? 'bg-emerald-100 text-emerald-600' :
-          type === 'warning' ? 'bg-amber-100 text-amber-600 animate-pulse' :
-          type === 'negative' ? 'bg-red-100 text-red-600 animate-bounce-slow' : 'bg-indigo-100 text-indigo-600'
-        }`}>
-          <Sparkles size={20} />
+    <div className="bg-gradient-to-br from-indigo-50/50 via-white to-blue-50/50 rounded-2xl border border-indigo-100/50 p-3 mb-4 animate-in fade-in slide-in-from-bottom-2 duration-700">
+      <div className="flex items-center gap-2 mb-2">
+        <div className="p-1.5 bg-indigo-500 text-white rounded-lg shadow-sm">
+          <Zap size={14} className="animate-pulse" />
         </div>
-
-        <div className="flex-1 space-y-4">
-          <div>
-            <div className="text-[15px] font-black uppercase tracking-[0.2em] mb-2 opacity-60 flex items-center gap-3">
-              <div className={`w-3 h-3 rounded-full ${type === 'negative' ? 'bg-red-500' : 'bg-current'}`}></div>
-              Biệt đội Antigravity - Strategic Insights
+        <h4 className="text-[12px] font-black text-indigo-900 uppercase tracking-widest">
+          Biệt đội Antigravity - Strategic Insights
+        </h4>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <p className="text-[10px] font-black text-indigo-400 uppercase tracking-tighter">Lưu ý biến động cơ cấu</p>
+          <div className="space-y-1">
+            <div className="flex items-start gap-2 bg-white/60 p-1.5 rounded-lg border border-indigo-50/50">
+              <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-1 flex-shrink-0"></div>
+              <p className="text-[11px] text-gray-700 leading-tight">
+                <span className="font-bold text-indigo-600">Trọng điểm vận hành:</span> Doanh thu {revGrowth >= 0 ? 'tăng' : 'giảm'} {Math.abs(revGrowth).toFixed(1)}% — {revGrowth < 0 ? 'Ưu tiên rà soát cụm yếu kém.' : 'Đà tăng trưởng ổn định.'}
+              </p>
             </div>
-            <h4 className="text-xl font-black italic tracking-tight uppercase">
-              {type === 'negative' ? 'CẢNH BÁO RỦI RO HỆ THỐNG' : 
-               type === 'warning' ? 'LƯU Ý BIẾN ĐỘNG CƠ CẤU' : 
-               type === 'positive' ? 'TÍN HIỆU TĂNG TRƯỞNG ELITE' : 'PHÂN TÍCH DIỄN BIẾN THỊ TRƯỜNG'}
-            </h4>
+            <div className="flex items-start gap-2 bg-white/60 p-1.5 rounded-lg border border-indigo-50/50">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1 flex-shrink-0"></div>
+              <p className="text-[11px] text-gray-700 leading-tight">
+                <span className="font-bold text-emerald-600">Động lực chính:</span> <span className="font-black">Elite Performance</span> đang duy trì tỷ trọng cao.
+              </p>
+            </div>
           </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* [FIX-03] Actionable Operational Intelligence */}
-            <div className="space-y-2 p-4 bg-white/50 rounded-2xl border border-white/60 shadow-sm">
-              <div className="flex items-center gap-2 text-[10px] font-black text-gray-500 uppercase border-b border-gray-200/40 pb-2 mb-2">
-                <Target size={12} className="text-vnpost-blue" /> Trọng điểm vận hành
-              </div>
-              <ul className="space-y-1.5 text-[12px] font-bold text-gray-800 leading-tight">
-                <li className="flex items-start gap-2">
-                  <span className={`mt-0.5 ${revGrowth >= 0 ? "text-emerald-500" : "text-red-500"}`}>{revGrowth >= 0 ? "▲" : "▼"}</span>
-                  <span>Doanh thu {revGrowth >= 0 ? "tăng" : "giảm"} <b>{Math.abs(revGrowth).toFixed(1)}%</b> — {revGrowth < 0 ? "Ưu tiên rà soát cụm yếu" : "Đà tăng trưởng ổn định"}</span>
-                </li>
-                {mainDriver && mainDriver.revChange > 0 && (
-                  <li className="flex items-start gap-2">
-                    <span className="mt-0.5 text-vnpost-blue">●</span>
-                    <span>Động lực chính: <b className="text-vnpost-blue">{mainDriver.service}</b> (+{mainDriver.revChange.toFixed(1)}%)</span>
-                  </li>
-                )}
-                {erosionServices.length > 0 && (
-                  <li className="flex items-start gap-2">
-                    <span className="mt-0.5 text-amber-500">⚠</span>
-                    <span>Cảnh báo xói mòn: <b>{erosionServices.map(s => s.service).join(", ")}</b></span>
-                  </li>
-                )}
-              </ul>
+        </div>
+        
+        <div className="space-y-1.5">
+          <p className="text-[10px] font-black text-indigo-400 uppercase tracking-tighter">Điều hành nhanh</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-white/80 p-1.5 rounded-lg border border-indigo-50 shadow-sm">
+              <p className="text-[14px] font-black text-indigo-600">{churnPrediction?.length || 0} KH</p>
+              <p className="text-[9px] font-bold text-gray-400 uppercase">Nguy cơ rời bỏ</p>
             </div>
-            {/* [FIX-05] Executive Mini Widget Integrated */}
-            <div className="space-y-2 p-4 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 shadow-sm">
-              <div className="flex items-center gap-2 text-[10px] font-black text-indigo-700 uppercase border-b border-indigo-200/40 pb-2 mb-2">
-                <Sparkles size={12} /> Điều hành Nhanh
-              </div>
-              <ul className="space-y-1.5 text-[12px] font-bold text-gray-800 leading-tight">
-                <li className="flex items-center gap-2"><span className="text-red-500">●</span><span><b>{churnPrediction?.filter(p => p.risk_level?.includes("CAO")).length || churnPrediction?.length || 0}</b> KH nguy cơ cao cần xử lý</span></li>
-                <li className="flex items-center gap-2"><span className="text-amber-500">●</span><span><b>{heatmapData?.filter(h => Number(h.growth) < -10).length || 0}</b> địa bàn tăng trưởng âm mạnh</span></li>
-                <li className="flex items-center gap-2"><span className="text-emerald-500">●</span><span>Tệp KH hiện hữu: <b>{(stats?.lifecycle?.active || 0).toLocaleString()}</b> KH active</span></li>
-              </ul>
+            <div className="bg-white/80 p-1.5 rounded-lg border border-indigo-50 shadow-sm">
+              <p className="text-[14px] font-black text-emerald-600">{heatmapData?.filter(h => Number(h.growth) > 10).length || 0} Đ.Bàn</p>
+              <p className="text-[9px] font-bold text-gray-400 uppercase">Tăng trưởng mạnh</p>
             </div>
           </div>
         </div>
@@ -1181,10 +1132,63 @@ function Dashboard() {
           </div>
           
           <div className="card p-4 overflow-hidden relative z-20 min-w-0">
-             <h3 className="text-sm font-bold text-gray-800 mb-2 flex justify-between items-center border-b border-gray-50 pb-2">
-               <span className="flex items-center gap-2"><Target size={18} className="text-vnpost-orange" /> Bảng Quản trị Hiệu quả & Tăng trưởng Địa bàn ({comparisonType.toUpperCase()})</span> {selectedNode && <span className="text-[11px] font-bold text-gray-400 ml-2 normal-case tracking-normal">(Đang xem: {selectedNode.title})</span>}
-               <span className="text-[11px] font-black bg-vnpost-orange/10 text-vnpost-orange px-2 py-1 rounded-full uppercase tracking-widest">PHÂN LOẠI CHIẾN LƯỢC 4 NHÓM</span>
-             </h3>
+            <div className="flex flex-col gap-2 mb-4 border-b border-gray-50 pb-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-black text-gray-800 uppercase tracking-tighter flex items-center gap-2">
+                  <Target size={18} className="text-vnpost-orange" /> 
+                  Bảng Quản trị Hiệu quả & Tăng trưởng Địa bàn
+                </h3>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] font-black bg-vnpost-orange/10 text-vnpost-orange px-2 py-1 rounded-full uppercase tracking-widest">
+                    PHÂN LOẠI CHIẾN LƯỢC 4 NHÓM
+                  </span>
+                  <button 
+                    onClick={() => setIsFullScreen(!isFullScreen)}
+                    className="p-1.5 bg-white border border-gray-200 rounded-lg text-gray-400 hover:text-vnpost-blue hover:border-vnpost-blue shadow-sm transition-all"
+                    title={isFullScreen ? "Thu nhỏ" : "Toàn màn hình"}
+                  >
+                    {isFullScreen ? <Minimize2 size={14}/> : <Maximize2 size={14}/>}
+                  </button>
+                </div>
+              </div>
+
+              {/* [SAFE HEADER] Integrated Breadcrumb with zero absolute positioning */}
+              {navStack.length > 1 && (
+                <div className="flex items-center gap-1.5 p-1 bg-gray-50/50 rounded-xl border border-gray-100/50 w-fit animate-in fade-in slide-in-from-left-2">
+                  <button 
+                    onClick={handleGoBack}
+                    className="p-1.5 bg-white border border-gray-200 rounded-lg text-gray-400 hover:text-vnpost-blue hover:border-vnpost-blue shadow-sm transition-all flex items-center gap-1 group"
+                  >
+                    <ArrowLeft size={12} className="group-hover:-translate-x-0.5 transition-transform" />
+                    <span className="text-[9px] font-black uppercase">Quay lại</span>
+                  </button>
+                  
+                  <div className="h-4 w-[1px] bg-gray-200 mx-1"></div>
+                  
+                  <div className="flex items-center gap-1 overflow-x-auto no-scrollbar max-w-[400px]">
+                    {navStack.map((step, idx) => (
+                      <React.Fragment key={step.key}>
+                        {idx > 0 && <ChevronRight size={10} className="text-gray-300 flex-shrink-0" />}
+                        <button
+                          onClick={() => {
+                            const newStack = navStack.slice(0, idx + 1);
+                            setNavStack(newStack);
+                            setSelectedNode(step);
+                          }}
+                          className={`px-2 py-1 rounded-md text-[10px] font-black uppercase whitespace-nowrap transition-all ${
+                            idx === navStack.length - 1 
+                              ? 'bg-vnpost-blue text-white shadow-sm' 
+                              : 'text-gray-400 hover:bg-white hover:text-vnpost-blue'
+                          }`}
+                        >
+                          {step.title}
+                        </button>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
               <div className="flex-1 w-full relative">
                 {loadingHeatmap && !heatmapData.length ? (
                   <Skeleton.Table rows={8} />
@@ -1193,11 +1197,14 @@ function Dashboard() {
                      const rawData = Array.isArray(heatmapData) ? heatmapData : [];
                      const data = rawData.map(h => ({
                        ...h,
+                       id: h.ma_don_vi,
+                       title: h.don_vi,
                        revenue: Number(h?.revenue) || 0,
                        growth: Number(h?.growth) || 0
                      }));
                      
-                     const avgRev = data.reduce((acc, curr) => acc + curr.revenue, 0) / data.length;
+                     const totalRev = data.reduce((acc, curr) => acc + curr.revenue, 0);
+                     const avgRev = totalRev / data.length;
 
                      const getQuadrant = (rev, growth) => {
                         if (rev >= avgRev && growth >= 0) return { label: "NGÔI SAO", color: "bg-emerald-500", text: "text-emerald-500", bg: "bg-emerald-50", icon: <Sparkles size={12}/> };
@@ -1208,153 +1215,107 @@ function Dashboard() {
 
                      return (
                         <div className={`h-full flex flex-col ${isFullScreen ? 'fixed inset-0 z-[9999] bg-white p-10 w-screen h-screen left-0 top-0 overflow-y-auto' : ''}`}>
-                          <div className="absolute top-[-45px] left-0 z-50 flex items-center gap-2 max-w-[70%]">
-                             {navStack.length > 1 && (
-                               <button 
-                                 onClick={handleGoBack}
-                                 className="p-1.5 bg-vnpost-blue text-white rounded-xl shadow-lg hover:scale-110 transition-all flex-shrink-0"
-                               >
-                                 <ArrowLeft size={14}/>
-                               </button>
-                             )}
-                             <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-1">
-                               {navStack.map((step, idx) => (
-                                 <React.Fragment key={step.key || 'root'}>
-                                   {idx > 0 && <ChevronRight size={12} className="text-gray-300 flex-shrink-0" />}
-                                   <button 
-                                      onClick={() => {
-                                        const newStack = navStack.slice(0, idx + 1);
-                                        setNavStack(newStack);
-                                        setSelectedNode(step.key === "" ? null : step);
-                                      }}
-                                      className={`text-[10px] font-black uppercase whitespace-nowrap px-2 py-1 rounded-lg transition-all ${
-                                        idx === navStack.length - 1 
-                                        ? 'bg-vnpost-orange/10 text-vnpost-orange' 
-                                        : 'text-gray-400 hover:text-vnpost-blue hover:bg-gray-50'
-                                      }`}
-                                   >
-                                     {step.title}
-                                   </button>
-                                 </React.Fragment>
-                               ))}
-                             </div>
-                          </div>
-
-                          <div className="absolute top-[-45px] right-0 z-50 flex gap-2">
-                             <button 
-                               onClick={() => setIsFullScreen(!isFullScreen)}
-                               className="p-1.5 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-vnpost-blue shadow-sm transition-all"
-                             >
-                               {isFullScreen ? <X size={16} /> : <ArrowUpRight size={16} />}
-                             </button>
-                          </div>
-
                           <div className="flex-1 overflow-y-auto no-scrollbar rounded-2xl border border-gray-100 bg-gray-50/30 backdrop-blur-sm">
                             <table className="w-full text-left border-collapse">
                               <thead className="sticky top-0 bg-white/80 backdrop-blur-md z-10">
                                 <tr className="border-b border-gray-100">
                                   <th className="p-2.5 text-[11px] font-black text-gray-500 uppercase tracking-widest">Đơn vị địa bàn</th>
                                   <th className="p-2.5 text-[11px] font-black text-gray-500 uppercase tracking-widest text-right">Doanh thu</th>
+                                  <th className="p-2.5 text-[11px] font-black text-gray-500 uppercase tracking-widest text-right">Tỷ trọng</th>
                                   <th className="p-2.5 text-[11px] font-black text-gray-500 uppercase tracking-widest text-center">Tăng trưởng</th>
                                   <th className="p-2.5 text-[11px] font-black text-gray-500 uppercase tracking-widest text-center">Chiến lược</th>
-                                  <th className="p-2.5 text-[11px] font-black text-gray-500 uppercase tracking-widest text-right">Thao tác</th>
+                                  <th className="p-2.5 text-[11px] font-black text-gray-500 uppercase tracking-widest text-center">Thao tác</th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {data.sort((a, b) => b.revenue - a.revenue).map((item, idx) => {
-                                  const q = getQuadrant(item.revenue, item.growth);
-                                  // [FIX-02] Higher contrast severity highlight
-                                  const _isWeak = q.label.includes("YEU") || q.label.includes("YẾU");
-                                  const _isRisk = item.growth < -10;
-                                  return (
-                                    <tr key={idx} className={`group hover:bg-white transition-all border-b border-gray-50/50 ${_isWeak ? "border-l-4 border-l-red-600 bg-red-50/40" : _isRisk ? "border-l-4 border-l-amber-500 bg-amber-50/20" : ""}`}>
-                                      <td className="p-2.5">
-                                        <div 
-                                          className="flex flex-col cursor-pointer hover:opacity-80 transition-all group/item"
-                                          onClick={() => {
-                                            const q = getQuadrant(item.revenue, item.growth);
-                                            const _isWeak = q.label.includes("YEU") || q.label.includes("YẾU");
-                                            const _isRisk = item.growth < -10;
-                                            
-                                            const node = { key: item.ma_don_vi, title: item.don_vi, type: item.type };
-                                            saveNavigationContext(node);
-                                            
-                                            let url = `/customers?node_code=${item.ma_don_vi}&node_type=${item.type || ''}&node_title=${encodeURIComponent(item.don_vi)}`;
-                                            if (_isWeak || _isRisk) {
-                                              url += `&lifecycle_status=at_risk`;
-                                            }
-                                            navigate(url);
-                                          }}
-                                          title="Mở danh sách khách hàng của địa bàn này"
-                                        >
-                                          <span className="text-[14px] font-black text-gray-800 group-hover:text-vnpost-blue transition-colors uppercase tracking-tight flex items-center gap-2">
-                                            {item.don_vi}
-                                            <ArrowUpRight size={12} className="opacity-0 group-hover/item:opacity-100 transition-all text-vnpost-blue" />
-                                          </span>
-                                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">ID: {item.ma_don_vi}</span>
-                                        </div>
-                                      </td>
-                                      <td className="p-2.5 text-right">
-                                        <span className="text-[14px] font-black text-gray-800">{formatCurrency(item.revenue)}</span>
-                                      </td>
-                                      <td className="p-2.5">
-                                        <div className={`flex items-center justify-center gap-1 font-black text-[12px] ${item.growth >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                                          {item.growth >= 0 ? <ArrowUpRight size={12}/> : <TrendingUp size={12} className="rotate-180"/>}
-                                          {item.growth > 0 ? '+' : ''}{item.growth}%
-                                        </div>
-                                      </td>
-                                      <td className="p-2.5">
-                                        <div className="flex justify-center">
-                                          <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full ${q.bg} ${q.text} text-[9px] font-black border ${q.color.replace('bg-', 'border-')}/20 shadow-sm uppercase tracking-widest`}>
-                                            {q.icon} {q.label}
+                                  {data.sort((a, b) => b.revenue - a.revenue).map((item, idx) => {
+                                    const q = getQuadrant(item.revenue, item.growth);
+                                    // [FIX-02] Higher contrast severity highlight
+                                    const _isWeak = q.label.includes("YEU") || q.label.includes("YẾU");
+                                    const _isRisk = item.growth < -10;
+                                    
+                                    // [SAFE-CALC] Contribution with safety guard
+                                    const contribution = totalRev > 0 ? ((item.revenue / totalRev) * 100).toFixed(1) + '%' : '0%';
+                                    
+                                    return (
+                                      <tr key={item.id || idx} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors group">
+                                        <td className="p-1.5 pl-3">
+                                          <div className="flex items-center gap-2">
+                                            <div className={`w-1 h-8 rounded-full ${_isWeak ? 'bg-red-500' : 'bg-gray-200'}`}></div>
+                                            <div className="flex flex-col min-w-0">
+                                              <span className="text-[11px] font-black text-gray-800 truncate leading-tight group-hover:text-vnpost-blue">{item.title}</span>
+                                              <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">ID: {item.id}</span>
+                                            </div>
                                           </div>
-                                        </div>
-                                      </td>
-                                      <td className="p-2.5 text-right">
-                                        <button 
-                                          onClick={() => handleDrillDown(item)}
-                                          className="p-1.5 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-vnpost-blue hover:border-vnpost-blue hover:bg-vnpost-blue/5 shadow-sm transition-all inline-flex items-center gap-2 group/btn"
-                                        >
-                                          <span className="text-[8px] font-black uppercase opacity-0 group-hover/btn:opacity-100 transition-all">Chi tiết</span>
-                                          <TrendingUp size={12} className="rotate-90"/>
-                                        </button>
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                              <tfoot className="sticky bottom-0 bg-gray-50/90 backdrop-blur-md z-10 border-t-2 border-vnpost-blue/10">
-                                {(() => {
-                                  const totalRev = data.reduce((acc, curr) => acc + curr.revenue, 0);
-                                  const totalPrevRev = data.reduce((acc, curr) => acc + (curr.previous_revenue || 0), 0);
-                                  const totalGrowth = totalPrevRev > 0 ? ((totalRev - totalPrevRev) / totalPrevRev * 100) : 0;
-                                  
-                                  return (
-                                    <tr className="bg-vnpost-blue/5">
-                                      <td className="p-2.5">
-                                        <div className="flex flex-col">
-                                          <span className="text-[14px] font-black text-vnpost-blue uppercase tracking-tight">TỔNG CỘNG ĐỊA BÀN</span>
-                                          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{data.length} đơn vị con</span>
-                                        </div>
-                                      </td>
-                                      <td className="p-2.5 text-right">
-                                        <span className="text-[16px] font-black text-vnpost-blue">{formatCurrency(totalRev)}</span>
-                                      </td>
-                                      <td className="p-2.5">
-                                        <div className={`flex items-center justify-center gap-1 font-black text-[14px] ${totalGrowth >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                                          {totalGrowth >= 0 ? <ArrowUpRight size={14}/> : <TrendingUp size={14} className="rotate-180"/>}
-                                          {totalGrowth > 0 ? '+' : ''}{totalGrowth.toFixed(1)}%
-                                        </div>
-                                      </td>
-                                      <td colSpan="2" className="p-4 text-center">
-                                        <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-white/50 py-2 rounded-xl border border-gray-100 italic">
-                                          Hiệu quả tổng hợp của phạm vi đang soi
-                                        </div>
-                                      </td>
-                                    </tr>
-                                  );
-                                })()}
-                              </tfoot>
+                                        </td>
+                                        <td className="p-1.5 text-right font-black text-gray-700 text-[11px]">
+                                          {formatCurrency(item.revenue)} <span className="text-gray-300 font-normal ml-0.5">₫</span>
+                                        </td>
+                                        <td className="p-1.5 text-right">
+                                           <div className="flex flex-col items-end">
+                                              <span className="text-[10px] font-black text-vnpost-blue/40 uppercase tracking-tighter">Tỷ trọng</span>
+                                              <span className="text-[11px] font-black text-gray-600">{contribution}</span>
+                                           </div>
+                                        </td>
+                                        <td className="p-1.5 text-center">
+                                          <div className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full font-black text-[9px] ${item.growth >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                                            {item.growth >= 0 ? <ArrowUpRight size={10}/> : <TrendingUp size={10} className="rotate-180"/>}
+                                            {item.growth > 0 ? '+' : ''}{item.growth}%
+                                          </div>
+                                        </td>
+                                        <td className="p-1.5 text-center">
+                                          <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border ${q.bg} ${q.text} border-transparent group-hover:border-current transition-all shadow-sm`}>
+                                            {q.icon}
+                                            <span className="text-[9px] font-black uppercase tracking-tighter">{q.label}</span>
+                                          </div>
+                                        </td>
+                                        <td className="p-1.5 text-right pr-3">
+                                          <button 
+                                            onClick={() => handleDrillDown(item)}
+                                            className="p-1.5 bg-gray-100 text-gray-400 rounded-lg hover:bg-vnpost-blue hover:text-white transition-all shadow-sm"
+                                          >
+                                            <ChevronRight size={14} />
+                                          </button>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                                <tfoot className="sticky bottom-0 bg-gray-50/90 backdrop-blur-md z-10 border-t border-gray-200">
+                                  {(() => {
+                                    const totalRev = data.reduce((acc, curr) => acc + curr.revenue, 0);
+                                    const totalPrevRev = data.reduce((acc, curr) => acc + (curr.previous_revenue || 0), 0);
+                                    const totalGrowth = totalPrevRev > 0 ? ((totalRev - totalPrevRev) / totalPrevRev * 100) : 0;
+                                    
+                                    return (
+                                      <tr className="bg-vnpost-blue/5">
+                                        <td className="p-1.5 pl-3">
+                                          <div className="flex flex-col">
+                                            <span className="text-[11px] font-black text-vnpost-blue uppercase tracking-tight">TỔNG CỘNG ĐỊA BÀN</span>
+                                            <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">{data.length} đơn vị con</span>
+                                          </div>
+                                        </td>
+                                        <td className="p-1.5 text-right">
+                                          <span className="text-[13px] font-black text-vnpost-blue">{formatCurrency(totalRev)} <span className="text-[9px] font-normal">₫</span></span>
+                                        </td>
+                                        <td className="p-1.5 text-right">
+                                           <span className="text-[11px] font-black text-vnpost-blue/40 uppercase tracking-widest">100.0%</span>
+                                        </td>
+                                        <td className="p-1.5">
+                                          <div className={`flex items-center justify-center gap-0.5 font-black text-[11px] ${totalGrowth >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                            {totalGrowth >= 0 ? <ArrowUpRight size={12}/> : <TrendingUp size={12} className="rotate-180"/>}
+                                            {totalGrowth > 0 ? '+' : ''}{totalGrowth.toFixed(1)}%
+                                          </div>
+                                        </td>
+                                        <td colSpan="2" className="p-2 text-center">
+                                          <div className="text-[8px] font-black text-gray-400 uppercase tracking-widest bg-white/50 py-1 rounded-lg border border-gray-100 italic">
+                                            Hiệu quả tổng hợp của phạm vi đang soi
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })()}
+                                </tfoot>
                             </table>
                           </div>
                        </div>
@@ -1365,22 +1326,22 @@ function Dashboard() {
                    }
                 })() : <div className="h-full flex items-center justify-center text-gray-300 italic text-xs uppercase font-black tracking-widest animate-pulse">Đang nạp dữ liệu điều hành...</div>}
              </div>
-             <div className="grid grid-cols-4 gap-4 mt-6">
-                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 transition-all duration-300 transform hover:scale-110 hover:shadow-2xl hover:z-50 cursor-default group">
-                   <p className="text-[16px] font-black text-emerald-700 uppercase mb-2 flex items-center gap-2">⭐ NGÔI SAO</p>
-                   <p className="text-[13px] text-emerald-800 leading-relaxed font-bold opacity-80 group-hover:opacity-100">Quy mô lớn & Tăng trưởng tốt. Cần duy trì & khen thưởng.</p>
+             <div className="grid grid-cols-4 gap-3 mt-4">
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100 transition-all duration-300 transform hover:scale-105 hover:shadow-xl cursor-default group">
+                   <p className="text-[13px] font-black text-emerald-700 uppercase mb-1 flex items-center gap-2">⭐ NGÔI SAO</p>
+                   <p className="text-[10px] text-emerald-800 leading-tight font-bold opacity-70 group-hover:opacity-100">Quy mô lớn & Tăng trưởng tốt.</p>
                 </div>
-                <div className="p-4 rounded-2xl bg-blue-50 border border-blue-100 transition-all duration-300 transform hover:scale-110 hover:shadow-2xl hover:z-50 cursor-default group">
-                   <p className="text-[16px] font-black text-blue-700 uppercase mb-2 flex items-center gap-2">🚀 TRIỂN VỌNG</p>
-                   <p className="text-[13px] text-blue-800 leading-relaxed font-bold opacity-80 group-hover:opacity-100">Quy mô nhỏ nhưng tăng trưởng nhanh. Cần đầu tư thêm.</p>
+                <div className="p-3 rounded-xl bg-blue-50 border border-blue-100 transition-all duration-300 transform hover:scale-105 hover:shadow-xl cursor-default group">
+                   <p className="text-[13px] font-black text-blue-700 uppercase mb-1 flex items-center gap-2">🚀 TRIỂN VỌNG</p>
+                   <p className="text-[10px] text-blue-800 leading-tight font-bold opacity-70 group-hover:opacity-100">Quy mô nhỏ nhưng tăng trưởng nhanh.</p>
                 </div>
-                <div className="p-4 rounded-2xl bg-orange-50 border border-orange-100 transition-all duration-300 transform hover:scale-110 hover:shadow-2xl hover:z-50 cursor-default group">
-                   <p className="text-[16px] font-black text-orange-700 uppercase mb-2 flex items-center gap-2">🐄 BÒ SỮA</p>
-                   <p className="text-[13px] text-orange-800 leading-relaxed font-bold opacity-80 group-hover:opacity-100">Quy mô lớn nhưng tăng trưởng âm. Cần cải tổ quy trình.</p>
+                <div className="p-3 rounded-xl bg-orange-50 border border-orange-100 transition-all duration-300 transform hover:scale-105 hover:shadow-xl cursor-default group">
+                   <p className="text-[13px] font-black text-orange-700 uppercase mb-1 flex items-center gap-2">🐄 BÒ SỮA</p>
+                   <p className="text-[10px] text-orange-800 leading-tight font-bold opacity-70 group-hover:opacity-100">Quy mô lớn nhưng tăng trưởng âm.</p>
                 </div>
-                <div className="p-4 rounded-2xl bg-red-50 border border-red-100 transition-all duration-300 transform hover:scale-110 hover:shadow-2xl hover:z-50 cursor-default group">
-                   <p className="text-[16px] font-black text-red-700 uppercase mb-2 flex items-center gap-2">⚠️ YẾU KÉM</p>
-                   <p className="text-[13px] text-red-800 leading-relaxed font-bold opacity-80 group-hover:opacity-100">Cả quy mô và tăng trưởng đều thấp. Cần thay đổi quản lý.</p>
+                <div className="p-3 rounded-xl bg-red-50 border border-red-100 transition-all duration-300 transform hover:scale-105 hover:shadow-xl cursor-default group">
+                   <p className="text-[13px] font-black text-red-700 uppercase mb-1 flex items-center gap-2">⚠️ YẾU KÉM</p>
+                   <p className="text-[10px] text-red-800 leading-tight font-bold opacity-70 group-hover:opacity-100">Cả quy mô và tăng trưởng đều thấp.</p>
                 </div>
              </div>
           </div>
@@ -1388,89 +1349,65 @@ function Dashboard() {
 
         {/* Biến Động Doanh Thu & Tăng Trưởng MoM */}
         <div className="card p-4 !col-span-full">
-          <div className="h-[200px] w-full">
-            {(() => {
-              if (!monthlyDataRes || monthlyDataRes.length === 0) {
-                return (
-                  <div className="flex flex-col h-full">
-                    <h3 className="text-xs font-bold text-gray-800 mb-2 flex justify-between items-center border-b border-gray-50 pb-2">
-                      <span className="flex items-center gap-2"><BarChart3 size={14} className="text-vnpost-orange" /> Hiệu Suất & Tốc Độ Tăng Trưởng</span>
-                    </h3>
-                    <div className="flex-1 flex items-center justify-center text-gray-300 italic text-xs uppercase font-black tracking-widest animate-pulse">Đang nạp dữ liệu xu hướng tháng...</div>
-                  </div>
-                );
-              }
-              
-              console.log("[DEBUG CHART] API raw data:", monthlyDataRes);
-              
-              if (!Array.isArray(monthlyDataRes)) {
-                console.error("[ERROR CHART] API returned non-array data:", monthlyDataRes);
-                return (
-                  <div className="flex flex-col h-full">
-                    <h3 className="text-xs font-bold text-gray-800 mb-2 flex justify-between items-center border-b border-gray-50 pb-2">
-                      <span className="flex items-center gap-2"><BarChart3 size={14} className="text-vnpost-orange" /> Hiệu Suất & Tốc Độ Tăng Trưởng</span>
-                    </h3>
-                    <div className="flex-1 flex items-center justify-center text-red-400 italic text-xs uppercase font-black tracking-widest">Dữ liệu biểu đồ không hợp lệ.</div>
-                  </div>
-                );
-              }
+                  <div className="h-[400px] w-full">
+                    {(() => {
+                      if (!monthlyDataRes || monthlyDataRes.length === 0) {
+                        return (
+                          <div className="flex flex-col h-full items-center justify-center bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+                            <Loader2 className="w-8 h-8 text-vnpost-blue/20 animate-spin" />
+                            <p className="text-[10px] font-black text-gray-400 uppercase mt-4">Đang phân tích xu hướng...</p>
+                          </div>
+                        );
+                      }
+                      
+                      const chartData = monthlyDataRes.map(m => ({
+                        month: m.month,
+                        total: m.total_revenue || m.total || 0,
+                        growth: m.growth_rate || m.growth || 0
+                      })).sort((a, b) => a.month.localeCompare(b.month)).slice(-12);
 
-              console.log("[DEBUG CHART] API months:", monthlyDataRes.map(x => x?.month));
-              console.log("[DEBUG CHART] API length:", monthlyDataRes.length);
-
-              const chartDataRaw = monthlyDataRes.slice(-14).map((d) => {
-                const total = d?.total || 0;
-                const growth = d?.growth || 0;
-                return { ...d, total, growth };
-              });
-              
-              const chartData = chartDataRaw.length > 1 ? chartDataRaw.slice(1) : chartDataRaw;
-              
-              console.log("[DEBUG CHART] Chart months rendered:", chartData.map(x => x.month));
-              console.log("[DEBUG CHART] Chart length rendered:", chartData.length);
-
-              return (
-                <div className="flex flex-col h-full">
-                  <h3 className="text-xs font-bold text-gray-800 mb-2 flex justify-between items-center border-b border-gray-50 pb-2">
-                    <span className="flex items-center gap-2">
-                      <BarChart3 size={14} className="text-vnpost-orange" /> 
-                      Hiệu Suất & Tốc Độ Tăng Trưởng 
-                    </span>
-                    <div className="flex gap-3">
-                       <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-vnpost-orange rounded-sm"></div> <span className="text-[11px] font-bold text-gray-500 uppercase">Doanh thu</span></div>
-                       <div className="flex items-center gap-1.5"><div className="w-2.5 h-0.5 bg-blue-500"></div> <span className="text-[11px] font-bold text-gray-500 uppercase">Tăng trưởng (%)</span></div>
-                    </div>
-                  </h3>
-                  <div className="flex-1 min-h-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <ComposedChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                        <XAxis 
-                          dataKey="month" 
-                          axisLine={false} 
-                          tickLine={false} 
-                          tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 'bold' }} 
-                          tickFormatter={(val) => {
-                            if (!val) return "";
-                            const [y, m] = val.split('-');
-                            return `T${m}/${y.slice(2)}`;
-                          }}
-                        />
-                        <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(val) => val === 0 ? "0" : `${((val || 0) / 1000000).toFixed(0)}M`} />
-                        <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#3b82f6', fontWeight: 'bold' }} tickFormatter={(val) => `${val}%`} />
-                        <RechartsTooltip 
-                          contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontWeight: 'bold' }}
-                          formatter={(val, name) => [name === 'growth' ? `${val}%` : formatCurrency(val), name === 'growth' ? 'Tăng trưởng' : 'Doanh thu']} 
-                        />
-                        <Bar yAxisId="left" dataKey="total" name="revenue" fill="#F9A51A" radius={[4, 4, 0, 0]} barSize={40} />
-                        <Line yAxisId="right" type="monotone" dataKey="growth" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
-                      </ComposedChart>
-                    </ResponsiveContainer>
+                      return (
+                        <div className="flex flex-col h-full">
+                          <h3 className="text-[10px] font-black text-vnpost-blue uppercase tracking-widest flex items-center justify-between mb-4 border-b border-gray-50 pb-2">
+                            <span className="flex items-center gap-2">
+                              <Activity size={14} /> 
+                              Hiệu Suất & Tốc Độ Tăng Trưởng 
+                            </span>
+                            <div className="flex gap-3">
+                               <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-[#0054A6] rounded-sm"></div> <span className="text-[11px] font-bold text-gray-500 uppercase">Doanh thu</span></div>
+                               <div className="flex items-center gap-1.5"><div className="w-2.5 h-0.5 bg-[#F9A51A]"></div> <span className="text-[11px] font-bold text-gray-500 uppercase">Tăng trưởng (%)</span></div>
+                            </div>
+                          </h3>
+                          <div className="flex-1 min-h-0">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <ComposedChart data={chartData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                <XAxis 
+                                  dataKey="month" 
+                                  axisLine={false} 
+                                  tickLine={false} 
+                                  tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 'bold' }} 
+                                  tickFormatter={(val) => {
+                                    if (!val) return "";
+                                    const [y, m] = val.split('-');
+                                    return `T${m}/${y.slice(2)}`;
+                                  }}
+                                />
+                                <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(val) => val === 0 ? "0" : `${((val || 0) / 1000000).toFixed(0)}M`} />
+                                <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#F9A51A', fontWeight: 'bold' }} tickFormatter={(val) => `${val}%`} />
+                                <RechartsTooltip 
+                                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontWeight: 'bold', fontSize: '11px' }}
+                                  formatter={(val, name) => [name === 'growth' ? `${val}%` : formatCurrency(val), name === 'growth' ? 'Tăng trưởng' : 'Doanh thu']} 
+                                />
+                                <Bar yAxisId="left" dataKey="total" name="revenue" fill="#0054A6" radius={[6, 6, 0, 0]} barSize={45} />
+                                <Line yAxisId="right" type="monotone" dataKey="growth" stroke="#F9A51A" strokeWidth={4} dot={{ r: 5, fill: '#F9A51A', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 7 }} />
+                              </ComposedChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
-                </div>
-              );
-            })()}
-          </div>
         </div>
 
         {/* Đối soát & Phân tích Hiệu quả (MoM/YoY Charts) */}
