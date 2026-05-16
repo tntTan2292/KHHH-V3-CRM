@@ -45,10 +45,15 @@ def filter_transactions_anti_dupe(db: Session, records: list) -> list:
     # 2. Database Deduplication (against existing SSOT)
     shbg_list = list(set([r['shbg'] for r in unique_in_batch]))
     
-    # SQLite optimization: batch query by SHBG
-    existing_q = db.query(Transaction.shbg, Transaction.ngay_chap_nhan, Transaction.doanh_thu).filter(
-        Transaction.shbg.in_(shbg_list)
-    ).all()
+    # [FIX] SQLite optimization: chunk query by SHBG to avoid 'too many SQL variables' (Limit 999)
+    existing_q = []
+    chunk_size = 900
+    for i in range(0, len(shbg_list), chunk_size):
+        chunk = shbg_list[i:i + chunk_size]
+        q = db.query(Transaction.shbg, Transaction.ngay_chap_nhan, Transaction.doanh_thu).filter(
+            Transaction.shbg.in_(chunk)
+        ).all()
+        existing_q.extend(q)
     
     existing_keys = set()
     for s, d, v in existing_q:
@@ -195,7 +200,11 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None):
                     filtered = filter_transactions_anti_dupe(db, raw_records)
                     skipped_duplicates += (len(raw_records) - len(filtered))
                     if filtered:
-                        db.execute(sqlite_insert(Transaction).values(filtered))
+                        # [FIX] Chunk INSERT to avoid 'too many SQL variables' (2000 rows * 25 cols = 50k vars!)
+                        insert_chunk_size = 30 
+                        for j in range(0, len(filtered), insert_chunk_size):
+                            chunk = filtered[j:j + insert_chunk_size]
+                            db.execute(sqlite_insert(Transaction).values(chunk))
                         db.commit()
                         total_transactions += len(filtered)
                     raw_records = []
@@ -204,7 +213,11 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None):
                 filtered = filter_transactions_anti_dupe(db, raw_records)
                 skipped_duplicates += (len(raw_records) - len(filtered))
                 if filtered:
-                    db.execute(sqlite_insert(Transaction).values(filtered))
+                    # [FIX] Chunk INSERT
+                    insert_chunk_size = 30
+                    for j in range(0, len(filtered), insert_chunk_size):
+                        chunk = filtered[j:j + insert_chunk_size]
+                        db.execute(sqlite_insert(Transaction).values(chunk))
                     db.commit()
                     total_transactions += len(filtered)
         

@@ -73,36 +73,56 @@ def run_sync():
 
         logger.info(f"Phat hien {len(folders_to_sync)} ngay moi: {folders_to_sync}")
 
+        # [OPTIMIZED] Lay thong tin file Batch cua tat ca folder trong 1 session
+        all_contents = SFTPManager.batch_get_all_contents(folders_to_sync)
+        
         downloaded_files = []
         for f_name in folders_to_sync:
             logger.info(f"Dang xu ly ngay: {f_name}")
-            target = SFTPManager.get_target_bf_file(f_name)
-            if not target: 
-                logger.warning(f"Khong thay file BatchFile trong folder {f_name}")
+            folder_files = all_contents.get(f_name, [])
+            if not folder_files:
+                logger.warning(f"Khong thay noi dung trong folder {f_name}")
                 continue
+                
+            xlsx_files = [f for f in folder_files if f['name'].lower().endswith('.xlsx')]
+            if not xlsx_files:
+                logger.warning(f"Khong thay file Excel trong folder {f_name}")
+                continue
+            
+            target = max(xlsx_files, key=lambda x: x['size'])
             
             # Tai file
             local_path = SFTPManager.download_file(f_name, target["name"])
             downloaded_files.append(local_path)
             
-            # Luu log vao SyncLog (hoan thanh)
-            log = db.query(SyncLog).filter(SyncLog.folder_name == f_name).first()
-            if not log:
-                log = SyncLog(folder_name=f_name)
-                db.add(log)
-            
-            log.file_name = target["name"]
-            log.file_size = target["size"]
-            log.remote_mtime = target["mtime"]
-            log.status = "COMPLETED"
-            db.commit()
-
         # 2. Thuc hien Import vao Database
         if downloaded_files:
             logger.info(f"Dang nap {len(downloaded_files)} file vao Database...")
             # Chay nap bu (full_reset=False)
             do_import(db, full_reset=False, target_files=downloaded_files)
             logger.info("Hoan tat nap du lieu!")
+
+            # 3. Luu log vao SyncLog (Chi khi Import thanh cong)
+            for f_name in folders_to_sync:
+                folder_files = all_contents.get(f_name, [])
+                if not folder_files: continue
+                xlsx_files = [f for f in folder_files if f['name'].lower().endswith('.xlsx')]
+                if not xlsx_files: continue
+                target = max(xlsx_files, key=lambda x: x['size'])
+                
+                log = db.query(SyncLog).filter(SyncLog.folder_name == f_name).first()
+                if not log:
+                    log = SyncLog(folder_name=f_name)
+                    db.add(log)
+                
+                log.file_name = target["name"]
+                log.file_size = target["size"]
+                log.remote_mtime = target["mtime"]
+                log.status = "COMPLETED"
+            
+            db.commit()
+            
+            # 4. Clear Cache de Dashboard tinh toan lai so lieu moi
             
             # 3. Clear Cache de Dashboard tinh toan lai so lieu moi
             logger.info("Dang lam moi Cache he thong...")

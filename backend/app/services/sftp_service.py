@@ -105,12 +105,14 @@ class SFTPManager:
         
         commands = [f"open {SFTP_SESSION} -hostkey=*"]
         for folder in folder_names:
-            commands.append(f"ls \"/{folder}\"")
+            # Dùng cd và pwd để tạo Marker trong output giúp parsing chính xác
+            commands.append(f"cd \"/{folder}\"")
+            commands.append("pwd")
+            commands.append("ls")
         
         output = SFTPManager.run_command(commands)
         
         # Phân tách kết quả theo từng folder
-        # WinSCP in ra "Listing directory /folder_name..." trước mỗi lệnh ls
         results = {}
         current_folder = None
         current_files = []
@@ -118,8 +120,9 @@ class SFTPManager:
         import re
         lines = output.splitlines()
         for line in lines:
-            # Nhận diện dòng tiêu đề folder mới
-            folder_match = re.search(r'Listing directory\s+/(?P<folder>\d{8})', line)
+            line = line.strip()
+            # Nhận diện dòng marker folder (VD: /20260515)
+            folder_match = re.match(r'^/(?P<folder>\d{8})$', line)
             if folder_match:
                 # Lưu folder cũ trước khi sang folder mới
                 if current_folder:
@@ -129,14 +132,16 @@ class SFTPManager:
                 current_files = []
                 continue
             
-            # Parse file info
+            # Parse file info (ls output)
             parts = line.split()
             if len(parts) >= 9 and parts[0].startswith('-'):
                 try:
+                    # WinSCP ls format: -rw-r--r--   1 998      999         719051 May 16  7:56:10 2026 53_Thua Thien Hue_20260515.xlsx
                     size = int(parts[4])
-                    mtime = " ".join(parts[5:9])
+                    # Mtime có thể có độ dài khác nhau tùy config WinSCP
+                    # Tạm lấy name là phần còn lại sau 9 tokens đầu
                     name = " ".join(parts[9:])
-                    current_files.append({"name": name, "size": size, "mtime": mtime})
+                    current_files.append({"name": name, "size": size, "mtime": " ".join(parts[5:9])})
                 except:
                     continue
         
