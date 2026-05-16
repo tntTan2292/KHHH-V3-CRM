@@ -145,6 +145,7 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None):
 
         for filepath in bf_files:
             filename = os.path.basename(filepath)
+            logger.info(f"📂 [TRACE] DO_IMPORT: Processing file {filename}")
             import_status["message"] = f"Đang nạp {filename}..."
             df_bf = read_file2(filepath)
             df_bf = df_bf.where(pd.notnull(df_bf), None)
@@ -272,30 +273,43 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None):
 async def check_sftp_sync(db: Session = Depends(get_db)):
     """Kiểm tra Gap dữ liệu và phiên bản mới trên SFTP"""
     try:
+        logger.info("🔍 [TRACE] SFTP-CHECK: Listing folders...")
         all_remote_folders = SFTPManager.list_folders()
+        logger.info(f"📊 [TRACE] SFTP-CHECK: Found {len(all_remote_folders)} folders.")
+        
         # Chỉ lấy các folder từ ngày 31/03/2026 trở đi theo lệnh sếp
         remote_folders = [f for f in all_remote_folders if f >= "20260331"]
         
         # Lấy lịch sử đã sync
         synced_folders = {r.folder_name: r for r in db.query(SyncLog).all()}
         
+        # [OPTIMIZED] Lấy nội dung toàn bộ folder trong DUY NHẤT 1 session
+        logger.info(f"📡 [TRACE] SFTP-CHECK: Batch fetching contents for {len(remote_folders)} folders...")
+        all_contents = SFTPManager.batch_get_all_contents(remote_folders)
+        
         gaps = []
         updates = []
         
         for folder in remote_folders:
-            target_file = SFTPManager.get_target_bf_file(folder)
-            if not target_file: continue
+            folder_files = all_contents.get(folder, [])
+            if not folder_files: continue
+            
+            # Tìm file Batch chính (nặng nhất)
+            xlsx_files = [f for f in folder_files if f['name'].lower().endswith('.xlsx')]
+            if not xlsx_files: continue
+            target_file = max(xlsx_files, key=lambda x: x['size'])
             
             if folder not in synced_folders:
                 gaps.append({"folder": folder, "file": target_file["name"], "size": target_file["size"]})
             else:
                 log = synced_folders[folder]
-                # Nếu dung lượng hoặc mtime khác biệt -> Cập nhật mới từ TCT
+                # Nếu dung lượng khác biệt -> Cập nhật mới từ TCT
                 if target_file["size"] != log.file_size:
                     updates.append({"folder": folder, "file": target_file["name"], "old_size": log.file_size, "new_size": target_file["size"]})
         
-        return {"gaps": gaps, "updates": updates, "total_remote": len(remote_folders)}
+        return {"gaps": gaps, "updates": updates, "total_remote": len(all_remote_folders)}
     except Exception as e:
+        logger.error(f"❌ [TRACE] SFTP-CHECK FAILED: {e}")
         return {"error": str(e)}
 
 @router.post("/sftp-sync")
@@ -305,10 +319,12 @@ async def sync_sftp(background_tasks: BackgroundTasks, db: Session = Depends(get
         return {"success": False, "message": "Hệ thống đang bận..."}
     
     background_tasks.add_task(sync_worker, db, folders)
+    logger.info("🚀 [TRACE] SYNC REQUESTED: Background task spawned.")
     return {"success": True, "message": "Bắt đầu đồng bộ SFTP..."}
 
 async def sync_worker(db_in: Session, folders: list):
     """Worker xử lý đồng bộ SFTP chạy ngầm - Sử dụng Session riêng biệt"""
+    print("[TRACE] sync_worker entered")
     global import_status
     import_status = {"running": True, "message": "Đang kết nối SFTP...", "done": False, "error": None}
     
@@ -320,8 +336,12 @@ async def sync_worker(db_in: Session, folders: list):
             import_status = {"running": False, "message": "🚫 Hệ thống đang tạm khóa Sync SFTP để bảo trì.", "done": False, "error": "MAINTENANCE_LOCK"}
             return
 
+        logger.info("📡 [TRACE] SYNC_WORKER: Checking SFTP gaps...")
+        print("[TRACE] before check_sftp_sync")
         # 1. Kiểm tra danh sách cần nạp
         check = await check_sftp_sync(db)
+        print("[TRACE] after check_sftp_sync")
+        
         to_sync = folders or [g["folder"] for g in check.get("gaps", [])]
         
         if not to_sync:
@@ -331,6 +351,7 @@ async def sync_worker(db_in: Session, folders: list):
         downloaded_files = []
         sync_results = []
         
+        print("[TRACE] before download loop")
         for f_name in to_sync:
             import_status["message"] = f"Đang tải dữ liệu ngày {f_name}..."
             target = SFTPManager.get_target_bf_file(f_name)
@@ -339,10 +360,13 @@ async def sync_worker(db_in: Session, folders: list):
             local_path = SFTPManager.download_file(f_name, target["name"])
             downloaded_files.append(local_path)
             sync_results.append({"folder": f_name, "target": target})
+        print("[TRACE] after download loop")
             
         # 2. Chạy Import Incremental
         import_status["message"] = "Đang nạp dữ liệu vào Database..."
+        print("[TRACE] before do_import")
         total = do_import(db, full_reset=False, target_files=downloaded_files)
+        print("[TRACE] after do_import")
         
         # 3. Cập nhật SyncLog CHỈ KHI import thành công (Governance)
         if total is not None:
@@ -365,7 +389,9 @@ async def sync_worker(db_in: Session, folders: list):
             "done": True, "error": None
         }
         # Tự động cập nhật Summary sau khi sync SFTP thành công
+        print("[TRACE] before refresh_summary")
         SummaryService.refresh_summary_incremental()
+        print("[TRACE] after refresh_summary")
         
         # Tự động xóa cache sau khi đồng bộ dữ liệu mới thành công
         CacheService.clear()

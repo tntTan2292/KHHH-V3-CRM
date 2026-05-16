@@ -27,8 +27,23 @@ class SFTPManager:
         try:
             # Gọi WinSCP với tham số /script
             full_args = [WINSCP_EXE, f"/script={temp_script_path}"]
-            # Sử dụng errors='replace' để không bị chết khi gặp ký tự tiếng Việt bảng mã cũ
-            result = subprocess.run(full_args, capture_output=True, text=True, check=False, encoding='utf-8', errors='replace')
+            logger.info(f"🚀 [TRACE] WINSCP START: {commands[0] if len(commands) > 1 else commands}")
+            
+            # [HOTFIX] Thêm timeout cứng 30s để tránh treo Event Loop vô hạn
+            try:
+                result = subprocess.run(
+                    full_args, 
+                    capture_output=True, 
+                    text=True, 
+                    check=False, 
+                    encoding='utf-8', 
+                    errors='replace',
+                    timeout=30  # Hard timeout 30s
+                )
+                logger.info(f"✅ [TRACE] WINSCP FINISHED (RC: {result.returncode})")
+            except subprocess.TimeoutExpired:
+                logger.error("❌ [TRACE] WINSCP TIMEOUT EXPIRED (30s)")
+                raise Exception("Lỗi: Kết nối SFTP (WinSCP) bị quá tải hoặc treo (Timeout 30s). Vui lòng thử lại sau.")
             
             # Xóa file kịch bản ngay sau khi chạy
             if os.path.exists(temp_script_path):
@@ -82,6 +97,54 @@ class SFTPManager:
                 except:
                     continue
         return files
+
+    @staticmethod
+    def batch_get_all_contents(folder_names):
+        """[OPTIMIZED] Lấy nội dung của nhiều folder trong DUY NHẤT 1 session"""
+        if not folder_names: return {}
+        
+        commands = [f"open {SFTP_SESSION} -hostkey=*"]
+        for folder in folder_names:
+            commands.append(f"ls \"/{folder}\"")
+        
+        output = SFTPManager.run_command(commands)
+        
+        # Phân tách kết quả theo từng folder
+        # WinSCP in ra "Listing directory /folder_name..." trước mỗi lệnh ls
+        results = {}
+        current_folder = None
+        current_files = []
+        
+        import re
+        lines = output.splitlines()
+        for line in lines:
+            # Nhận diện dòng tiêu đề folder mới
+            folder_match = re.search(r'Listing directory\s+/(?P<folder>\d{8})', line)
+            if folder_match:
+                # Lưu folder cũ trước khi sang folder mới
+                if current_folder:
+                    results[current_folder] = current_files
+                
+                current_folder = folder_match.group('folder')
+                current_files = []
+                continue
+            
+            # Parse file info
+            parts = line.split()
+            if len(parts) >= 9 and parts[0].startswith('-'):
+                try:
+                    size = int(parts[4])
+                    mtime = " ".join(parts[5:9])
+                    name = " ".join(parts[9:])
+                    current_files.append({"name": name, "size": size, "mtime": mtime})
+                except:
+                    continue
+        
+        # Lưu folder cuối cùng
+        if current_folder:
+            results[current_folder] = current_files
+            
+        return results
 
     @staticmethod
     def get_target_bf_file(folder_name):

@@ -92,6 +92,7 @@ class SummaryService:
         end_date = f"{month_str}-{last_day} 23:59:59"
         
         print(f"  - Rebuilding {month_str} using Constitutional Logic...")
+        logger.info(f"📊 [TRACE] SUMMARY_SERVICE: Rebuilding {month_str}...")
         
         print(f"    - Processing VIP Tiers using VIPTierEngine...")
         vip_results = VIPTierEngine.process_vip_month(month_str)

@@ -31,7 +31,6 @@ async def get_name(username: str, db: Session = Depends(get_db)):
 
 @router.post("/login")
 async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    print(f"DEBUG: Login attempt for username: '{form_data.username}'")
     user = db.query(User).filter(User.username == form_data.username).first()
     
     if not user:
@@ -50,9 +49,16 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
             detail=f"Tài khoản đang bị khóa tạm thời. Vui lòng thử lại sau {remaining_minutes} phút."
         )
 
-    print(f"DEBUG: User '{user.username}' found. Verifying password...")
     is_valid = verify_password(form_data.password, user.hashed_password)
-    print(f"DEBUG: Password valid: {is_valid}")
+    
+    # EXACT RUNTIME LOGGING FOR FORENSIC TRACE
+    print(f"--- [LOGIN RUNTIME TRACE] ---")
+    print(f"Username: {repr(form_data.username)}")
+    print(f"Password repr: {repr(form_data.password)}")
+    print(f"Password len: {len(form_data.password)}")
+    print(f"Verify Result: {is_valid}")
+    print(f"-----------------------------")
+
     if not is_valid:
         # Tăng số lần thử sai
         user.failed_login_attempts += 1
