@@ -375,6 +375,13 @@ function Dashboard() {
     { revalidateOnFocus: false, revalidateIfStale: false }
   );
 
+  // VIP Top 10 Revenue Data Query
+  const { data: vipRevenueData, isValidating: loadingVipRevenue } = useSWR(
+    !waitingForDefaultDate ? ['/api/analytics/vip-top10-revenue', queryParams] : null,
+    fetcherWithParams,
+    { revalidateOnFocus: false, revalidateIfStale: false }
+  );
+
   // Sync state with SWR results
   useEffect(() => {
     if (summaryData) {
@@ -1081,6 +1088,142 @@ function Dashboard() {
                 </div>
               </div>
             </div>
+
+      {/* WIDGET THEO DÕI DOANH THU PHÂN KHÚC VIP */}
+      <div className="card p-6 border-t-4 border-t-amber-500 relative overflow-hidden bg-gradient-to-br from-amber-50/20 via-white to-orange-50/20 shadow-xl group/vip mt-4">
+        {/* Glassmorphic decorative circles */}
+        <div className="absolute -right-16 -top-16 w-48 h-48 bg-amber-200/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute -left-16 -bottom-16 w-48 h-48 bg-orange-200/20 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 border-b border-amber-100 pb-4 relative z-10">
+          <div>
+            <h3 className="text-sm font-black text-amber-900 flex items-center gap-2 uppercase tracking-widest">
+              <span className="animate-pulse">👑</span> THEO DÕI DOANH THU PHÂN KHÚC VIP (DIAMOND COHORT)
+            </h3>
+            <p className="text-[10px] text-amber-700/60 font-black uppercase mt-1">
+              Báo cáo độc quyền dành cho Ban điều hành • Cố định 10 khách hàng lớn nhất
+            </p>
+          </div>
+          
+          {/* Cohort Summary KPIs */}
+          {vipRevenueData && vipRevenueData.length > 0 && (() => {
+            const totalVipRev = vipRevenueData.reduce((sum, item) => sum + item.doanh_thu_ky_nay, 0);
+            const totalVipPrevRev = vipRevenueData.reduce((sum, item) => sum + item.doanh_thu_ky_truoc, 0);
+            const vipGrowth = totalVipPrevRev > 0 ? ((totalVipRev - totalVipPrevRev) / totalVipPrevRev * 100) : (totalVipRev > 0 ? 100 : 0);
+            const totalVipLuyKe = vipRevenueData.reduce((sum, item) => sum + item.luy_ke, 0);
+            
+            return (
+              <div className="flex flex-wrap gap-4">
+                <div className="bg-white/80 backdrop-blur-md px-4 py-2 rounded-xl border border-amber-200 shadow-sm">
+                  <span className="block text-[8px] font-black text-amber-800/50 uppercase tracking-wider">Doanh thu kỳ này</span>
+                  <span className="text-sm font-black text-amber-950">{formatCurrency(totalVipRev)}</span>
+                </div>
+                <div className="bg-white/80 backdrop-blur-md px-4 py-2 rounded-xl border border-amber-200 shadow-sm">
+                  <span className="block text-[8px] font-black text-amber-800/50 uppercase tracking-wider">Tăng trưởng cohort</span>
+                  <span className={`text-sm font-black flex items-center gap-1 ${vipGrowth >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    {vipGrowth >= 0 ? '▲' : '▼'} {Math.abs(vipGrowth).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="bg-white/80 backdrop-blur-md px-4 py-2 rounded-xl border border-amber-200 shadow-sm">
+                  <span className="block text-[8px] font-black text-amber-800/50 uppercase tracking-wider">Lũy kế lịch sử</span>
+                  <span className="text-sm font-black text-vnpost-blue">{formatCurrency(totalVipLuyKe)}</span>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* VIP Table List */}
+        <div className="relative z-10 overflow-hidden rounded-2xl border border-amber-100 bg-white/60 backdrop-blur-sm shadow-inner">
+          {loadingVipRevenue ? (
+            <Skeleton.Table rows={5} />
+          ) : vipRevenueData && vipRevenueData.length > 0 ? (
+            <div className="overflow-x-auto no-scrollbar">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gradient-to-r from-amber-500/10 to-amber-600/5 border-b border-amber-100">
+                    <th className="p-3 text-[10px] font-black text-amber-900 uppercase tracking-wider">Mã Khách hàng</th>
+                    <th className="p-3 text-[10px] font-black text-amber-900 uppercase tracking-wider">Tên khách hàng</th>
+                    <th className="p-3 text-[10px] font-black text-amber-900 uppercase tracking-wider">Phân khúc</th>
+                    <th className="p-3 text-[10px] font-black text-amber-900 uppercase tracking-wider text-right">Doanh thu kỳ này</th>
+                    <th className="p-3 text-[10px] font-black text-amber-900 uppercase tracking-wider text-center">Tăng trưởng MoM</th>
+                    <th className="p-3 text-[10px] font-black text-amber-900 uppercase tracking-wider text-right">Lũy kế lịch sử</th>
+                    <th className="p-3 text-[10px] font-black text-amber-900 uppercase tracking-wider text-center">Hành động</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {vipRevenueData.map((item, idx) => {
+                    const totalVipRev = vipRevenueData.reduce((sum, x) => sum + x.doanh_thu_ky_nay, 0) || 1;
+                    const contribution = ((item.doanh_thu_ky_nay / totalVipRev) * 100).toFixed(1);
+                    
+                    return (
+                      <tr 
+                        key={item.ma_crm_cms || idx} 
+                        onClick={() => setSelectedCustomer({ ma_kh: item.ma_crm_cms, ten_kh: item.ten_kh })}
+                        className="border-b border-amber-100/30 hover:bg-amber-50/40 transition-all cursor-pointer group/row"
+                      >
+                        <td className="p-3">
+                          <span className="font-mono text-[11px] font-black px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">
+                            {item.ma_crm_cms}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex flex-col">
+                            <span className="text-[12px] font-black text-gray-800 group-hover/row:text-amber-800 transition-colors">
+                              {item.ten_kh}
+                            </span>
+                            <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">
+                              Phân loại: {item.loai_kh || 'Chưa phân loại'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-amber-600 to-yellow-500 text-white shadow-sm">
+                            👑 VIP
+                          </span>
+                        </td>
+                        <td className="p-3 text-right">
+                          <div className="flex flex-col items-end">
+                            <span className="text-[12px] font-black text-amber-950">
+                              {formatCurrency(item.doanh_thu_ky_nay)}
+                            </span>
+                            <span className="text-[8px] text-amber-700/60 font-black uppercase tracking-tighter">
+                              Tỉ trọng cohort: {contribution}%
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-3 text-center">
+                          <div className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full font-black text-[9px] ${item.growth >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                            {item.growth >= 0 ? '▲' : '▼'} {Math.abs(item.growth)}%
+                          </div>
+                        </td>
+                        <td className="p-3 text-right font-black text-vnpost-blue text-[12px]">
+                          {formatCurrency(item.luy_ke)}
+                        </td>
+                        <td className="p-3 text-center">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedCustomer({ ma_kh: item.ma_crm_cms, ten_kh: item.ten_kh });
+                            }}
+                            className="p-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-600 hover:text-white transition-all shadow-sm"
+                          >
+                            <ArrowUpRight size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="p-12 text-center text-amber-700/50 italic text-xs font-bold uppercase tracking-widest animate-pulse">
+              Không có dữ liệu doanh thu VIP trong kỳ lọc
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Heatmap & Trends */}
         <div className="grid grid-cols-1 gap-6">

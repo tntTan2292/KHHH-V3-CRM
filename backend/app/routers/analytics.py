@@ -1122,3 +1122,91 @@ async def get_heatmap_units(
         r["intensity"] = round((r["revenue"] / max_rev) * 100, 1)
         
     return sorted(results, key=lambda x: x["revenue"], reverse=True)
+
+
+@router.get("/vip-top10-revenue")
+async def get_vip_top10_revenue(
+    start_date: str = None,
+    end_date: str = None,
+    node_code: str = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # 1. Effective scope ids (Elite RBAC)
+    scope_point_ids = ScopingService.get_effective_scope_ids(db, current_user, node_code)
+    if scope_point_ids is not None and not scope_point_ids:
+        return []
+        
+    # 2. Get governed comparison periods
+    curr_start, curr_end, prev_start, prev_end, max_data_date = get_governed_comparison_periods(
+        db, start_date, end_date, "mom", scope_point_ids
+    )
+    
+    if not curr_start:
+        return []
+        
+    curr_start_str = curr_start.strftime("%Y-%m-%d")
+    curr_end_str = curr_end.strftime("%Y-%m-%d")
+    prev_start_str = prev_start.strftime("%Y-%m-%d")
+    prev_end_str = prev_end.strftime("%Y-%m-%d")
+    
+    from ..core.config_segments import LOCKED_KIM_CUONG_IDS
+    
+    # 3. Query locked VIP customers from DB
+    customers = db.query(Customer).filter(Customer.ma_crm_cms.in_(LOCKED_KIM_CUONG_IDS)).all()
+    cust_map = {c.ma_crm_cms: c for c in customers}
+    
+    # 4. Fetch revenue in current period for each customer
+    curr_rev_q = db.query(
+        Transaction.ma_kh,
+        func.sum(Transaction.doanh_thu).label("rev")
+    ).filter(
+        Transaction.ma_kh.in_(LOCKED_KIM_CUONG_IDS),
+        Transaction.ngay_chap_nhan >= curr_start_str,
+        Transaction.ngay_chap_nhan <= f"{curr_end_str} 23:59:59"
+    )
+    if scope_point_ids is not None:
+        curr_rev_q = curr_rev_q.filter(Transaction.point_id.in_(scope_point_ids))
+    curr_rev = {r[0]: float(r[1] or 0.0) for r in curr_rev_q.group_by(Transaction.ma_kh).all()}
+    
+    # 5. Fetch revenue in previous period for each customer
+    prev_rev_q = db.query(
+        Transaction.ma_kh,
+        func.sum(Transaction.doanh_thu).label("rev")
+    ).filter(
+        Transaction.ma_kh.in_(LOCKED_KIM_CUONG_IDS),
+        Transaction.ngay_chap_nhan >= prev_start_str,
+        Transaction.ngay_chap_nhan <= f"{prev_end_str} 23:59:59"
+    )
+    if scope_point_ids is not None:
+        prev_rev_q = prev_rev_q.filter(Transaction.point_id.in_(scope_point_ids))
+    prev_rev = {r[0]: float(r[1] or 0.0) for r in prev_rev_q.group_by(Transaction.ma_kh).all()}
+    
+    # 6. Compose result list sorted by current period revenue desc
+    results = []
+    for ma_kh in LOCKED_KIM_CUONG_IDS:
+        c = cust_map.get(ma_kh)
+        if not c:
+            continue
+            
+        rev_now = curr_rev.get(ma_kh, 0.0)
+        rev_prev = prev_rev.get(ma_kh, 0.0)
+        
+        # Calculate MoM growth
+        growth = round(((rev_now - rev_prev) / rev_prev * 100), 1) if rev_prev > 0 else (100.0 if rev_now > 0 else 0.0)
+        
+        results.append({
+            "ma_crm_cms": c.ma_crm_cms,
+            "ten_kh": c.ten_kh,
+            "loai_kh": c.loai_kh,
+            "rfm_segment": "VIP", # Force VIP Segment
+            "vip_tier": "DIAMOND", # Force DIAMOND
+            "doanh_thu_ky_nay": rev_now,
+            "doanh_thu_ky_truoc": rev_prev,
+            "growth": growth,
+            "luy_ke": c.tong_doanh_thu or 0.0
+        })
+        
+    results.sort(key=lambda x: x["doanh_thu_ky_nay"], reverse=True)
+    return results
+

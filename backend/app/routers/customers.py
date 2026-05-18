@@ -6,7 +6,7 @@ from ..database import get_db
 from ..schemas import CustomerResponse, CustomerUpdate
 from ..services.scoping_service import ScopingService
 from ..routers.auth import get_current_user
-from ..models import User, NhanSu, HierarchyNode, Customer, Transaction
+from ..models import User, NhanSu, HierarchyNode, Customer, Transaction, LifecycleLog
 from ..core.cache import cache_response
 from ..services.customer_service import CustomerService
 
@@ -446,6 +446,61 @@ async def get_customer_transactions(
     total_pages = (total + page_size - 1) // page_size if page_size > 0 else 1
     
     return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages
+    }
+
+@router.get("/{ma_crm}/lifecycle-timeline")
+async def get_customer_lifecycle_timeline(
+    ma_crm: str,
+    page: int = 1,
+    page_size: int = 10,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Check if customer exists
+    customer = db.query(Customer).filter(Customer.ma_crm_cms == ma_crm).first()
+    if not customer:
+        raise HTTPException(status_code=404, detail="Không tìm thấy khách hàng")
+        
+    # Check Scope (Elite RBAC 3.0)
+    node = db.query(HierarchyNode).filter(HierarchyNode.code == customer.ma_bc_phu_trach).first()
+    if node:
+        from ..auth.permissions import check_scope
+        check_scope(db, current_user, node.id)
+        
+    # Enforce hard limit on page_size (Pagination Guard)
+    page_size = min(page_size, 50)
+    if page < 1:
+        page = 1
+        
+    # Build query on lifecycle_logs table (indexed by ma_kh)
+    query = db.query(LifecycleLog).filter(LifecycleLog.ma_kh == ma_crm).order_by(desc(LifecycleLog.timestamp))
+    
+    # Total count
+    total = query.count()
+    
+    # Pagination limit / offset
+    offset = (page - 1) * page_size
+    logs = query.offset(offset).limit(page_size).all()
+    
+    # Format items response
+    items = []
+    for log in logs:
+        items.append({
+            "previous_state": log.previous_state,
+            "new_state": log.new_state,
+            "trigger_reason": log.trigger_reason,
+            "timestamp": log.timestamp.strftime("%Y-%m-%d %H:%M:%S") if log.timestamp else None
+        })
+        
+    total_pages = (total + page_size - 1) // page_size if page_size > 0 else 1
+    
+    return {
+        "current_state": customer.lifecycle_state or "UNKNOWN",
         "items": items,
         "total": total,
         "page": page,

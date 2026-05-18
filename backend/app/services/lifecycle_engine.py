@@ -351,6 +351,38 @@ class LifecycleEngine:
                 [(r['ma_kh'], r['lifecycle_state']) for r in results]
             )
             
+            # Fetch old states to record transitions (Phase 2A Append-Only Transition Logging)
+            cursor.execute("SELECT ma_crm_cms, lifecycle_state FROM customers WHERE ma_crm_cms IN (SELECT ma_kh FROM temp_lifecycle_v3)")
+            old_states = {row[0]: row[1] for row in cursor.fetchall()}
+            
+            log_data = []
+            for r in results:
+                ma_kh = r['ma_kh']
+                new_state = r['lifecycle_state']
+                old_state = old_states.get(ma_kh)
+                
+                # Detect transition (only if old state exists and is different from new state)
+                if old_state and old_state != new_state:
+                    # Deterministic reasons as per user requirements
+                    if new_state == 'NEW':
+                        reason = "Khách mới hoạt động"
+                    elif new_state == 'AT_RISK':
+                        reason = "Không phát sinh >30 ngày"
+                    elif new_state == 'CHURNED':
+                        reason = "Không phát sinh >90 ngày"
+                    elif new_state in ['RECOVERED', 'ACTIVE']:
+                        reason = "Phát sinh trở lại"
+                    else:
+                        reason = "Chuyển đổi trạng thái"
+                        
+                    log_data.append((ma_kh, old_state, new_state, reason))
+            
+            if log_data:
+                cursor.executemany("""
+                    INSERT INTO lifecycle_logs (ma_kh, previous_state, new_state, trigger_reason, timestamp)
+                    VALUES (?, ?, ?, ?, datetime('now'))
+                """, log_data)
+            
             cursor.execute("""
                 UPDATE customers 
                 SET lifecycle_state = (SELECT state FROM temp_lifecycle_v3 WHERE temp_lifecycle_v3.ma_kh = customers.ma_crm_cms)

@@ -14,6 +14,14 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
   const [txCache, setTxCache] = useState({});
   const [txLoading, setTxLoading] = useState(false);
 
+  // Phase 2A: Lifecycle Timeline Tab States
+  const [tlPage, setTlPage] = useState(1);
+  const [tlTotal, setTlTotal] = useState(0);
+  const [tlTotalPages, setTlTotalPages] = useState(1);
+  const [tlCache, setTlCache] = useState({});
+  const [tlLoading, setTlLoading] = useState(false);
+  const [currentLifecycleState, setCurrentLifecycleState] = useState('UNKNOWN');
+
   // Fetch interaction history (luồng cũ)
   const fetchHistory = async () => {
     try {
@@ -50,6 +58,28 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
     }
   };
 
+  // Fetch lifecycle timeline with frontend page caching
+  const fetchLifecycleTimeline = async (page) => {
+    try {
+      setTlLoading(true);
+      const res = await api.get(`/api/customers/${targetId}/lifecycle-timeline`, {
+        params: { page, page_size: 10 }
+      });
+      const data = res.data || { items: [], total: 0, total_pages: 1, current_state: 'UNKNOWN' };
+      setTlTotal(data.total);
+      setTlTotalPages(data.total_pages);
+      setCurrentLifecycleState(data.current_state || 'UNKNOWN');
+      setTlCache(prev => ({
+        ...prev,
+        [page]: data.items || []
+      }));
+    } catch (err) {
+      console.error("Lỗi khi tải dòng thời gian vòng đời:", err);
+    } finally {
+      setTlLoading(false);
+    }
+  };
+
   // Reset states on customer modal open/change
   useEffect(() => {
     if (isOpen) {
@@ -57,6 +87,13 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
       setTxPage(1);
       setTxTotal(0);
       setTxTotalPages(1);
+      
+      setTlCache({});
+      setTlPage(1);
+      setTlTotal(0);
+      setTlTotalPages(1);
+      setCurrentLifecycleState('UNKNOWN');
+      
       setActiveTab('interactions');
       
       if (targetId) {
@@ -76,6 +113,31 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
       }
     }
   }, [isOpen, activeTab, txPage, targetId]);
+
+  // Lazy Load and Pagination trigger for lifecycle tab
+  useEffect(() => {
+    if (isOpen && activeTab === 'lifecycle' && targetId) {
+      if (!tlCache[tlPage]) {
+        fetchLifecycleTimeline(tlPage);
+      }
+    }
+  }, [isOpen, activeTab, tlPage, targetId]);
+
+  const getLifecycleStateBadge = (state) => {
+    const statesMap = {
+      'NEW': { text: 'MỚI', color: 'bg-emerald-50 text-emerald-600 border-emerald-100' },
+      'ACTIVE': { text: 'HOẠT ĐỘNG', color: 'bg-blue-50 text-blue-600 border-blue-100' },
+      'AT_RISK': { text: 'SUY GIẢM', color: 'bg-orange-50 text-orange-600 border-orange-100' },
+      'CHURNED': { text: 'NGỪNG GỬI', color: 'bg-red-50 text-red-600 border-red-100' },
+      'RECOVERED': { text: 'KHÔI PHỤC', color: 'bg-purple-50 text-purple-600 border-purple-100' },
+    };
+    const mapped = statesMap[state] || { text: state, color: 'bg-gray-50 text-gray-500 border-gray-100' };
+    return (
+      <span className={`px-2 py-0.5 rounded border text-[10px] font-black uppercase tracking-wider ${mapped.color}`}>
+        {mapped.text}
+      </span>
+    );
+  };
 
   if (!isOpen) return null;
 
@@ -169,6 +231,16 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
             >
               Lịch sử giao dịch
             </button>
+            <button
+              onClick={() => setActiveTab('lifecycle')}
+              className={`px-4 py-2.5 text-[10px] font-black uppercase tracking-wider border-b-2 transition-all ${
+                activeTab === 'lifecycle'
+                  ? 'border-vnpost-blue text-vnpost-blue'
+                  : 'border-transparent text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              Vòng đời khách hàng
+            </button>
           </div>
         )}
 
@@ -248,7 +320,7 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
                 </div>
               </div>
             )
-          ) : (
+          ) : activeTab === 'transactions' ? (
             txLoading && !txCache[txPage] ? (
               <div className="flex flex-col items-center justify-center py-20 gap-4">
                  <div className="w-12 h-12 border-4 border-vnpost-blue border-t-transparent rounded-full animate-spin"></div>
@@ -309,6 +381,99 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
                     <button
                       disabled={txPage === txTotalPages || txLoading}
                       onClick={() => setTxPage(p => Math.min(txTotalPages, p + 1))}
+                      className="px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-600 disabled:opacity-40 rounded-xl text-xs font-black uppercase tracking-wider transition-all disabled:pointer-events-none"
+                    >
+                      Trang sau
+                    </button>
+                  </div>
+                )}
+              </div>
+            )
+          ) : (
+            tlLoading && !tlCache[tlPage] ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-4">
+                 <div className="w-12 h-12 border-4 border-vnpost-blue border-t-transparent rounded-full animate-spin"></div>
+                 <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Đang tải dòng thời gian vòng đời...</p>
+              </div>
+            ) : !tlCache[tlPage] || tlCache[tlPage].length === 0 ? (
+              <div className="text-center py-20">
+                 <div className="w-16 h-16 bg-gray-100 text-gray-300 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Clock size={32} />
+                 </div>
+                 <h4 className="text-sm font-black text-gray-400 uppercase tracking-widest">Chưa ghi nhận biến động vòng đời</h4>
+                 <p className="text-xs text-gray-400 mt-2">Mọi biến động trạng thái từ lúc deploy sẽ xuất hiện tại đây.</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Current State Banner */}
+                <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex justify-between items-center">
+                  <div>
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Trạng thái hiện tại</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      {getLifecycleStateBadge(currentLifecycleState)}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Tổng biến động mới</p>
+                    <span className="text-xl font-black text-vnpost-blue">{tlTotal} sự kiện</span>
+                  </div>
+                </div>
+
+                {/* Vertical Timeline */}
+                <div className="relative">
+                  <div className="absolute left-[19px] top-4 bottom-4 w-0.5 bg-gradient-to-b from-vnpost-blue/20 via-gray-200 to-gray-200/0"></div>
+                  
+                  <div className="space-y-8">
+                    {tlCache[tlPage].map((item, idx) => (
+                      <div key={idx} className="relative pl-12 group">
+                        {/* Node */}
+                        <div className="absolute left-0 top-1 w-10 h-10 rounded-full border-4 border-white shadow-lg flex items-center justify-center z-10 bg-white">
+                          <div className={`w-3.5 h-3.5 rounded-full ${
+                            item.new_state === 'NEW' ? 'bg-emerald-500 shadow-emerald-200' :
+                            item.new_state === 'ACTIVE' ? 'bg-blue-500 shadow-blue-200' :
+                            item.new_state === 'AT_RISK' ? 'bg-orange-500 shadow-orange-200' :
+                            item.new_state === 'CHURNED' ? 'bg-red-500 shadow-red-200' :
+                            item.new_state === 'RECOVERED' ? 'bg-purple-500 shadow-purple-200' : 'bg-gray-400'
+                          } shadow-md`}></div>
+                        </div>
+                        
+                        <div className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100 group-hover:shadow-md transition-all group-hover:border-vnpost-blue/10">
+                          <div className="flex justify-between items-start mb-3">
+                            <div>
+                              <span className="text-[10px] font-black text-vnpost-blue">{item.timestamp}</span>
+                              <div className="flex items-center gap-2 mt-2">
+                                {getLifecycleStateBadge(item.previous_state)}
+                                <ChevronRight size={12} className="text-gray-300" />
+                                {getLifecycleStateBadge(item.new_state)}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="bg-gray-50 p-3.5 rounded-2xl border border-gray-100 mt-2">
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Lý do thay đổi</p>
+                            <p className="text-xs font-bold text-gray-700 leading-relaxed">{item.trigger_reason}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Pagination Controls */}
+                {tlTotalPages > 1 && (
+                  <div className="flex items-center justify-between px-4 py-3 bg-white border border-gray-100 rounded-2xl shadow-sm">
+                    <button
+                      disabled={tlPage === 1 || tlLoading}
+                      onClick={() => setTlPage(p => Math.max(1, p - 1))}
+                      className="px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-600 disabled:opacity-40 rounded-xl text-xs font-black uppercase tracking-wider transition-all disabled:pointer-events-none"
+                    >
+                      Trang trước
+                    </button>
+                    <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">
+                      Trang <span className="text-vnpost-orange">{tlPage}</span> / {tlTotalPages} (Tổng số: {tlTotal})
+                    </span>
+                    <button
+                      disabled={tlPage === tlTotalPages || tlLoading}
+                      onClick={() => setTlPage(p => Math.min(tlTotalPages, p + 1))}
                       className="px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-600 disabled:opacity-40 rounded-xl text-xs font-black uppercase tracking-wider transition-all disabled:pointer-events-none"
                     >
                       Trang sau
