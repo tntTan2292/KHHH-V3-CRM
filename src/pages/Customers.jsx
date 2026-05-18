@@ -1540,10 +1540,10 @@ export default function Customers() {
       </div>
 
         {/* METRIC INTELLIGENCE LEGEND */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-2 py-4 bg-indigo-50/30 rounded-2xl border border-indigo-100/50">
-          <div className="flex items-start gap-4">
-            <div className="p-2 bg-white rounded-xl shadow-sm border border-indigo-100">
-               <Activity size={20} className="text-vnpost-blue" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 px-3 py-2.5 bg-indigo-50/30 rounded-xl border border-indigo-100/50">
+          <div className="flex items-start gap-3">
+            <div className="p-1.5 bg-white rounded-lg shadow-sm border border-indigo-100">
+               <Activity size={16} className="text-vnpost-blue" />
             </div>
             <div>
               <h4 className="text-[11px] font-black text-vnpost-blue uppercase tracking-wider">Health Score (Điểm Sức Khỏe)</h4>
@@ -1553,9 +1553,9 @@ export default function Customers() {
               </p>
             </div>
           </div>
-          <div className="flex items-start gap-4 border-l border-indigo-100/50 pl-4">
-            <div className="p-2 bg-white rounded-xl shadow-sm border border-indigo-100">
-               <TrendingUp size={20} className="text-green-600" />
+          <div className="flex items-start gap-3 border-l border-indigo-100/50 pl-3">
+            <div className="p-1.5 bg-white rounded-lg shadow-sm border border-indigo-100">
+               <TrendingUp size={16} className="text-green-600" />
             </div>
             <div>
               <h4 className="text-[11px] font-black text-green-700 uppercase tracking-wider">Tăng trưởng (Growth Velocity)</h4>
@@ -1680,10 +1680,10 @@ export default function Customers() {
         </div>
 
         {/* Pagination Controls - UPDATED WITH PAGE SIZE SELECTOR */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-8 bg-gray-50/50 p-6 rounded-[2rem] border border-gray-100 shadow-inner">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-4 bg-gray-50/50 p-4 rounded-2xl border border-gray-100 shadow-inner">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Hiển thị</span>
+              <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Hiển thị</span>
               <select 
                 value={pageSize}
                 onChange={(e) => {
@@ -1699,7 +1699,7 @@ export default function Customers() {
               </select>
             </div>
             <div className="h-4 w-px bg-gray-200"></div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-tighter">
               Đang xem <span className="text-vnpost-blue">{(page - 1) * pageSize + 1}</span> - <span className="text-vnpost-blue">{Math.min(page * pageSize, total)}</span> trong <span className="text-vnpost-blue font-black">{total}</span> khách hàng
             </p>
           </div>
