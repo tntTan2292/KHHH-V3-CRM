@@ -6,17 +6,15 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (isOpen) {
-      if (targetId) {
-        fetchHistory();
-      } else {
-        setLoading(false);
-        setHistory([]);
-      }
-    }
-  }, [isOpen, targetId, loaiDoiTuong]);
+  // Phase 1: Transaction History Tab States
+  const [activeTab, setActiveTab] = useState('interactions');
+  const [txPage, setTxPage] = useState(1);
+  const [txTotal, setTxTotal] = useState(0);
+  const [txTotalPages, setTxTotalPages] = useState(1);
+  const [txCache, setTxCache] = useState({});
+  const [txLoading, setTxLoading] = useState(false);
 
+  // Fetch interaction history (luồng cũ)
   const fetchHistory = async () => {
     try {
       setLoading(true);
@@ -30,6 +28,54 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
       setLoading(false);
     }
   };
+
+  // Fetch transactions with frontend page caching (luồng mới)
+  const fetchTransactions = async (page) => {
+    try {
+      setTxLoading(true);
+      const res = await api.get(`/api/customers/${targetId}/transactions`, {
+        params: { page, page_size: 10 }
+      });
+      const data = res.data || { items: [], total: 0, total_pages: 1 };
+      setTxTotal(data.total);
+      setTxTotalPages(data.total_pages);
+      setTxCache(prev => ({
+        ...prev,
+        [page]: data.items || []
+      }));
+    } catch (err) {
+      console.error("Lỗi khi tải lịch sử giao dịch:", err);
+    } finally {
+      setTxLoading(false);
+    }
+  };
+
+  // Reset states on customer modal open/change
+  useEffect(() => {
+    if (isOpen) {
+      setTxCache({});
+      setTxPage(1);
+      setTxTotal(0);
+      setTxTotalPages(1);
+      setActiveTab('interactions');
+      
+      if (targetId) {
+        fetchHistory();
+      } else {
+        setLoading(false);
+        setHistory([]);
+      }
+    }
+  }, [isOpen, targetId]);
+
+  // Lazy Load and Pagination trigger for transactions tab
+  useEffect(() => {
+    if (isOpen && activeTab === 'transactions' && targetId) {
+      if (!txCache[txPage]) {
+        fetchTransactions(txPage);
+      }
+    }
+  }, [isOpen, activeTab, txPage, targetId]);
 
   if (!isOpen) return null;
 
@@ -100,80 +146,177 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
           </div>
         </div>
 
-        {/* Timeline Content */}
+        {/* Tab Selection */}
+        {loaiDoiTuong === 'HienHuu' && (
+          <div className="flex border-b border-gray-100 bg-gray-50 px-8 py-1.5 gap-2 z-10">
+            <button
+              onClick={() => setActiveTab('interactions')}
+              className={`px-4 py-2.5 text-[10px] font-black uppercase tracking-wider border-b-2 transition-all ${
+                activeTab === 'interactions'
+                  ? 'border-vnpost-blue text-vnpost-blue'
+                  : 'border-transparent text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              Lịch sử chăm sóc
+            </button>
+            <button
+              onClick={() => setActiveTab('transactions')}
+              className={`px-4 py-2.5 text-[10px] font-black uppercase tracking-wider border-b-2 transition-all ${
+                activeTab === 'transactions'
+                  ? 'border-vnpost-blue text-vnpost-blue'
+                  : 'border-transparent text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              Lịch sử giao dịch
+            </button>
+          </div>
+        )}
+
+        {/* Content Section */}
         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-gray-50/30">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-               <div className="w-12 h-12 border-4 border-vnpost-blue border-t-transparent rounded-full animate-spin"></div>
-               <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Đang trích xuất dữ liệu lịch sử...</p>
-            </div>
-          ) : history.length === 0 ? (
-            <div className="text-center py-20">
-               <div className="w-16 h-16 bg-gray-100 text-gray-300 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Clock size={32} />
-               </div>
-               <h4 className="text-sm font-black text-gray-400 uppercase tracking-widest">Chưa ghi nhận lịch sử tương tác</h4>
-               <p className="text-xs text-gray-400 mt-2">Mọi hoạt động giao việc và báo cáo sẽ xuất hiện tại đây.</p>
-            </div>
-          ) : (
-            <div className="relative">
-              {/* Vertical Line */}
-              <div className="absolute left-[19px] top-4 bottom-4 w-0.5 bg-gradient-to-b from-vnpost-blue/20 via-gray-200 to-gray-200/0"></div>
-
-              <div className="space-y-8">
-                {history.map((item, idx) => (
-                  <div key={item.id} className="relative pl-12 group">
-                    {/* Dot on line */}
-                    <div className={`absolute left-0 top-1 w-10 h-10 rounded-full border-4 border-white shadow-lg flex items-center justify-center z-10 transition-transform group-hover:scale-110 ${idx === 0 ? 'bg-vnpost-blue text-white ring-4 ring-blue-50' : 'bg-gray-100 text-gray-400'}`}>
-                       {item.trang_thai === 'Hoàn thành' ? <CheckCircle2 size={16} /> : <Clock size={16} />}
-                    </div>
-
-                    <div className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100 group-hover:shadow-md transition-all group-hover:border-vnpost-blue/10">
-                       <div className="flex justify-between items-start mb-3">
-                          <div className="flex items-center gap-3">
-                             <div className="flex flex-col">
-                                <span className="text-[10px] font-black text-vnpost-blue">{item.created_at}</span>
-                                <div className="flex items-center gap-2 mt-1">
-                                   {getFlowBadge(item.phan_loai)}
-                                   <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${getStatusColor(item.trang_thai)}`}>
-                                      {item.trang_thai}
-                                   </span>
-                                </div>
-                             </div>
-                          </div>
-                          <div className="text-right">
-                             <p className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Nhân sự phụ trách</p>
-                             <p className="text-xs font-black text-gray-700 flex items-center justify-end gap-1.5">
-                                <User size={12} className="text-vnpost-blue" /> {item.staff_name}
-                             </p>
-                          </div>
-                       </div>
-
-                       <div className="space-y-3">
-                          <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-50">
-                             <p className="text-[9px] font-black text-vnpost-blue uppercase tracking-widest mb-1">Nội dung chỉ đạo / Kịch bản</p>
-                             <p className="text-xs font-bold text-gray-700 leading-relaxed">{item.tieu_de}: {item.noi_dung}</p>
-                          </div>
-
-                          {item.bao_cao && (
-                             <div className="bg-emerald-50/30 p-4 rounded-2xl border border-emerald-50 relative overflow-hidden">
-                                <div className="absolute top-0 right-0 p-2 opacity-5">
-                                   <MessageSquare size={32} className="text-emerald-600" />
-                                </div>
-                                <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1 flex items-center gap-1">
-                                   <CheckCircle2 size={10} /> Kết quả báo cáo {item.ngay_hoan_thanh && `(${item.ngay_hoan_thanh})`}
-                                </p>
-                                <p className="text-xs font-medium text-emerald-900 italic leading-relaxed">
-                                   "{item.bao_cao}"
-                                </p>
-                             </div>
-                          )}
-                       </div>
-                    </div>
-                  </div>
-                ))}
+          {activeTab === 'interactions' ? (
+            loading ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-4">
+                 <div className="w-12 h-12 border-4 border-vnpost-blue border-t-transparent rounded-full animate-spin"></div>
+                 <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Đang trích xuất dữ liệu lịch sử...</p>
               </div>
-            </div>
+            ) : history.length === 0 ? (
+              <div className="text-center py-20">
+                 <div className="w-16 h-16 bg-gray-100 text-gray-300 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Clock size={32} />
+                 </div>
+                 <h4 className="text-sm font-black text-gray-400 uppercase tracking-widest">Chưa ghi nhận lịch sử tương tác</h4>
+                 <p className="text-xs text-gray-400 mt-2">Mọi hoạt động giao việc và báo cáo sẽ xuất hiện tại đây.</p>
+              </div>
+            ) : (
+              <div className="relative">
+                {/* Vertical Line */}
+                <div className="absolute left-[19px] top-4 bottom-4 w-0.5 bg-gradient-to-b from-vnpost-blue/20 via-gray-200 to-gray-200/0"></div>
+
+                <div className="space-y-8">
+                  {history.map((item, idx) => (
+                    <div key={item.id} className="relative pl-12 group">
+                      {/* Dot on line */}
+                      <div className={`absolute left-0 top-1 w-10 h-10 rounded-full border-4 border-white shadow-lg flex items-center justify-center z-10 transition-transform group-hover:scale-110 ${idx === 0 ? 'bg-vnpost-blue text-white ring-4 ring-blue-50' : 'bg-gray-100 text-gray-400'}`}>
+                         {item.trang_thai === 'Hoàn thành' ? <CheckCircle2 size={16} /> : <Clock size={16} />}
+                      </div>
+
+                      <div className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100 group-hover:shadow-md transition-all group-hover:border-vnpost-blue/10">
+                         <div className="flex justify-between items-start mb-3">
+                            <div className="flex items-center gap-3">
+                               <div className="flex flex-col">
+                                  <span className="text-[10px] font-black text-vnpost-blue">{item.created_at}</span>
+                                  <div className="flex items-center gap-2 mt-1">
+                                     {getFlowBadge(item.phan_loai)}
+                                     <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${getStatusColor(item.trang_thai)}`}>
+                                        {item.trang_thai}
+                                     </span>
+                                  </div>
+                               </div>
+                            </div>
+                            <div className="text-right">
+                               <p className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Nhân sự phụ trách</p>
+                               <p className="text-xs font-black text-gray-700 flex items-center justify-end gap-1.5">
+                                  <User size={12} className="text-vnpost-blue" /> {item.staff_name}
+                               </p>
+                            </div>
+                         </div>
+
+                         <div className="space-y-3">
+                            <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-50">
+                               <p className="text-[9px] font-black text-vnpost-blue uppercase tracking-widest mb-1">Nội dung chỉ đạo / Kịch bản</p>
+                               <p className="text-xs font-bold text-gray-700 leading-relaxed">{item.tieu_de}: {item.noi_dung}</p>
+                            </div>
+
+                            {item.bao_cao && (
+                               <div className="bg-emerald-50/30 p-4 rounded-2xl border border-emerald-50 relative overflow-hidden">
+                                  <div className="absolute top-0 right-0 p-2 opacity-5">
+                                     <MessageSquare size={32} className="text-emerald-600" />
+                                  </div>
+                                  <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1 flex items-center gap-1">
+                                     <CheckCircle2 size={10} /> Kết quả báo cáo {item.ngay_hoan_thanh && `(${item.ngay_hoan_thanh})`}
+                                  </p>
+                                  <p className="text-xs font-medium text-emerald-900 italic leading-relaxed">
+                                     "{item.bao_cao}"
+                                  </p>
+                               </div>
+                            )}
+                         </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          ) : (
+            txLoading && !txCache[txPage] ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-4">
+                 <div className="w-12 h-12 border-4 border-vnpost-blue border-t-transparent rounded-full animate-spin"></div>
+                 <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Đang tải lịch sử giao dịch...</p>
+              </div>
+            ) : !txCache[txPage] || txCache[txPage].length === 0 ? (
+              <div className="text-center py-20">
+                 <div className="w-16 h-16 bg-gray-100 text-gray-300 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Clock size={32} />
+                 </div>
+                 <h4 className="text-sm font-black text-gray-400 uppercase tracking-widest">Chưa ghi nhận giao dịch</h4>
+                 <p className="text-xs text-gray-400 mt-2">Mọi bưu gửi phát sinh sẽ xuất hiện tại đây.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="overflow-x-auto rounded-2xl border border-gray-100 shadow-sm bg-white">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50 text-[9px] font-black uppercase text-gray-400 tracking-wider border-b border-gray-100">
+                        <th className="px-6 py-4">Ngày chấp nhận</th>
+                        <th className="px-6 py-4">Số hiệu bưu gửi</th>
+                        <th className="px-6 py-4">Dịch vụ</th>
+                        <th className="px-6 py-4 text-right">Doanh thu</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50 text-xs font-bold text-gray-700">
+                      {txCache[txPage].map((item, idx) => (
+                        <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap text-gray-500">{item.ngay_chap_nhan || 'N/A'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap font-black text-vnpost-blue font-mono">{item.shbg}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="bg-blue-50 text-vnpost-blue px-2 py-0.5 rounded border border-blue-100 text-[10px] font-black">
+                              {item.dich_vu_chinh || 'Khác'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right font-black text-gray-800">
+                            {new Intl.NumberFormat('vi-VN').format(item.doanh_thu || 0)} đ
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination Controls */}
+                {txTotalPages > 1 && (
+                  <div className="flex items-center justify-between px-4 py-3 bg-white border border-gray-100 rounded-2xl shadow-sm">
+                    <button
+                      disabled={txPage === 1 || txLoading}
+                      onClick={() => setTxPage(p => Math.max(1, p - 1))}
+                      className="px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-600 disabled:opacity-40 rounded-xl text-xs font-black uppercase tracking-wider transition-all disabled:pointer-events-none"
+                    >
+                      Trang trước
+                    </button>
+                    <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">
+                      Trang <span className="text-vnpost-orange">{txPage}</span> / {txTotalPages} (Tổng số: {txTotal})
+                    </span>
+                    <button
+                      disabled={txPage === txTotalPages || txLoading}
+                      onClick={() => setTxPage(p => Math.min(txTotalPages, p + 1))}
+                      className="px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-600 disabled:opacity-40 rounded-xl text-xs font-black uppercase tracking-wider transition-all disabled:pointer-events-none"
+                    >
+                      Trang sau
+                    </button>
+                  </div>
+                )}
+              </div>
+            )
           )}
         </div>
 

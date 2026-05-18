@@ -387,6 +387,72 @@ async def get_customer_details(ma_crm: str, db: Session = Depends(get_db), curre
         "health_score": health_score
     }
 
+@router.get("/{ma_crm}/transactions")
+async def get_customer_transactions(
+    ma_crm: str,
+    page: int = 1,
+    page_size: int = 10,
+    sort_by: str = "ngay_chap_nhan",
+    order: str = "desc",
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Check if customer exists
+    customer = db.query(Customer).filter(Customer.ma_crm_cms == ma_crm).first()
+    if not customer:
+        raise HTTPException(status_code=404, detail="Không tìm thấy khách hàng")
+        
+    # Check Scope (Elite RBAC 3.0)
+    from ..auth.permissions import check_scope
+    node = db.query(HierarchyNode).filter(HierarchyNode.code == customer.ma_bc_phu_trach).first()
+    if node:
+        check_scope(db, current_user, node.id)
+        
+    # Enforce hard limit on page_size
+    page_size = min(page_size, 50)
+    if page < 1:
+        page = 1
+        
+    # Build query (without JOIN for Phase 1 as requested)
+    query = db.query(Transaction).filter(Transaction.ma_kh == ma_crm)
+    
+    # Sorting logic
+    sort_col = getattr(Transaction, sort_by, None)
+    if sort_col is None:
+        sort_col = Transaction.ngay_chap_nhan
+        
+    if order.lower() == "asc":
+        query = query.order_by(asc(sort_col))
+    else:
+        query = query.order_by(desc(sort_col))
+        
+    # Total count
+    total = query.count()
+    
+    # Pagination limit / offset
+    offset = (page - 1) * page_size
+    transactions = query.offset(offset).limit(page_size).all()
+    
+    # Format items response
+    items = []
+    for t in transactions:
+        items.append({
+            "shbg": t.shbg,
+            "ngay_chap_nhan": t.ngay_chap_nhan.strftime("%Y-%m-%d %H:%M:%S") if t.ngay_chap_nhan else None,
+            "doanh_thu": t.doanh_thu or 0.0,
+            "dich_vu_chinh": t.dich_vu_chinh
+        })
+        
+    total_pages = (total + page_size - 1) // page_size if page_size > 0 else 1
+    
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages
+    }
+
 @router.patch("/{ma_kh}")
 async def patch_customer(
     ma_kh: str, 
