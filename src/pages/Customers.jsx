@@ -176,7 +176,7 @@ const CustomerRow = React.memo(({ c, handleRowClick, handleHistoryModal, formatC
       </td>
       <td className="p-2">
         <div className="flex items-center gap-2">
-          <span className="font-bold text-gray-800 group-hover:text-vnpost-blue transition-colors text-[13px]">{c?.ten_kh}</span>
+          <span className="font-bold text-slate-900 group-hover:text-vnpost-blue transition-colors text-[13px]">{c?.ten_kh}</span>
           <button 
             onClick={(e) => {
               e.stopPropagation();
@@ -221,7 +221,7 @@ const CustomerRow = React.memo(({ c, handleRowClick, handleHistoryModal, formatC
       </td>
       <td className="p-2 text-right">
         <div className="flex flex-col items-end">
-          <span className={`font-black text-[13px] ${(Number(c?.dynamic_revenue) || 0) > 1000000 ? 'text-vnpost-blue' : 'text-gray-700'}`}>
+          <span className={`font-bold text-[13px] ${(Number(c?.dynamic_revenue) || 0) > 1000000 ? 'text-vnpost-blue' : 'text-slate-700'}`}>
             {formatCurrency(Number(c?.dynamic_revenue) || 0)}
           </span>
         </div>
@@ -245,8 +245,8 @@ const CustomerRow = React.memo(({ c, handleRowClick, handleHistoryModal, formatC
           'border-red-500 bg-red-50 text-red-700'
         }`}>
           <div className="flex flex-col items-center">
-            <span className="text-[13px] font-black leading-none">{c?.health_score}</span>
-            <span className="text-[11px] font-bold uppercase tracking-tighter opacity-70">Pts</span>
+            <span className="text-[13px] font-bold leading-none">{c?.health_score}</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 opacity-80">Pts</span>
           </div>
         </div>
       </td>
@@ -1582,56 +1582,56 @@ export default function Customers() {
             <thead className="bg-gray-50/50 text-gray-500 border-b border-gray-100">
               <tr>
                 <th 
-                  className="p-2 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors w-32"
+                  className="p-2 font-bold uppercase tracking-wider text-slate-500/90 cursor-pointer hover:bg-gray-100 transition-colors w-32"
                   onClick={() => handleSort('ma_crm_cms')}
                 >
                   <div className="flex items-center text-[11px]">Mã CRM <SortIcon column="ma_crm_cms" /></div>
                 </th>
                 <th 
-                  className="p-2 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors w-64"
+                  className="p-2 font-bold uppercase tracking-wider text-slate-500/90 cursor-pointer hover:bg-gray-100 transition-colors w-64"
                   onClick={() => handleSort('ten_kh')}
                 >
                   <div className="flex items-center text-[11px]">Tên Khách Hàng <SortIcon column="ten_kh" /></div>
                 </th>
                 <th 
-                  className="p-2 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors w-40"
+                  className="p-2 font-bold uppercase tracking-wider text-slate-500/90 cursor-pointer hover:bg-gray-100 transition-colors w-40"
                   onClick={() => handleSort('status_type')}
                 >
                   <div className="flex items-center text-[11px]">Vòng đời <SortIcon column="status_type" /></div>
                 </th>
                 <th 
-                  className="p-2 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors w-32"
+                  className="p-2 font-bold uppercase tracking-wider text-slate-500/90 cursor-pointer hover:bg-gray-100 transition-colors w-32"
                   onClick={() => handleSort('rfm_segment')}
                 >
                   <div className="flex items-center text-[11px]">Hạng <SortIcon column="rfm_segment" /></div>
                 </th>
                 <th 
-                  className="p-2 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors text-right w-24"
+                  className="p-2 font-bold uppercase tracking-wider text-slate-500/90 cursor-pointer hover:bg-gray-100 transition-colors text-right w-24"
                   onClick={() => handleSort('transaction_count')}
                 >
                   <div className="flex items-center justify-end text-[11px]">Số đơn <SortIcon column="transaction_count" /></div>
                 </th>
                 <th 
-                  className="p-2 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors text-right w-40"
+                  className="p-2 font-bold uppercase tracking-wider text-slate-500/90 cursor-pointer hover:bg-gray-100 transition-colors text-right w-40"
                   onClick={() => handleSort('dynamic_revenue')}
                 >
                   <div className="flex items-center justify-end text-[11px]">Doanh thu <SortIcon column="dynamic_revenue" /></div>
                 </th>
                 <th 
-                  className="p-2 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors text-right w-32"
+                  className="p-2 font-bold uppercase tracking-wider text-slate-500/90 cursor-pointer hover:bg-gray-100 transition-colors text-right w-32"
                   onClick={() => handleSort('growth_velocity')}
                 >
                   <div className="flex items-center justify-end text-[11px]">Tăng trưởng <SortIcon column="growth_velocity" /></div>
                 </th>
                 <th 
-                  className="p-2 font-black uppercase tracking-tighter cursor-pointer hover:bg-gray-100 transition-colors text-center w-32"
+                  className="p-2 font-bold uppercase tracking-wider text-slate-500/90 cursor-pointer hover:bg-gray-100 transition-colors text-center w-32"
                   onClick={() => handleSort('health_score')}
                 >
                   <div className="flex items-center justify-center text-[11px]">Health Score <SortIcon column="health_score" /></div>
                 </th>
-                <th className="p-2 font-black uppercase tracking-tighter text-center w-32 text-[11px]">Bưu cục</th>
-                <th className="p-2 font-black uppercase tracking-tighter text-center w-32 text-[11px]">Phụ trách</th>
-                <th className="p-2 font-black uppercase tracking-tighter text-center w-28 text-[11px]">Thao tác</th>
+                <th className="p-2 font-bold uppercase tracking-wider text-slate-500/90 text-center w-32 text-[11px]">Bưu cục</th>
+                <th className="p-2 font-bold uppercase tracking-wider text-slate-500/90 text-center w-32 text-[11px]">Phụ trách</th>
+                <th className="p-2 font-bold uppercase tracking-wider text-slate-500/90 text-center w-28 text-[11px]">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
