@@ -51,22 +51,26 @@ echo =======================================================================
 echo           DANG DUNG CAC DICH VU HE THONG (ELITE STOP)
 echo =======================================================================
 echo.
-echo [+] Dang tim va dung Backend (Cổng 8000)...
+echo [+] Dang tim va dung Backend (Cong 8000)...
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8000 ^| findstr LISTENING') do (
     taskkill /F /PID %%a /T 2>nul
     echo [OK] Da dung Backend (PID: %%a)
 )
 
-echo [+] Dang tim va dung Frontend (Cổng 5181)...
+echo [+] Dang tim va dung Frontend (Cong 5181)...
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr :5181 ^| findstr LISTENING') do (
     taskkill /F /PID %%a /T 2>nul
     echo [OK] Da dung Frontend (PID: %%a)
 )
 
-echo [+] Dang don dep cac tien trinh nen (node, python)...
-taskkill /F /IM node.exe /T 2>nul
-taskkill /F /IM python.exe /T 2>nul
-taskkill /F /IM wscript.exe /T 2>nul
+echo [+] Dang dung dich vu VBScript Startup ngam...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like '*START_SERVICE_V3.0.vbs*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"
+
+echo [+] Dang dung Elite Bot Scheduler ngam...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like '*bot_scheduler.py*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"
+
+echo [+] Dang quet don dep cac tien trinh con mo co cua CRM V3.0...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { ($_.Name -eq 'python.exe' -and ($_.CommandLine -like '*app.main:app*' -or $_.CommandLine -like '*uvicorn*')) -or ($_.Name -eq 'node.exe' -and ($_.CommandLine -like '*vite*' -or $_.CommandLine -like '*npm*')) } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"
 
 echo.
 echo =======================================================================
@@ -136,16 +140,12 @@ pause
 goto MENU
 
 :CHECK_STATUS
+cls
+echo =======================================================================
+echo           KIEM TRA TRANG THAI DICH VU (ELITE CHECK STATUS)
+echo =======================================================================
 echo.
-echo =====================================
-echo    TRANG THAI CAC CONG (PORTS)
-echo =====================================
-netstat -ano | findstr :8000 && echo [8000] BACKEND API - ONLINE || echo [8000] BACKEND API - OFFLINE
-netstat -ano | findstr :5181 && echo [5181] FRONTEND UI - ONLINE || echo [5181] FRONTEND UI - OFFLINE
-tasklist /FI "IMAGENAME eq python.exe" /V | findstr "bot_scheduler.py" >nul && (
-    for /f "tokens=2" %%i in ('tasklist /FI "IMAGENAME eq python.exe" /V ^| findstr "bot_scheduler.py"') do set bot_pid=%%i
-    echo [BOT] ELITE SCHEDULER - RUNNING (PID: !bot_pid!)
-) || echo [BOT] ELITE SCHEDULER - STOPPED
-echo =====================================
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Write-Host '===================================================' -ForegroundColor Gray; $ports = @(8000, 5181); foreach ($port in $ports) { $conn = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue; if ($conn) { $proc = Get-Process -Id $conn.OwningProcess -ErrorAction SilentlyContinue; if ($proc) { $name = $proc.Name; $found_pid = $proc.Id; if ($port -eq 8000) { Write-Host ('[8000] BACKEND API  - ONLINE (PID: ' + $found_pid + ' | ' + $name + ')') -ForegroundColor Green } else { Write-Host ('[5181] FRONTEND UI  - ONLINE (PID: ' + $found_pid + ' | ' + $name + ')') -ForegroundColor Green } } else { if ($port -eq 8000) { Write-Host '[8000] BACKEND API  - PORT BOUND BUT UNKNOWN' -ForegroundColor Yellow } else { Write-Host '[5181] FRONTEND UI  - PORT BOUND BUT UNKNOWN' -ForegroundColor Yellow } } } else { if ($port -eq 8000) { Write-Host '[8000] BACKEND API  - OFFLINE' -ForegroundColor Red } else { Write-Host '[5181] FRONTEND UI  - OFFLINE' -ForegroundColor Red } } }; $bot = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like '*bot_scheduler.py*' }; if ($bot) { Write-Host ('[BOT]  ELITE SCHEDULER - RUNNING (PID: ' + $bot.ProcessId + ')') -ForegroundColor Green } else { Write-Host '[BOT]  ELITE SCHEDULER - STOPPED' -ForegroundColor Red }; Write-Host '===================================================' -ForegroundColor Gray;"
+echo.
 pause
 goto MENU
