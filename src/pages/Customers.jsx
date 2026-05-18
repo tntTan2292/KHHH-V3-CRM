@@ -1217,7 +1217,7 @@ export default function Customers() {
       </div>
       {/* RF3D: Customer Context Awareness Banner */}
       {(selectedNode || filters.lifecycle_status || filters.rfm_segment || (startDate && endDate)) && (
-        <div className="bg-white/70 backdrop-blur-md rounded-3xl p-3 border border-white/60 shadow-sm flex flex-wrap items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500 mb-4">
+        <div className="bg-white/70 backdrop-blur-md rounded-3xl py-2 px-3 border border-white/60 shadow-sm flex flex-wrap items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500 mb-3">
           <div className="bg-vnpost-blue/10 p-2 rounded-xl text-vnpost-blue">
             <Filter size={18} />
           </div>
@@ -1443,7 +1443,7 @@ export default function Customers() {
         </div>
 
         {/* Navigation & Toolbar */}
-        <div className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="py-2.5 px-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-2">
              {selectedNode && (
                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 rounded-xl border border-gray-200 shadow-inner">
