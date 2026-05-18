@@ -180,10 +180,10 @@ async def get_dashboard_stats(
     kh_roi_bo = lifecycle_stats.get("churn_event", 0)
     tong_kh = lifecycle_stats.get("total", 0)
 
-    # 5. KH Tiềm Năng (PotentialService)
-    _, kh_tiem_nang, potential_ranks, _ = PotentialService.get_potential_data(
+    # 5. KH Tiềm Năng (PotentialService - Count-Only Optimized Phase 2D-P4)
+    kh_tiem_nang, potential_ranks = PotentialService.get_potential_summary_counts(
         db=db, current_user=current_user, start_date=governed_start, end_date=governed_end,
-        node_code=node_code, min_days=1, include_all=True
+        node_code=node_code
     )
     
     # 6. Lifecycle Delta & Growth (Unified SSOT)

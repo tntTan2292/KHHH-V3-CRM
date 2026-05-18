@@ -335,3 +335,100 @@ class PotentialService:
         
         db.commit()
 
+    @staticmethod
+    def get_potential_summary_counts(
+        db: Session,
+        current_user: User,
+        start_date: str = None,
+        end_date: str = None,
+        node_code: str = None
+    ):
+        """
+        [ELITE ENGINE] Optimized count-only method for Potential Customers (Leads) on Dashboard.
+        Restricts database queries to current period only, bypassing growth/velocity calculation and detailed formatting.
+        Maintains 100% KPI parity with the main potential customer list page using local-function caches.
+        """
+        # 1. Xác định mốc thời gian kỳ hiện tại (Bypass prev_start hoàn toàn)
+        from ..routers.analytics import get_governed_comparison_periods
+        curr_start, curr_end, _, _, _ = get_governed_comparison_periods(db, start_date, end_date, "mom")
+        
+        # 2. Phân quyền dữ liệu (Scope-awareness)
+        scope_ids = ScopingService.get_effective_scope_ids(db, current_user, node_code)
+        if scope_ids is not None and not scope_ids:
+            return 0, {"Kim Cương": 0, "Vàng": 0, "Bạc": 0, "Thường": 0, "Tất cả": 0}
+
+        # 3. Base Query tối giản chỉ lấy kỳ hiện tại
+        from sqlalchemy import func, case
+        query = db.query(
+            Transaction.ten_nguoi_gui.label('raw_name'),
+            Transaction.dia_chi_nguoi_gui.label('raw_address'),
+            Transaction.ma_dv_chap_nhan.label('ma_bc'),
+            func.count(Transaction.id).label('tong_so_don'),
+            func.sum(Transaction.doanh_thu).label("tong_doanh_thu")
+        ).filter(
+            (Transaction.ma_kh == '') | (Transaction.ma_kh == None),
+            Transaction.ngay_chap_nhan.between(curr_start, curr_end)
+        )
+        
+        if scope_ids is not None:
+            query = query.filter(Transaction.point_id.in_(scope_ids))
+            
+        grouped_results = query.group_by(
+            Transaction.ten_nguoi_gui, 
+            Transaction.dia_chi_nguoi_gui, 
+            Transaction.ma_dv_chap_nhan
+        ).all()
+        
+        # 4. Gom nhóm Canonical kết hợp bộ đệm kép (Double Cache)
+        canonical_groups = {}
+        name_cache = {}
+        addr_cache = {} # Đòn bẩy tối ưu hóa CPU chính
+        
+        for r in grouped_results:
+            raw_name = str(r.raw_name) if r.raw_name else "KHÔNG TÊN"
+            raw_address = str(r.raw_address) if r.raw_address else ""
+            bc_code = r.ma_bc or "N/A"
+            
+            # Khôi phục từ Cache tên
+            if raw_name in name_cache:
+                canonical_name = name_cache[raw_name]
+            else:
+                canonical_name = normalize_name(raw_name)
+                name_cache[raw_name] = canonical_name
+                
+            # Khôi phục từ Cache địa chỉ
+            if raw_address in addr_cache:
+                canonical_address = addr_cache[raw_address]
+            else:
+                canonical_address = normalize_name(raw_address)
+                addr_cache[raw_address] = canonical_address
+                
+            group_key = f"{canonical_name}_{canonical_address}_{bc_code}"
+            
+            if group_key not in canonical_groups:
+                canonical_groups[group_key] = {
+                    "tong_so_don": 0,
+                    "tong_doanh_thu": 0.0
+                }
+            
+            cg = canonical_groups[group_key]
+            cg["tong_so_don"] += (r.tong_so_don or 0)
+            cg["tong_doanh_thu"] += (r.tong_doanh_thu or 0.0)
+
+        # 5. Đếm số lượng phân hạng phục vụ Dashboard
+        summary_counts = {"Kim Cương": 0, "Vàng": 0, "Bạc": 0, "Thường": 0, "Tất cả": 0}
+        total_non_thuong = 0
+        
+        from .lead_tier_engine import LeadTierEngine
+        for cg in canonical_groups.values():
+            if cg["tong_so_don"] >= 1:
+                segment = LeadTierEngine.classify_lead_rank(cg["tong_doanh_thu"], cg["tong_so_don"])
+                segment = segment.upper()
+                display_segment = segment.title() if segment != "THƯỜNG" else "Thường"
+                
+                summary_counts[display_segment] += 1
+                summary_counts["Tất cả"] += 1
+                    
+        return summary_counts["Tất cả"], summary_counts
+
+
