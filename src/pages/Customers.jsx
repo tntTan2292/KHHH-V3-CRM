@@ -22,6 +22,7 @@ const getRankBadge = (segment) => {
   if (!segment) return <span className="px-2 py-1 bg-gray-50 text-gray-400 rounded-lg text-[10px] font-black uppercase border border-gray-100">Chưa xếp hạng</span>;
   
   const ranks = {
+    'VIP': { color: 'text-amber-800 bg-amber-50 border-amber-200 font-extrabold ring-2 ring-amber-400/30 shadow-amber-100', icon: '👑' },
     'Kim Cương': { color: 'text-blue-700 bg-blue-50 border-blue-200', icon: '💎' },
     'Vàng': { color: 'text-amber-700 bg-amber-50 border-amber-200', icon: '🏆' },
     'Bạc': { color: 'text-slate-600 bg-slate-100 border-slate-200', icon: '🥈' },
