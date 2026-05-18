@@ -30,11 +30,13 @@ RunHidden """" & pyPath & """ """ & baseDir & "\backend\scripts\governance_clean
 RunHidden """" & pyPath & """ """ & baseDir & "\backend\scripts\check_sync_on_startup.py"" >> """ & logDir & "\startup_sync.log"" 2>>&1", False
 
 If Not BackendIsHealthy() Then
+    shell.Run comspecPath & " /c echo [" & Now & "] Backend unhealthy or offline. Activating recovery... >> """ & logDir & "\backend_runtime.log""", 0, True
     KillPort 8000
+    shell.Run comspecPath & " /c echo [" & Now & "] Starting Backend Service via START_SERVICE... >> """ & logDir & "\backend_runtime.log""", 0, True
     RunHidden "cd /d """ & backendDir & """ && set PATH=" & nodeRoot & ";%PATH% && """ & pyPath & """ -m uvicorn app.main:app --host 0.0.0.0 --port 8000 >> """ & logDir & "\backend_runtime.log"" 2>>&1", False
 End If
 
-WaitForBackend 20
+WaitForBackend 45
 
 If Not IsPortListening(5181) Then
     ' Elite Hardening: Force PREFIX to portable node root to prevent MODULE_NOT_FOUND
@@ -56,7 +58,8 @@ End Sub
 
 Sub KillPort(port)
     Dim cmd
-    cmd = "powershell -NoProfile -ExecutionPolicy Bypass -Command ""$conns = Get-NetTCPConnection -LocalPort " & port & " -State Listen -ErrorAction SilentlyContinue; if ($conns) { $conns | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue } ; Start-Sleep -Seconds 2 }"""
+    shell.Run comspecPath & " /c echo [" & Now & "] Release Port " & port & " (Stopping zombie process)... >> """ & logDir & "\backend_runtime.log""", 0, True
+    cmd = "powershell -NoProfile -ExecutionPolicy Bypass -Command ""$port=" & port & "; $conns = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue; if ($conns) { $pid = $conns.OwningProcess | Select-Object -Unique; $proc = Get-Process -Id $pid -ErrorAction SilentlyContinue; if ($proc) { Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue ; Start-Sleep -Seconds 2 } }"""
     shell.Run comspecPath & " /c " & cmd, 0, True
 End Sub
 
@@ -69,7 +72,7 @@ End Function
 
 Function BackendIsHealthy()
     Dim rc, cmd
-    cmd = "powershell -NoProfile -ExecutionPolicy Bypass -Command ""try { $r = Invoke-RestMethod 'http://127.0.0.1:8000/api/health' -TimeoutSec 2; if ($r.status -eq 'ok') { exit 0 } else { exit 1 } } catch { exit 1 }"""
+    cmd = "powershell -NoProfile -ExecutionPolicy Bypass -Command ""try { $r = Invoke-RestMethod 'http://127.0.0.1:8000/api/health' -TimeoutSec 15; if ($r.status -eq 'ok') { exit 0 } else { exit 1 } } catch { exit 1 }"""
     rc = shell.Run(comspecPath & " /c " & cmd, 0, True)
     BackendIsHealthy = (rc = 0)
 End Function
