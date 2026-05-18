@@ -133,7 +133,7 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
     };
     const mapped = statesMap[state] || { text: state, color: 'bg-gray-50 text-gray-600 border-gray-200' };
     return (
-      <span className={`px-2.5 py-0.5 rounded-lg border text-[10px] font-bold tracking-wider ${mapped.color}`}>
+      <span className={`px-2.5 py-0.5 rounded-lg border text-[11px] font-bold tracking-wider ${mapped.color}`}>
         {mapped.text}
       </span>
     );
@@ -152,17 +152,17 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
 
   const getFlowBadge = (type) => {
     if (type === 'Giao Cảnh báo') return (
-      <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-rose-700 bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-200/50">
+      <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-rose-700 bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-200/50">
         <AlertTriangle size={10} /> Cảnh báo
       </span>
     );
     if (type === 'Giao VIP') return (
-      <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200/50">
+      <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200/50">
         <Zap size={10} /> VIP
       </span>
     );
     return (
-      <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200/50">
+      <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200/50">
         <Award size={10} /> Lead
       </span>
     );
@@ -170,19 +170,19 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-300 border border-gray-100">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[82vh] animate-in zoom-in-95 duration-300 border border-gray-100">
         
         {/* Header Section */}
-        <div className="p-8 bg-vnpost-blue-dark text-white relative overflow-hidden">
+        <div className="p-6 bg-vnpost-blue-dark text-white relative overflow-hidden">
           <div className="relative z-10 flex justify-between items-start">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <div className="p-2 bg-white/10 rounded-xl">
-                  <History size={18} className="text-vnpost-orange" />
+                <div className="p-1.5 bg-white/10 rounded-lg">
+                  <History size={16} className="text-vnpost-orange" />
                 </div>
                 <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-200">Hồ sơ Lịch sử Tương tác & Vòng đời Khách hàng 360°</span>
               </div>
-              <h3 className="text-2xl font-bold tracking-tight text-white">{customerName || targetId}</h3>
+              <h3 className="text-xl font-bold tracking-tight text-white">{customerName || targetId}</h3>
               <p className="text-white/50 text-[10px] font-bold mt-1 uppercase tracking-wider">Mã định danh: {targetId}</p>
             </div>
             <button 
@@ -193,35 +193,34 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
             </button>
           </div>
 
-          <div className="mt-6 flex gap-4">
-             <div className="bg-white/5 px-4 py-2.5 rounded-xl border border-white/5 shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
-                <p className="text-[8px] font-bold uppercase tracking-wider text-gray-300 mb-0.5">Tổng lượt tiếp cận</p>
+          <div className="mt-4 flex gap-4">
+             <div className="bg-white/5 px-4 py-2 rounded-xl border border-white/5 shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-gray-300 mb-0.5">Số lần tiếp cận</p>
                 <div className="flex items-baseline gap-1.5">
-                   <span className="text-2xl font-bold text-vnpost-orange">{history.length}</span>
-                   <span className="text-[9px] font-bold text-gray-300">Lần tương tác</span>
+                   <span className="text-xl font-bold text-vnpost-orange">{history.length}</span>
+                   <span className="text-[11px] font-bold text-gray-300">Tương tác</span>
                 </div>
              </div>
-             <div className="bg-white/5 px-4 py-2.5 rounded-xl border border-white/5 shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
-                <p className="text-[8px] font-bold uppercase tracking-wider text-gray-300 mb-0.5">Trạng thái chăm sóc</p>
+             <div className="bg-white/5 px-4 py-2 rounded-xl border border-white/5 shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-gray-300 mb-0.5">Trạng thái chăm sóc</p>
                 <div className="flex items-center gap-2 mt-0.5">
                    {history.length > 0 ? (
-                      <span className={`px-2.5 py-0.5 rounded-lg text-[9px] font-bold uppercase ${getStatusColor(history[0].trang_thai).replace('bg-', 'bg-white/').replace('text-', 'text-')}`}>
+                      <span className={`px-2.5 py-0.5 rounded-lg text-[11px] font-bold uppercase ${getStatusColor(history[0].trang_thai).replace('bg-', 'bg-white/').replace('text-', 'text-')}`}>
                         {history[0].trang_thai}
                       </span>
                    ) : (
-                      <span className="text-[9px] font-bold uppercase text-gray-400">Chưa có tương tác</span>
+                      <span className="text-[11px] font-bold uppercase text-gray-400">Chưa có tương tác</span>
                    )}
                 </div>
-             </div>
-          </div>
+              </div>
+           </div>
         </div>
 
-        {/* Tab Selection */}
         {loaiDoiTuong === 'HienHuu' && (
-          <div className="flex border-b border-gray-100 bg-gray-50 px-8 py-1.5 gap-2 z-10">
+          <div className="flex border-b border-gray-100 bg-gray-50 px-6 py-1 gap-2 z-10">
             <button
               onClick={() => setActiveTab('interactions')}
-              className={`px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider border-b-2 transition-all ${
+              className={`px-3 py-2 text-[11px] font-bold uppercase tracking-wider border-b-2 transition-all ${
                 activeTab === 'interactions'
                   ? 'border-vnpost-blue text-vnpost-blue'
                   : 'border-transparent text-gray-400 hover:text-gray-600'
@@ -231,7 +230,7 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
             </button>
             <button
               onClick={() => setActiveTab('transactions')}
-              className={`px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider border-b-2 transition-all ${
+              className={`px-3 py-2 text-[11px] font-bold uppercase tracking-wider border-b-2 transition-all ${
                 activeTab === 'transactions'
                   ? 'border-vnpost-blue text-vnpost-blue'
                   : 'border-transparent text-gray-400 hover:text-gray-600'
@@ -241,7 +240,7 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
             </button>
             <button
               onClick={() => setActiveTab('lifecycle')}
-              className={`px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider border-b-2 transition-all ${
+              className={`px-3 py-2 text-[11px] font-bold uppercase tracking-wider border-b-2 transition-all ${
                 activeTab === 'lifecycle'
                   ? 'border-vnpost-blue text-vnpost-blue'
                   : 'border-transparent text-gray-400 hover:text-gray-600'
@@ -253,7 +252,7 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
         )}
 
         {/* Content Section */}
-        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-gray-50/10">
+        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-gray-50/10">
           {activeTab === 'interactions' ? (
             loading ? (
               <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -273,7 +272,7 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
                 {/* Vertical Line */}
                 <div className="absolute left-[19px] top-4 bottom-4 border-l border-dashed border-gray-200"></div>
 
-                <div className="space-y-6">
+                <div className="space-y-4.5">
                   {history.map((item, idx) => (
                     <div key={item.id} className="relative pl-12 group">
                       {/* Dot on line */}
@@ -281,21 +280,21 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
                          {item.trang_thai === 'Hoàn thành' ? <CheckCircle2 size={14} /> : <Clock size={14} />}
                       </div>
 
-                      <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.01)] group-hover:border-vnpost-blue/10 transition-colors">
+                      <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.01)] group-hover:border-vnpost-blue/10 transition-colors">
                          <div className="flex justify-between items-start mb-3">
                             <div className="flex items-center gap-3">
                                <div className="flex flex-col">
-                                  <span className="text-[10px] font-bold text-vnpost-blue">{item.created_at}</span>
+                                  <span className="text-[11px] font-bold text-vnpost-blue">{item.created_at}</span>
                                   <div className="flex items-center gap-2 mt-1">
                                      {getFlowBadge(item.phan_loai)}
-                                     <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-lg border ${getStatusColor(item.trang_thai)}`}>
+                                     <span className={`text-[11px] font-bold uppercase px-2 py-0.5 rounded-lg border ${getStatusColor(item.trang_thai)}`}>
                                         {item.trang_thai}
                                      </span>
                                   </div>
                                </div>
                             </div>
                             <div className="text-right">
-                               <p className="text-[8px] font-bold text-gray-400 uppercase tracking-wider">Nhân sự phụ trách</p>
+                               <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Nhân sự phụ trách</p>
                                <p className="text-xs font-bold text-gray-700 flex items-center justify-end gap-1">
                                   <User size={12} className="text-vnpost-blue" /> {item.staff_name}
                                 </p>
@@ -304,7 +303,7 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
 
                          <div className="space-y-3">
                             <div className="bg-blue-50/20 p-3 rounded-lg border border-blue-100/30">
-                               <p className="text-[9px] font-bold text-vnpost-blue uppercase tracking-wider mb-1">Nội dung chỉ đạo / Kịch bản</p>
+                               <p className="text-[11px] font-bold text-vnpost-blue uppercase tracking-wider mb-1">Nội dung chỉ đạo / Kịch bản</p>
                                <p className="text-xs font-bold text-gray-700 leading-relaxed">{item.tieu_de}: {item.noi_dung}</p>
                             </div>
 
@@ -313,7 +312,7 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
                                   <div className="absolute top-0 right-0 p-2 opacity-5">
                                      <MessageSquare size={32} className="text-emerald-600" />
                                   </div>
-                                  <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                  <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider mb-1 flex items-center gap-1">
                                      <CheckCircle2 size={10} /> Kết quả báo cáo {item.ngay_hoan_thanh && `(${item.ngay_hoan_thanh})`}
                                   </p>
                                   <p className="text-xs font-medium text-emerald-900 italic leading-relaxed">
@@ -347,7 +346,7 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
                 <div className="overflow-x-auto rounded-xl border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.01)] bg-white">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-gray-50/80 text-[9px] font-bold uppercase text-gray-400 tracking-wider border-b border-gray-100">
+                      <tr className="bg-gray-50/80 text-[11px] font-bold uppercase text-gray-400 tracking-wider border-b border-gray-100">
                         <th className="px-6 py-4">Ngày chấp nhận</th>
                         <th className="px-6 py-4">Số hiệu bưu gửi</th>
                         <th className="px-6 py-4">Dịch vụ</th>
@@ -360,7 +359,7 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
                           <td className="px-6 py-4 whitespace-nowrap text-gray-500">{item.ngay_chap_nhan || 'N/A'}</td>
                           <td className="px-6 py-4 whitespace-nowrap font-bold text-vnpost-blue font-mono">{item.shbg}</td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="bg-blue-50 text-vnpost-blue px-2 py-0.5 rounded-lg border border-blue-200/50 text-[10px] font-bold">
+                            <span className="bg-blue-50 text-vnpost-blue px-2 py-0.5 rounded-lg border border-blue-200/50 text-[11px] font-bold">
                               {item.dich_vu_chinh || 'Khác'}
                             </span>
                           </td>
@@ -383,7 +382,7 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
                     >
                       Trang trước
                     </button>
-                    <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                    <span className="text-[11px] font-bold uppercase text-gray-400 tracking-wider">
                       Trang <span className="text-vnpost-orange">{txPage}</span> / {txTotalPages} (Tổng số: {txTotal})
                     </span>
                     <button
@@ -412,17 +411,17 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
                  <p className="text-xs text-gray-400 mt-2">Mọi biến động trạng thái từ lúc deploy sẽ xuất hiện tại đây.</p>
               </div>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-4.5">
                 {/* Current State Banner */}
-                <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.01)] flex justify-between items-center">
+                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.01)] flex justify-between items-center">
                   <div>
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Trạng thái hiện tại</p>
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Trạng thái hiện tại</p>
                     <div className="flex items-center gap-2 mt-1">
                       {getLifecycleStateBadge(currentLifecycleState)}
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Tổng số sự kiện biến động</p>
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Tổng số sự kiện biến động</p>
                     <span className="text-lg font-bold text-vnpost-blue">{tlTotal} sự kiện</span>
                   </div>
                 </div>
@@ -431,7 +430,7 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
                 <div className="relative">
                   <div className="absolute left-[19px] top-4 bottom-4 border-l border-dashed border-gray-200"></div>
                   
-                  <div className="space-y-6">
+                  <div className="space-y-4.5">
                     {tlCache[tlPage].map((item, idx) => (
                       <div key={idx} className="relative pl-12 group">
                         {/* Node */}
@@ -445,10 +444,10 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
                           }`}></div>
                         </div>
                         
-                        <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.01)] group-hover:border-vnpost-blue/10 transition-colors">
+                        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.01)] group-hover:border-vnpost-blue/10 transition-colors">
                           <div className="flex justify-between items-start mb-3">
                             <div>
-                              <span className="text-[10px] font-bold text-vnpost-blue">{item.timestamp}</span>
+                              <span className="text-[11px] font-bold text-vnpost-blue">{item.timestamp}</span>
                               <div className="flex items-center gap-2 mt-2">
                                 {getLifecycleStateBadge(item.previous_state)}
                                 <ChevronRight size={12} className="text-gray-300" />
@@ -457,7 +456,7 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
                             </div>
                           </div>
                           <div className="bg-gray-50/80 p-3 rounded-lg border border-gray-100/50 mt-2">
-                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Nguyên nhân kích hoạt trạng thái</p>
+                            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Nguyên nhân kích hoạt trạng thái</p>
                             <p className="text-xs font-bold text-gray-700 leading-relaxed">{item.trigger_reason}</p>
                           </div>
                         </div>

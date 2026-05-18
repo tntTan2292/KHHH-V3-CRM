@@ -1274,14 +1274,14 @@ export default function Customers() {
       {/* RF5C - STEP 3D: OPERATIONAL COCKPIT LAYOUT REFACTOR */}
       <div className="flex flex-col gap-1.5 mb-2">
         {/* TIER 1: POPULATION (The Stock - Most Important) */}
-        <div className="flex flex-col gap-1 p-1.5 bg-blue-50/20 rounded-xl border border-blue-100/50 shadow-sm">
+        <div className="flex flex-col gap-1.5 p-2 bg-blue-50/20 rounded-xl border border-blue-100/50 shadow-sm">
           <div className="flex items-center gap-2 mb-0.5 px-1">
              <span className="w-1 h-3 bg-blue-500 rounded-full"></span>
-             <h3 className="text-[8px] font-black text-blue-700 uppercase tracking-widest">Lũy kế vòng đời khách hàng</h3>
+             <h3 className="text-[11px] font-black text-blue-700 uppercase tracking-widest">Lũy kế vòng đời khách hàng</h3>
           </div>
           
           {/* Row 1: Primary Stocks */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5">
             {[
               { label: "Tổng Khách hàng", value: "total_pop", icon: Users, color: "blue" },
               { label: "Hiện hữu (Mature)", value: "active", icon: CheckCircle2, color: "purple" },
@@ -1297,23 +1297,23 @@ export default function Customers() {
                 <button
                   key={item.label}
                   onClick={() => { setFilters(prev => ({ ...prev, lifecycle_status: item.value })); setPage(1); }}
-                  className={`group relative p-1.5 pl-3 rounded-lg transition-all flex flex-col items-start gap-0 text-left border ${
+                  className={`group relative p-2 pl-3.5 rounded-lg transition-all flex flex-col items-start gap-1 text-left border ${
                     isActive 
                       ? `bg-white shadow-md scale-[1.01] z-10 ${config.borderCol} border-l-4` 
                       : `bg-white/60 border-gray-100 hover:bg-white border-l-4 opacity-90`
                   }`}
                 >
                   <div className="flex items-center justify-between w-full">
-                    <span className={`text-[8px] font-black uppercase tracking-tight truncate ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
+                    <span className={`text-[11px] font-black uppercase tracking-tight truncate ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
                       {item.label}
                     </span>
-                    <item.icon size={10} className={isActive ? `text-${item.color}-600` : "text-gray-400"} />
+                    <item.icon size={12} className={isActive ? `text-${item.color}-600` : "text-gray-400"} />
                   </div>
                   <div className="flex items-baseline gap-1">
                     <span className={`text-base font-black tracking-tighter ${isActive ? `text-${item.color}-600` : `text-${item.color}-700`}`}>
                       {count.toLocaleString()}
                     </span>
-                    <span className="text-[7px] text-gray-400 font-bold uppercase opacity-50">KH</span>
+                    <span className="text-[11px] text-gray-400 font-bold uppercase opacity-50">KH</span>
                   </div>
                 </button>
               );
@@ -1321,7 +1321,7 @@ export default function Customers() {
           </div>
 
           {/* Row 2: Probationary Stocks */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5">
             {[
               { label: "Mới (Lũy kế)", value: "new_pop", icon: Sparkles, color: "indigo" },
               { label: "Tái bản (Lũy kế)", value: "recovered_pop", icon: Activity, color: "emerald" }
@@ -1334,23 +1334,23 @@ export default function Customers() {
                 <button
                   key={item.label}
                   onClick={() => { setFilters(prev => ({ ...prev, lifecycle_status: item.value })); setPage(1); }}
-                  className={`group relative p-1 pl-3 rounded-lg transition-all flex flex-col items-start gap-0 text-left border ${
+                  className={`group relative p-2 pl-3.5 rounded-lg transition-all flex flex-col items-start gap-1 text-left border ${
                     isActive 
                       ? `bg-white shadow-sm scale-[1.01] z-10 ${config.borderCol} border-l-4` 
                       : `bg-white/40 border-gray-50 hover:bg-white border-l-4 opacity-80`
                   }`}
                 >
                   <div className="flex items-center justify-between w-full">
-                    <span className={`text-[7px] font-black uppercase tracking-tight truncate ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>
+                    <span className={`text-[11px] font-black uppercase tracking-tight truncate ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>
                       {item.label}
                     </span>
-                    <item.icon size={8} className={isActive ? `text-${item.color}-600` : "text-gray-300"} />
+                    <item.icon size={12} className={isActive ? `text-${item.color}-600` : "text-gray-300"} />
                   </div>
                   <div className="flex items-baseline gap-1">
                     <span className={`text-sm font-black tracking-tighter ${isActive ? `text-${item.color}-600` : `text-${item.color}-700`}`}>
                       {count.toLocaleString()}
                     </span>
-                    <span className="text-[6px] text-gray-400 font-bold uppercase opacity-50">KH</span>
+                    <span className="text-[11px] text-gray-400 font-bold uppercase opacity-50">KH</span>
                   </div>
                 </button>
               );
@@ -1359,10 +1359,10 @@ export default function Customers() {
         </div>
 
         {/* TIER 2: EVENT STRIP (The Flow - Month Volatility) */}
-        <div className="p-1 px-2 bg-rose-50/30 rounded-lg border border-rose-100/50 flex items-center gap-3">
+        <div className="p-1 px-2.5 bg-rose-50/30 rounded-lg border border-rose-100/50 flex items-center gap-3">
           <div className="flex items-center gap-1.5 pr-3 border-r border-rose-200/50">
-             <span className="w-1 h-2 bg-rose-500 rounded-full"></span>
-             <h3 className="text-[7px] font-black text-rose-600 uppercase tracking-widest whitespace-nowrap">Biến động kỳ (Event)</h3>
+             <span className="w-1.5 h-3.5 bg-rose-500 rounded-full"></span>
+             <h3 className="text-[11px] font-black text-rose-600 uppercase tracking-widest whitespace-nowrap">Biến động kỳ (Event)</h3>
           </div>
           
           <div className="flex flex-1 items-center gap-4">
@@ -1374,17 +1374,17 @@ export default function Customers() {
               const isActive = filters.lifecycle_status === item.value;
               const count = lifecycleStats[item.value] || 0;
               
-              return (
+               return (
                 <button
                   key={item.label}
                   onClick={() => { setFilters(prev => ({ ...prev, lifecycle_status: item.value })); setPage(1); }}
-                  className={`flex items-center gap-2 px-2 py-0.5 rounded-md transition-all border ${
+                  className={`flex items-center gap-2 px-2.5 py-1 rounded-md transition-all border ${
                     isActive 
                       ? `bg-white border-${item.color}-500 shadow-sm ring-1 ring-${item.color}-500/20` 
                       : `border-transparent hover:bg-white/60`
                   }`}
                 >
-                  <span className={`text-[7px] font-black uppercase tracking-tight ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>{item.label}</span>
+                  <span className={`text-[11px] font-black uppercase tracking-tight ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>{item.label}</span>
                   <span className={`text-xs font-black tracking-tighter ${isActive ? `text-${item.color}-600` : `text-gray-600`}`}>
                     {count.toLocaleString()}
                   </span>
@@ -1395,20 +1395,20 @@ export default function Customers() {
         </div>
 
         {/* ACTIVE FILTER CONTEXT BAR (EXECUTIVE) */}
-        <div className="bg-white border-y border-gray-100 px-6 py-3 flex items-center justify-between shadow-sm sticky top-0 z-40 backdrop-blur-md">
+        <div className="bg-white border-y border-gray-100 px-6 py-2 flex items-center justify-between shadow-sm sticky top-0 z-40 backdrop-blur-md">
            <div className="flex items-center gap-6">
               <div className="flex items-center gap-3">
                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-vnpost-blue flex items-center justify-center">
                     <Filter size={16} />
                  </div>
                  <div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Đang soi bộ lọc</p>
+                    <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Đang soi bộ lọc</p>
                     <div className="flex items-center gap-2">
                        <span className="text-xs font-black text-vnpost-blue uppercase tracking-tight">
                           {filters.lifecycle_status ? (lifecycleConfig.find(l => l.value === filters.lifecycle_status)?.label || filters.lifecycle_status) : "Tất cả khách hàng"}
                        </span>
                        {filters.rfm_segment && (
-                         <span className="text-[10px] font-black bg-vnpost-orange/10 text-vnpost-orange px-2 py-0.5 rounded uppercase border border-vnpost-orange/20">
+                         <span className="text-[11px] font-black bg-vnpost-orange/10 text-vnpost-orange px-2 py-0.5 rounded uppercase border border-vnpost-orange/20">
                             {filters.rfm_segment}
                          </span>
                        )}
@@ -1423,12 +1423,12 @@ export default function Customers() {
                     <Calendar size={16} />
                  </div>
                  <div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Thời gian & Chế độ</p>
+                    <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Thời gian & Chế độ</p>
                     <div className="flex items-center gap-2">
                        <span className="text-xs font-black text-slate-700">
                           {selectedMonth ? `Tháng ${selectedMonth}` : `${startDate} → ${endDate}`}
                        </span>
-                       <div className={`logic-mode-badge ${selectedMonth ? 'mode-snapshot' : 'mode-realtime'} !py-0.5 !px-2 !text-[9px]`}>
+                       <div className={`logic-mode-badge ${selectedMonth ? 'mode-snapshot' : 'mode-realtime'} !py-0.5 !px-2 !text-[11px]`}>
                           {selectedMonth ? 'SNAPSHOT' : 'REALTIME'}
                        </div>
                     </div>
@@ -1437,8 +1437,8 @@ export default function Customers() {
            </div>
 
            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black text-gray-400 uppercase mr-2">Tổng cộng:</span>
-              <span className="text-sm font-black text-vnpost-blue">{total.toLocaleString()} <span className="text-[10px] opacity-60">KH</span></span>
+              <span className="text-[11px] font-black text-gray-400 uppercase mr-2">Tổng cộng:</span>
+              <span className="text-sm font-black text-vnpost-blue">{total.toLocaleString()} <span className="text-[11px] opacity-60">KH</span></span>
            </div>
         </div>
 
@@ -1460,7 +1460,7 @@ export default function Customers() {
             <div className="relative min-w-[180px]">
                 <button 
                   onClick={() => setIsTreeOpen(!isTreeOpen)}
-                  className={`w-full bg-gray-50 border rounded-lg px-2 py-1.5 text-[10px] font-bold text-vnpost-blue flex justify-between items-center transition-all ${isTreeOpen ? 'bg-white ring-1 ring-vnpost-blue/20' : 'border-gray-100'}`}
+                  className={`w-full bg-gray-50 border rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-vnpost-blue flex justify-between items-center transition-all ${isTreeOpen ? 'bg-white ring-1 ring-vnpost-blue/20' : 'border-gray-100'}`}
                 >
                   <MapPin size={12} className="shrink-0 mr-1 opacity-50" />
                   <span className="truncate flex-1 text-left">{selectedNode ? selectedNode.title : "Phạm vi dữ liệu"}</span>
@@ -1482,18 +1482,18 @@ export default function Customers() {
                 onChange={handleFilterChange}
                 type="text" 
                 placeholder="Tìm tên hoặc mã CRM..." 
-                className="w-full pl-8 pr-3 py-1.5 border border-gray-100 rounded-lg text-[10px] focus:outline-none focus:border-vnpost-blue bg-gray-50/30 font-medium"
+                className="w-full pl-8 pr-3 py-1.5 border border-gray-100 rounded-lg text-[11px] focus:outline-none focus:border-vnpost-blue bg-gray-50/30 font-medium"
               />
             </div>
 
             {/* 3.3: Date Filters (Compact) */}
-            <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-lg border border-gray-100">
-               <input type="date" value={startDate} onChange={e => { setStartDate(e.target.value); setSelectedMonth(""); }} className="bg-white border-none rounded-md px-2 py-1 text-[10px] font-bold text-vnpost-blue w-28 focus:ring-1 focus:ring-vnpost-blue/20" />
+            <div className="flex items-center gap-1.5 bg-gray-50 p-1 rounded-lg border border-gray-100">
+               <input type="date" value={startDate} onChange={e => { setStartDate(e.target.value); setSelectedMonth(""); }} className="bg-white border-none rounded-md px-2 py-1 text-[11px] font-bold text-vnpost-blue w-28 focus:ring-1 focus:ring-vnpost-blue/20" />
                <ChevronRight size={10} className="text-gray-300" />
-               <input type="date" value={endDate} onChange={e => { setEndDate(e.target.value); setSelectedMonth(""); }} className="bg-white border-none rounded-md px-2 py-1 text-[10px] font-bold text-vnpost-blue w-28 focus:ring-1 focus:ring-vnpost-blue/20" />
+               <input type="date" value={endDate} onChange={e => { setEndDate(e.target.value); setSelectedMonth(""); }} className="bg-white border-none rounded-md px-2 py-1 text-[11px] font-bold text-vnpost-blue w-28 focus:ring-1 focus:ring-vnpost-blue/20" />
             </div>
 
-            <select className="bg-gray-50 border border-gray-100 rounded-lg px-2 py-1.5 text-[10px] font-bold text-vnpost-blue cursor-pointer focus:ring-1 focus:ring-vnpost-blue/20 transition-all outline-none" value={selectedMonth} onChange={(e) => handleQuickMonth(e.target.value)}>
+            <select className="bg-gray-50 border border-gray-100 rounded-lg px-2 py-1.5 text-[11px] font-bold text-vnpost-blue cursor-pointer focus:ring-1 focus:ring-vnpost-blue/20 transition-all outline-none" value={selectedMonth} onChange={(e) => handleQuickMonth(e.target.value)}>
               <option value="">-- Chọn tháng --</option>
               {coverage.months?.map(m => (<option key={m.value} value={m.value}>{m.label}</option>))}
             </select>
@@ -1505,7 +1505,7 @@ export default function Customers() {
               name="rfm_segment" 
               value={filters.rfm_segment} 
               onChange={handleFilterChange}
-              className="py-1.5 px-2 border border-gray-100 rounded-lg text-[10px] outline-none bg-white font-bold text-gray-600 min-w-[120px]"
+              className="py-1.5 px-2 border border-gray-100 rounded-lg text-[11px] outline-none bg-white font-bold text-gray-600 min-w-[120px]"
             >
               <option value="">Phân hạng (Tất cả)</option>
               {["Kim Cương", "Vàng", "Bạc", "Tiềm Năng", "Thường"].map(s => <option key={s} value={s}>{s}</option>)}
@@ -1515,14 +1515,14 @@ export default function Customers() {
             <div className="flex items-center gap-1.5 ml-auto">
               <button 
                 onClick={handleApplyFilter} 
-                className="px-3 h-[28px] bg-vnpost-blue text-white rounded-lg font-black hover:bg-[#003E7E] transition-all flex items-center gap-1.5 shadow-sm uppercase tracking-wider text-[9px]"
+                className="px-3 h-[28px] bg-vnpost-blue text-white rounded-lg font-black hover:bg-[#003E7E] transition-all flex items-center gap-1.5 shadow-sm uppercase tracking-wider text-[11px]"
               >
                 <Filter size={12} /> Lọc
               </button>
               
               <button 
                 onClick={() => { setFilters({ search: '', rfm_segment: '', lifecycle_status: '' }); setSelectedNode(null); setStartDate(""); setEndDate(""); setSelectedMonth(""); }}
-                className="text-gray-400 hover:text-red-500 text-[9px] font-black uppercase tracking-tighter px-2"
+                className="text-gray-400 hover:text-red-500 text-[11px] font-black uppercase tracking-tighter px-2"
               >
                 Xóa lọc
               </button>
@@ -1531,7 +1531,7 @@ export default function Customers() {
 
               <button 
                 onClick={handleExportExcel}
-                className="bg-emerald-600 text-white px-4 py-1.5 rounded-lg font-black text-[10px] uppercase shadow-md flex items-center gap-2 hover:bg-emerald-700 transition-all"
+                className="bg-emerald-600 text-white px-4 py-1.5 rounded-lg font-black text-[11px] uppercase shadow-md flex items-center gap-2 hover:bg-emerald-700 transition-all"
               >
                 <Download size={14} /> Excel
               </button>
