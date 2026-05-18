@@ -306,6 +306,9 @@ function Dashboard() {
 
   // 1. Coverage
   const { data: coverageData, error: coverageError } = useSWR('/api/analytics/data-coverage', fetcher, {
+    revalidateOnFocus: false,
+    revalidateIfStale: false,
+    dedupingInterval: 60000,
     onSuccess: (data) => {
       // [RF5C] Governance: Only apply latest month as default if user hasn't selected anything
       if (data && data.latest_month && (!startDate || startDate === "") && (!endDate || endDate === "")) {
@@ -326,26 +329,30 @@ function Dashboard() {
   // 2. Summary & Stats
   const { data: summaryData, isValidating: loadingStats } = useSWR(
     !waitingForDefaultDate ? ['/api/analytics/summary', queryParams] : null,
-    fetcherWithParams
+    fetcherWithParams,
+    { revalidateOnFocus: false, revalidateIfStale: false }
   );
 
   // 6. Monthly Trend Data (New)
   // 3. Trend Data
   const { data: trendDataRes, isValidating: loadingTrend } = useSWR(
     !waitingForDefaultDate ? ['/api/analytics/revenue-trend', queryParams] : null,
-    fetcherWithParams
+    fetcherWithParams,
+    { revalidateOnFocus: false, revalidateIfStale: false }
   );
 
   // 4. Heatmap Data
   const { data: heatmapDataRes, isValidating: loadingHeatmap } = useSWR(
     !waitingForDefaultDate ? ['/api/analytics/heatmap-units', queryParams] : null,
-    fetcherWithParams
+    fetcherWithParams,
+    { revalidateOnFocus: false, revalidateIfStale: false }
   );
 
   // 5. Movers Data
   const { data: moversDataRes, isValidating: loadingMovers } = useSWR(
     !waitingForDefaultDate ? ['/api/analytics/top-movers', queryParams] : null,
-    fetcherWithParams
+    fetcherWithParams,
+    { revalidateOnFocus: false, revalidateIfStale: false }
   );
 
   // 6. Monthly Trend Data (New)
@@ -358,17 +365,20 @@ function Dashboard() {
   // 7. Scoring & Prediction (Transitioned to SWR for Race Condition Protection)
   const { data: scoringDataRes } = useSWR(
     !waitingForDefaultDate ? ['/api/analytics/customer-scoring', queryParams] : null,
-    fetcherWithParams
+    fetcherWithParams,
+    { revalidateOnFocus: false, revalidateIfStale: false }
   );
   
   const { data: churnDataRes } = useSWR(
     !waitingForDefaultDate ? ['/api/analytics/churn-prediction', queryParams] : null,
-    fetcherWithParams
+    fetcherWithParams,
+    { revalidateOnFocus: false, revalidateIfStale: false }
   );
   
   const { data: healthDataRes } = useSWR(
     !waitingForDefaultDate ? '/api/analytics/system-health' : null,
-    fetcher
+    fetcher,
+    { revalidateOnFocus: false, revalidateIfStale: false }
   );
 
   // Sync state with SWR results
@@ -414,10 +424,10 @@ function Dashboard() {
   
   // Đồng bộ navStack khi user load xong
   useEffect(() => {
-    if (user?.scope && navStack[0].title === "Toàn tỉnh" && user.scope !== "Toàn tỉnh") {
+    if (user?.scope && navStack.length > 0 && navStack[0].title !== user.scope && navStack[0].title === "Toàn tỉnh") {
       setNavStack([{ key: "", title: user.scope }]);
     }
-  }, [user, navStack]);
+  }, [user?.scope, navStack]);
 
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -1671,42 +1681,36 @@ function Dashboard() {
                 </h4>
                 <span className="text-[8px] bg-red-700 px-2 py-1 rounded-full font-bold uppercase tracking-widest">Predictive AI</span>
               </div>
-              <div className="p-4 space-y-3">
-                {churnPrediction?.length > 0 ? churnPrediction.slice(0, 5).map((p, idx) => (
-                  <div key={idx} className="flex flex-col p-4 border-b border-gray-50 last:border-0 hover:bg-red-50 transition-all rounded-xl gap-2 cursor-pointer" onClick={() => setSelectedCustomer(p)}>
-                    <div className="flex items-center justify-between">
-                      <div className="min-w-0">
-                        <p className="text-[12px] font-black text-gray-800 truncate uppercase">{p.ten_kh}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                           <span className="text-[8px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded font-bold uppercase">{p.ma_kh}</span>
-                           <span className="text-[8px] px-1.5 py-0.5 bg-red-100 text-red-600 rounded font-bold uppercase">{p.segment}</span>
+              <div className="p-0 max-h-[600px] overflow-y-auto">
+                {churnPrediction?.length > 0 ? churnPrediction.slice(0, 20).map((p, idx) => (
+                  <div key={idx} className="flex items-center justify-between gap-3 p-2 px-4 border-b border-gray-50 last:border-0 hover:bg-red-50 transition-all cursor-pointer group" onClick={() => setSelectedCustomer(p)}>
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="flex flex-col min-w-0">
+                        <p className="text-[11px] font-black text-gray-800 truncate uppercase group-hover:text-red-700">{p.ten_kh}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                           <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">{p.ma_kh}</span>
+                           <span className="text-[8px] px-1 bg-red-100 text-red-600 rounded font-black uppercase tracking-tighter">{p.segment}</span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <span className="text-sm font-black text-red-600 block">-{p.drop_pct}%</span>
-                        <span className={`text-[9px] font-black uppercase tracking-tighter ${p.risk_level.includes('CAO') ? 'text-red-600' : 'text-amber-600'}`}>
-                           {p.risk_level}
+                    </div>
+
+                    <div className="flex items-center gap-6">
+                      <div className="hidden sm:flex flex-col items-end">
+                         <p className="text-[8px] text-gray-400 font-black uppercase tracking-tighter">Vắng mặt</p>
+                         <p className="text-[11px] font-black text-gray-700">{p.days_inactive} ngày</p>
+                      </div>
+                      
+                      <div className="hidden md:flex flex-col items-end min-w-[80px]">
+                         <p className="text-[8px] text-gray-400 font-black uppercase tracking-tighter">Đơn cuối</p>
+                         <p className="text-[10px] font-bold text-gray-600">{p.last_active}</p>
+                      </div>
+
+                      <div className="text-right min-w-[60px]">
+                        <span className="text-[11px] font-black text-red-600 block">-{p.drop_pct}%</span>
+                        <span className={`text-[8px] font-black uppercase tracking-widest ${p.risk_level.includes('CAO') ? 'text-red-600' : 'text-amber-600'}`}>
+                           {p.risk_level.includes('CAO') ? 'RỦI RO CAO' : 'THEO DÕI'}
                         </span>
                       </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 mt-1">
-                       <div className="bg-gray-50/50 p-2 rounded-lg border border-gray-100">
-                          <p className="text-[8px] text-gray-400 font-bold uppercase mb-1">Vắng mặt</p>
-                          <p className="text-xs font-black text-gray-700">{p.days_inactive} ngày</p>
-                       </div>
-                       <div className="bg-gray-50/50 p-2 rounded-lg border border-gray-100">
-                          <p className="text-[8px] text-gray-400 font-bold uppercase mb-1">Đơn cuối</p>
-                          <p className="text-xs font-black text-gray-700">{p.last_active}</p>
-                       </div>
-                    </div>
-                    <div className="flex items-center justify-between text-[9px] mt-1 text-gray-500 font-bold italic">
-                       <span className="text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-100 flex items-center gap-1">
-                          <AlertCircle size={10} /> {p.detailed_reason}
-                       </span>
-                    </div>
-                    <div className="flex items-center justify-between text-[8px] mt-1 text-gray-400 font-bold">
-                       <span>Kỳ này: {formatCurrency(p.curr_rev)}</span>
-                       <span>Kỳ trước: {formatCurrency(p.prev_rev)}</span>
                     </div>
                   </div>
                 )) : <div className="p-12 text-center text-gray-300 italic text-xs font-bold uppercase">Chưa phát hiện rủi ro rời bỏ</div>}
@@ -1725,44 +1729,34 @@ function Dashboard() {
                 </h4>
                 <span className="text-[8px] bg-indigo-700 px-2 py-1 rounded-full font-bold uppercase tracking-widest">Elite Scoring</span>
               </div>
-              <div className="p-4 space-y-3">
-                {customerScoring?.length > 0 ? customerScoring.slice(0, 5).map((s, idx) => (
-                  <div key={idx} className="flex flex-col p-4 border-b border-gray-50 last:border-0 hover:bg-indigo-50 transition-all rounded-xl gap-2 cursor-pointer" onClick={() => setSelectedCustomer(s)}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4 min-w-0">
-                        <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center border border-indigo-100 font-black text-indigo-700 text-sm shadow-inner">
-                          {s.score}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-[12px] font-black text-gray-800 truncate uppercase">{s.ten_kh}</p>
-                          <span className="text-[8px] px-1.5 py-0.5 bg-indigo-100 text-indigo-600 rounded font-bold uppercase">{s.rank}</span>
-                        </div>
+              <div className="p-0 max-h-[600px] overflow-y-auto">
+                {customerScoring?.length > 0 ? customerScoring.slice(0, 20).map((s, idx) => (
+                  <div key={idx} className="flex items-center justify-between gap-3 p-2 px-4 border-b border-gray-50 last:border-0 hover:bg-indigo-50 transition-all cursor-pointer group" onClick={() => setSelectedCustomer(s)}>
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="w-8 h-8 rounded-lg bg-indigo-50 flex flex-shrink-0 items-center justify-center border border-indigo-100 font-black text-indigo-700 text-[11px] shadow-sm group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                        {s.score}
                       </div>
-                      <div className="text-right">
-                         <TrendingUp size={14} className="text-green-500 ml-auto" />
+                      <div className="flex flex-col min-w-0">
+                        <p className="text-[11px] font-black text-gray-800 truncate uppercase group-hover:text-indigo-700">{s.ten_kh}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                           <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">{s.ma_kh}</span>
+                           <span className="text-[8px] px-1 bg-indigo-100 text-indigo-600 rounded font-black uppercase tracking-tighter">{s.rank}</span>
+                        </div>
                       </div>
                     </div>
                     
-                    {/* Bố trí dạng Box để khớp chiều cao với bảng Churn */}
-                    <div className="grid grid-cols-2 gap-2 mt-1">
-                       <div className="bg-gray-50/50 p-2 rounded-lg border border-gray-100">
-                          <p className="text-[8px] text-gray-400 font-bold uppercase mb-1">Doanh thu</p>
-                          <p className="text-xs font-black text-gray-700">{formatCurrency(s.revenue)}</p>
+                    <div className="flex items-center gap-6">
+                       <div className="hidden sm:flex flex-col items-end">
+                          <p className="text-[8px] text-gray-400 font-black uppercase tracking-tighter">Doanh thu</p>
+                          <p className="text-[11px] font-black text-gray-700">{formatCurrency(s.revenue)}</p>
                        </div>
-                       <div className="bg-gray-50/50 p-2 rounded-lg border border-gray-100">
-                          <p className="text-[8px] text-gray-400 font-bold uppercase mb-1">Tần suất</p>
-                          <p className="text-xs font-black text-gray-700">{s.frequency} đơn</p>
+                       <div className="hidden md:flex flex-col items-end min-w-[60px]">
+                          <p className="text-[8px] text-gray-400 font-black uppercase tracking-tighter">Tần suất</p>
+                          <p className="text-[10px] font-bold text-gray-600">{s.frequency} đơn</p>
                        </div>
-                    </div>
-
-                    <div className="flex items-center justify-between text-[9px] mt-1 text-indigo-600 font-bold italic">
-                       <span className="bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 flex items-center gap-1">
-                          <Target size={10} /> Chiến lược: Duy trì & Upsell
-                       </span>
-                    </div>
-                    <div className="flex items-center justify-between text-[8px] mt-1 text-gray-400 font-bold">
-                       <span>Mã KH: {s.ma_kh}</span>
-                       <span>Cập nhật: {s.last_active}</span>
+                       <div className="flex items-center justify-center w-6">
+                          <TrendingUp size={14} className="text-emerald-500" />
+                       </div>
                     </div>
                   </div>
                 )) : <div className="p-12 text-center text-gray-300 italic text-xs font-bold uppercase">Đang đồng bộ điểm số...</div>}

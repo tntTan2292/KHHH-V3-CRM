@@ -1520,7 +1520,7 @@ export default function Customers() {
               </button>
               
               <button 
-                onClick={() => { setFilters({ search: '', rfm_segment: '', lifecycle_status: '' }); setSelectedNode(null); setStartDate(""); setEndDate(""); setSelectedMonth(""); fetchCustomers(); }}
+                onClick={() => { setFilters({ search: '', rfm_segment: '', lifecycle_status: '' }); setSelectedNode(null); setStartDate(""); setEndDate(""); setSelectedMonth(""); }}
                 className="text-gray-400 hover:text-red-500 text-[9px] font-black uppercase tracking-tighter px-2"
               >
                 Xóa lọc
@@ -1689,7 +1689,6 @@ export default function Customers() {
                   const newSize = parseInt(e.target.value);
                   setPageSize(newSize);
                   setPage(1);
-                  fetchCustomers(1);
                 }}
                 className="bg-white border border-gray-200 rounded-xl px-3 py-1.5 text-xs font-black text-vnpost-blue outline-none focus:ring-2 focus:ring-vnpost-blue/10"
               >

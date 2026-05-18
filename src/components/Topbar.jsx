@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { Bell, Search, UserCircle, Database, Menu, LogOut, ChevronDown, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import useSWR from 'swr';
+
+const fetcher = url => api.get(url).then(res => res.data);
 
 export default function Topbar({ onMenuClick }) {
   const [latestDate, setLatestDate] = useState(null);
@@ -15,19 +18,18 @@ export default function Topbar({ onMenuClick }) {
     window.location.reload();
   };
 
+  const { data: dashboardData } = useSWR('/api/analytics/dashboard', fetcher, {
+    revalidateOnFocus: false,
+    revalidateIfStale: false,
+    refreshInterval: 600000, // 10 minutes auto-refresh
+    dedupingInterval: 60000  // deduplicate requests within 1 minute
+  });
+
   useEffect(() => {
-    const fetchFreshness = async () => {
-      try {
-        const res = await api.get('/api/analytics/dashboard');
-        if (res.data.latest_date) {
-          setLatestDate(new Date(res.data.latest_date).toLocaleDateString('vi-VN'));
-        }
-      } catch (err) { console.error("Lỗi lấy ngày cập nhật:", err); }
-    };
-    fetchFreshness();
-    const interval = setInterval(fetchFreshness, 10 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
+    if (dashboardData?.latest_date) {
+      setLatestDate(new Date(dashboardData.latest_date).toLocaleDateString('vi-VN'));
+    }
+  }, [dashboardData]);
 
   return (
     <header className="glass-header h-14 flex items-center justify-between px-4 md:px-6 shadow-sm bg-white/80 backdrop-blur-md sticky top-0 z-30 border-b border-gray-100">
