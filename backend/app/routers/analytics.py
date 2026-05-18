@@ -366,7 +366,7 @@ async def get_revenue_trend(
     return [{"date": str(r[0]), "value": r[1] or 0} for r in stats]
 
 @router.get("/revenue-monthly")
-# @cache_response(ttl_hours=4)
+@cache_response(ttl_hours=4)
 async def get_revenue_monthly(
     start_date: str = None,
     end_date: str = None,
@@ -529,7 +529,7 @@ async def get_revenue_by_region(
     return [{"name": k, "value": v} for k, v in result.items() if v > 0]
 
 @router.get("/top-movers")
-# @cache_response(ttl_hours=6) # Tạm thời tắt để refresh số liệu SSOT
+@cache_response(ttl_hours=2)
 async def get_top_movers(
     start_date: str = None,
     end_date: str = None,
@@ -767,6 +767,7 @@ async def get_sync_status(db: Session = Depends(get_db)):
     }
 
 @router.get("/system-health")
+@cache_response(ttl_hours=8)
 async def get_system_health(db: Session = Depends(get_db)):
     """Kiểm tra độ sạch của dữ liệu để cảnh báo trên Dashboard"""
     # 1. Tổng số khách hàng (định danh)
@@ -805,7 +806,7 @@ async def get_system_health(db: Session = Depends(get_db)):
     }
 
 @router.get("/customer-scoring")
-# @cache_response(ttl_hours=24)
+@cache_response(ttl_hours=4)
 async def get_customer_performance_scoring(
     start_date: str = None,
     end_date: str = None,
@@ -892,7 +893,7 @@ async def get_customer_performance_scoring(
     return sorted(results, key=lambda x: x['score'], reverse=True)[:limit]
 
 @router.get("/churn-prediction")
-# @cache_response(ttl_hours=24)
+@cache_response(ttl_hours=4)
 async def get_churn_prediction_alerts(
     end_date: str = None,
     node_code: str = None,
@@ -937,9 +938,11 @@ async def get_churn_prediction_alerts(
      .filter(prev_rev.c.rev > 1000000) 
      
     results = []
-    # Lấy tên mới nhất (Data-Driven)
-    involved_ids = [r.ma_crm_cms for r in prediction.all()]
+    # Lấy tên mới nhất và ngày gửi cuối cùng (Data-Driven)
+    prediction_list = prediction.all()
+    involved_ids = [r.ma_crm_cms for r in prediction_list]
     name_map = {}
+    last_date_map = {}
     if involved_ids:
         names = db.query(
             Transaction.ma_kh,
@@ -947,15 +950,16 @@ async def get_churn_prediction_alerts(
             func.max(Transaction.ngay_chap_nhan)
         ).filter(Transaction.ma_kh.in_(involved_ids)).group_by(Transaction.ma_kh).all()
         name_map = {r[0]: r[1] for r in names if r[0]}
+        last_date_map = {r[0]: r[2] for r in names if r[0]}
 
-    for r in prediction.all():
+    for r in prediction_list:
         drop_pct = ((r.prev_val - r.curr_val) / r.prev_val) * 100
         # Ngưỡng: 30% cho Diamond/Gold, 50% cho người khác
         threshold = 30 if r.rfm_segment in ('Kim Cương', 'Vàng') else 50
         
         if drop_pct >= threshold:
-            # Lấy ngày gửi cuối cùng của khách này
-            last_date = db.query(func.max(Transaction.ngay_chap_nhan)).filter(Transaction.ma_kh == r.ma_crm_cms).scalar()
+            # Lấy ngày gửi cuối cùng của khách này từ map đã batch (Tránh N+1 query)
+            last_date = last_date_map.get(r.ma_crm_cms)
             last_date_obj = parse_db_date(last_date)
             days_inactive = (max_date - last_date_obj).days if last_date_obj else 99
             
@@ -989,7 +993,7 @@ async def get_churn_prediction_alerts(
     return sorted(results, key=lambda x: x['drop_pct'], reverse=True)[:10]
 
 @router.get("/heatmap-units")
-# @cache_response(ttl_hours=24)
+@cache_response(ttl_hours=4)
 async def get_heatmap_units(
     start_date: str = None,
     end_date: str = None,

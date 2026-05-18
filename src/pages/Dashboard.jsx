@@ -355,22 +355,22 @@ function Dashboard() {
     { revalidateOnFocus: false, revalidateIfStale: false }
   );
 
-  // 6. Monthly Trend Data (New)
+  // 6. Monthly Trend Data (New) - DEFERRED: Only load after primary summaryData is ready
   const { data: monthlyDataRes, isValidating: loadingMonthly } = useSWR(
-    !waitingForDefaultDate ? ['/api/analytics/revenue-monthly', queryParams] : null,
+    (!waitingForDefaultDate && !!summaryData) ? ['/api/analytics/revenue-monthly', queryParams] : null,
     fetcherWithParams,
     { revalidateOnFocus: false, revalidateIfStale: false }
   );
 
-  // 7. Scoring & Prediction (Transitioned to SWR for Race Condition Protection)
-  const { data: scoringDataRes } = useSWR(
-    !waitingForDefaultDate ? ['/api/analytics/customer-scoring', queryParams] : null,
+  // 7. Scoring & Prediction (Transitioned to SWR for Race Condition Protection) - DEFERRED: Only load after primary summaryData is ready
+  const { data: scoringDataRes, isValidating: loadingScoring } = useSWR(
+    (!waitingForDefaultDate && !!summaryData) ? ['/api/analytics/customer-scoring', queryParams] : null,
     fetcherWithParams,
     { revalidateOnFocus: false, revalidateIfStale: false }
   );
   
-  const { data: churnDataRes } = useSWR(
-    !waitingForDefaultDate ? ['/api/analytics/churn-prediction', queryParams] : null,
+  const { data: churnDataRes, isValidating: loadingChurn } = useSWR(
+    (!waitingForDefaultDate && !!summaryData) ? ['/api/analytics/churn-prediction', queryParams] : null,
     fetcherWithParams,
     { revalidateOnFocus: false, revalidateIfStale: false }
   );
@@ -1682,7 +1682,19 @@ function Dashboard() {
                 <span className="text-[8px] bg-red-700 px-2 py-1 rounded-full font-bold uppercase tracking-widest">Predictive AI</span>
               </div>
               <div className="p-0 max-h-[600px] overflow-y-auto">
-                {churnPrediction?.length > 0 ? churnPrediction.slice(0, 20).map((p, idx) => (
+                {(loadingChurn || !summaryData) ? (
+                  <div className="p-4 space-y-3">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="flex gap-4 py-3 animate-pulse border-b border-gray-50 last:border-0">
+                        <div className="flex-1 space-y-2 py-1">
+                          <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                          <div className="h-2 bg-gray-150 rounded w-1/3"></div>
+                        </div>
+                        <div className="w-16 h-8 bg-gray-200 rounded-lg self-center"></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : churnPrediction?.length > 0 ? churnPrediction.slice(0, 20).map((p, idx) => (
                   <div key={idx} className="flex items-center justify-between gap-3 p-2 px-4 border-b border-gray-50 last:border-0 hover:bg-red-50 transition-all cursor-pointer group" onClick={() => setSelectedCustomer(p)}>
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div className="flex flex-col min-w-0">
@@ -1730,7 +1742,19 @@ function Dashboard() {
                 <span className="text-[8px] bg-indigo-700 px-2 py-1 rounded-full font-bold uppercase tracking-widest">Elite Scoring</span>
               </div>
               <div className="p-0 max-h-[600px] overflow-y-auto">
-                {customerScoring?.length > 0 ? customerScoring.slice(0, 20).map((s, idx) => (
+                {(loadingScoring || !summaryData) ? (
+                  <div className="p-4 space-y-3">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="flex gap-4 py-3 animate-pulse border-b border-gray-50 last:border-0">
+                        <div className="flex-1 space-y-2 py-1">
+                          <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                          <div className="h-2 bg-gray-150 rounded w-1/3"></div>
+                        </div>
+                        <div className="w-16 h-8 bg-gray-200 rounded-lg self-center"></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : customerScoring?.length > 0 ? customerScoring.slice(0, 20).map((s, idx) => (
                   <div key={idx} className="flex items-center justify-between gap-3 p-2 px-4 border-b border-gray-50 last:border-0 hover:bg-indigo-50 transition-all cursor-pointer group" onClick={() => setSelectedCustomer(s)}>
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div className="w-8 h-8 rounded-lg bg-indigo-50 flex flex-shrink-0 items-center justify-center border border-indigo-100 font-black text-indigo-700 text-[11px] shadow-sm group-hover:bg-indigo-600 group-hover:text-white transition-colors">

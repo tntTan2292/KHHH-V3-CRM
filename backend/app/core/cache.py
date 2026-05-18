@@ -90,11 +90,12 @@ def cache_response(ttl_hours: int = 24):
                 cache_params[k] = v
             
             key = f"{user_id_prefix}{func.__name__}:{json.dumps(cache_params, sort_keys=True)}"
+            logger.info(f"Endpoint: {func.__name__} | Prefix: {user_id_prefix} | Key: {key}")
             
             # 1. Try to get from cache
             cached_val = CacheService.get(key)
             if cached_val is not None:
-                # logger.info(f"Cache HIT for {func.__name__}")
+                logger.info(f"Cache HIT for {func.__name__}")
                 return cached_val
             
             # 2. If not in cache, execute original function
