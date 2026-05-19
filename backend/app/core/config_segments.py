@@ -62,19 +62,5 @@ PRIORITY_THRESHOLD_CRITICAL = 80
 PRIORITY_THRESHOLD_HIGH = 60
 PRIORITY_THRESHOLD_MEDIUM = 40
 
-# LOCKED VIP SEGMENT CUSTOMERS (EXCLUSIVELY 10 CUSTOMERS)
-LOCKED_KIM_CUONG_IDS = [
-    "T001800245", # Ủy Ban Nhân Dân Thành Phố Huế
-    "C001395772", # Shop trina trần
-    "T001873407", # Công An Tỉnh Thừa Thiên Huế
-    "C001397376", # NGUYỄN VĂN PHƯƠNG
-    "T001873574", # Bảo Hiểm Xã Hội Tỉnh Thừa Thiên Huế
-    "T002046005", # Ban Tuyên Giáo Tỉnh Ủy Tỉnh Thừa Thiên Huế
-    "T001460578", # Trung tâm Hành chính công Tỉnh Thừa Thiên Huế
-    "T001801011", # Văn phòng Tỉnh ủy Thừa Thiên Huế
-    "T001460286", # TRƯỜNG ĐẠI HỌC SƯ PHẠM HUẾ
-    "C016389773"  # Bánh Tráng Vn Flex
-]
-
 print("LIFECYCLE, VIP & PRIORITY CONFIG LOADED - CRM 3.0")
 

@@ -76,20 +76,15 @@ class VIPTierEngine:
             # Ranking Logic
             df['rank'] = range(1, len(df) + 1)
             
-            def assign_tier(row):
-                ma_kh = row['ma_kh']
-                if ma_kh in LOCKED_KIM_CUONG_IDS:
-                    return 'DIAMOND'
-                
-                # Non-locked customers CANNOT get DIAMOND dynamically
-                rank = row['rank']
+            def assign_tier(rank):
+                if rank <= VIP_THRESHOLD_DIAMOND: return 'DIAMOND'
                 if rank <= VIP_THRESHOLD_PLATINUM: return 'PLATINUM'
                 if rank <= VIP_THRESHOLD_GOLD: return 'GOLD'
                 if rank <= VIP_THRESHOLD_SILVER: return 'SILVER'
                 if rank <= VIP_THRESHOLD_BRONZE: return 'BRONZE'
                 return 'NORMAL'
             
-            df['vip_tier'] = df.apply(assign_tier, axis=1)
+            df['vip_tier'] = df['rank'].apply(assign_tier)
 
 
             # Risk/Momentum Detection

@@ -36,21 +36,6 @@ def compute_rfm(customers: List[Dict]) -> List[Dict]:
             return "Thường"
             
     df["rfm_segment"] = df["tong_doanh_thu"].apply(get_segment)
-    
-    # Overwrite segment for LOCKED_KIM_CUONG_IDS to be strictly 'VIP'
-    from ..core.config_segments import LOCKED_KIM_CUONG_IDS
-    def apply_locked_segment(row):
-        ma_crm = row.get("ma_crm_cms")
-        if ma_crm in LOCKED_KIM_CUONG_IDS:
-            return "VIP"
-        # If it was dynamically computed as Kim Cương, but is NOT a locked customer, demote it to Tiềm Năng (or Vàng) to avoid name clash
-        val = row["rfm_segment"]
-        if val == "Kim Cương":
-            return "Tiềm Năng"
-        return val
-        
-    df["rfm_segment"] = df.apply(apply_locked_segment, axis=1)
-    
     # Chuyển đổi lại thành danh sách dict
     return df.to_dict("records")
 
