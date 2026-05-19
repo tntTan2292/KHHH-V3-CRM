@@ -142,7 +142,7 @@ const lifecycleConfig = [
 ];
 
 // RF5B: Memoized Customer Row for Performance
-const CustomerRow = React.memo(({ c, handleRowClick, handleHistoryModal, formatCurrency, getRankBadge, lifecycleConfig }) => {
+const CustomerRow = React.memo(({ c, handleRowClick, handleHistoryModal, handleOpenAssignModal, formatCurrency, getRankBadge, lifecycleConfig }) => {
   return (
     <tr onClick={() => handleRowClick(c?.ma_crm_cms)} className="group transition-colors duration-200 cursor-pointer even:bg-slate-50/20 hover:bg-slate-50/70">
       <td className="p-2 relative">
@@ -267,15 +267,26 @@ const CustomerRow = React.memo(({ c, handleRowClick, handleHistoryModal, formatC
          </div>
       </td>
       <td className="p-2 text-center">
-        <div className="flex items-center justify-center gap-1">
+        <div className="flex items-center justify-center gap-1.5">
           <button 
             onClick={(e) => {
               e.stopPropagation();
               handleRowClick(c?.ma_crm_cms);
             }}
             className="p-2 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+            title="Xem chi tiết"
           >
             <Info size={16} />
+          </button>
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenAssignModal(c);
+            }}
+            className="p-2 bg-orange-50 text-vnpost-orange rounded-xl hover:bg-vnpost-orange hover:text-white transition-all shadow-sm animate-in fade-in duration-300"
+            title="Giao việc cho nhân sự"
+          >
+            <UserPlus size={16} />
           </button>
         </div>
       </td>
@@ -791,6 +802,12 @@ export default function Customers() {
     } finally {
       setLoadingDetails(false);
     }
+  };
+
+  const handleOpenAssignModal = (c) => {
+    setAssignTarget({ ma_kh: c.ma_crm_cms, ten_kh: c.ten_kh, nhom_kh: c.status_type, rfm_segment: c.rfm_segment });
+    setSelectedStaffId(c.assigned_staff_id || "");
+    setShowAssignModal(true);
   };
 
   const closeModal = () => {
@@ -1669,6 +1686,7 @@ export default function Customers() {
                       setHistoryTarget({ ma_kh: cust.ma_crm_cms, ten_kh: cust.ten_kh });
                       setShowHistoryModal(true);
                     }}
+                    handleOpenAssignModal={handleOpenAssignModal}
                     formatCurrency={formatCurrency}
                     getRankBadge={getRankBadge}
                     lifecycleConfig={lifecycleConfig}
