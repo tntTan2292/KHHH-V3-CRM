@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { X, Clock, User, CheckCircle2, AlertCircle, Calendar, MessageSquare, History, ChevronRight, AlertTriangle, Zap, Award } from 'lucide-react';
+import { X, Clock, User, CheckCircle2, AlertCircle, Calendar, MessageSquare, History, ChevronRight, AlertTriangle, Zap, Award, UserPlus, UserMinus, HeartHandshake, RefreshCw, TrendingDown, TrendingUp, ArrowDown, Package, Briefcase, XCircle } from 'lucide-react';
 
 const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, customerName }) => {
   const [history, setHistory] = useState([]);
@@ -62,7 +62,7 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
   const fetchLifecycleTimeline = async (page) => {
     try {
       setTlLoading(true);
-      const res = await api.get(`/api/customers/${targetId}/lifecycle-timeline`, {
+      const res = await api.get(`/api/customers/${targetId}/timeline-360`, {
         params: { page, page_size: 10 }
       });
       const data = res.data || { items: [], total: 0, total_pages: 1, current_state: 'UNKNOWN' };
@@ -168,6 +168,44 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
     );
   };
 
+  const renderTimelineIcon = (severity, eventType) => {
+    let IconComp = Clock;
+    let colorClass = 'text-gray-400 bg-gray-100 border-white';
+    
+    if (eventType === 'transaction') IconComp = Package;
+    else if (eventType === 'action') IconComp = Briefcase;
+    else if (eventType === 'vip') IconComp = Award;
+    else if (eventType === 'priority') {
+      if (severity === 'CRITICAL') IconComp = TrendingDown;
+      else if (severity === 'HIGH') IconComp = AlertTriangle;
+      else if (severity === 'INFO') IconComp = TrendingUp;
+    } else if (eventType === 'lifecycle') {
+      if (severity === 'HIGH') IconComp = HeartHandshake;
+      else if (severity === 'MEDIUM') IconComp = UserMinus;
+      else if (severity === 'INFO') IconComp = UserPlus;
+      else IconComp = RefreshCw;
+    }
+
+    if (severity === 'CRITICAL') colorClass = 'text-red-500 bg-red-50 border-red-100 ring-4 ring-red-50';
+    else if (severity === 'HIGH') colorClass = 'text-amber-500 bg-amber-50 border-amber-100';
+    else if (severity === 'MEDIUM') colorClass = 'text-rose-400 bg-rose-50 border-rose-100';
+    else if (severity === 'INFO') colorClass = 'text-blue-500 bg-blue-50 border-blue-100';
+    else colorClass = 'text-slate-400 bg-slate-50 border-slate-100';
+    
+    return (
+      <div className={`absolute left-0 top-1.5 w-10 h-10 rounded-full border-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)] flex items-center justify-center z-10 ${colorClass}`}>
+        <IconComp size={16} />
+      </div>
+    );
+  };
+
+  const getTimelineCardStyle = (severity) => {
+    if (severity === 'CRITICAL') return 'border-red-200 bg-red-50/30 shadow-[0_4px_12px_rgba(239,68,68,0.1)]';
+    if (severity === 'HIGH') return 'border-amber-200 bg-amber-50/30';
+    if (severity === 'INFO') return 'border-gray-100 bg-white hover:border-blue-100';
+    return 'border-gray-100 bg-white';
+  };
+
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[82vh] animate-in zoom-in-95 duration-300 border border-gray-100">
@@ -246,7 +284,7 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
                   : 'border-transparent text-gray-400 hover:text-gray-600'
               }`}
             >
-              Vòng đời khách hàng
+              Timeline 360°
             </button>
           </div>
         )}
@@ -433,32 +471,48 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
                   <div className="space-y-4.5">
                     {tlCache[tlPage].map((item, idx) => (
                       <div key={idx} className="relative pl-12 group">
-                        {/* Node */}
-                        <div className="absolute left-0 top-1.5 w-10 h-10 rounded-full border-4 border-white shadow-[0_2px_8px_rgba(0,0,0,0.03)] flex items-center justify-center z-10 bg-white">
-                          <div className={`w-3.5 h-3.5 rounded-full ${
-                            item.new_state === 'NEW' ? 'bg-emerald-500' :
-                            item.new_state === 'ACTIVE' ? 'bg-blue-500' :
-                            item.new_state === 'AT_RISK' ? 'bg-orange-500' :
-                            item.new_state === 'CHURNED' ? 'bg-red-500' :
-                            item.new_state === 'RECOVERED' ? 'bg-purple-500' : 'bg-gray-400'
-                          }`}></div>
-                        </div>
+                        {renderTimelineIcon(item.severity, item.event_type)}
                         
-                        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.01)] group-hover:border-vnpost-blue/10 transition-colors">
-                          <div className="flex justify-between items-start mb-3">
+                        <div className={`p-4 rounded-xl border transition-colors ${getTimelineCardStyle(item.severity)}`}>
+                          <div className="flex justify-between items-start mb-2">
                             <div>
                               <span className="text-[11px] font-bold text-slate-500 tracking-wide">{item.timestamp}</span>
-                              <div className="flex items-center gap-2 mt-2">
-                                {getLifecycleStateBadge(item.previous_state)}
-                                <ChevronRight size={12} className="text-gray-300" />
-                                {getLifecycleStateBadge(item.new_state)}
-                              </div>
+                            </div>
+                            <div>
+                               <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md ${
+                                 item.severity === 'CRITICAL' ? 'bg-red-100 text-red-700' :
+                                 item.severity === 'HIGH' ? 'bg-amber-100 text-amber-700' :
+                                 item.severity === 'MEDIUM' ? 'bg-rose-100 text-rose-700' :
+                                 'bg-gray-100 text-gray-500'
+                               }`}>{item.severity}</span>
                             </div>
                           </div>
-                          <div className="bg-slate-50/30 p-3 rounded-lg border border-slate-100 mt-2">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Nguyên nhân kích hoạt trạng thái</p>
-                            <p className="text-xs font-bold text-gray-700 leading-relaxed">{item.trigger_reason}</p>
-                          </div>
+                          
+                          <h4 className={`text-sm font-bold mb-2 ${
+                            item.severity === 'CRITICAL' ? 'text-red-700' :
+                            item.severity === 'HIGH' ? 'text-amber-700' :
+                            'text-gray-800'
+                          }`}>
+                            {item.narrative_text}
+                          </h4>
+
+                          {/* Raw Data Minimal Render */}
+                          {item.event_type === 'action' && item.raw_data && item.raw_data.bao_cao_ket_qua && (
+                            <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 mt-2 flex items-start gap-2">
+                              <MessageSquare size={14} className="text-slate-400 mt-0.5 shrink-0" />
+                              <p className="text-xs font-medium text-slate-600 italic">"{item.raw_data.bao_cao_ket_qua}"</p>
+                            </div>
+                          )}
+                          {item.event_type === 'transaction' && item.raw_data && (
+                             <p className="text-xs text-gray-500 font-medium">Mã bưu gửi: <span className="text-vnpost-blue font-mono">{item.raw_data.shbg}</span> - Doanh thu: <span className="font-bold">{new Intl.NumberFormat('vi-VN').format(item.raw_data.doanh_thu || 0)}đ</span></p>
+                          )}
+                          {(item.event_type === 'lifecycle' || item.event_type === 'vip') && item.raw_data && (
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className="text-[10px] font-bold uppercase text-gray-400 bg-gray-100 px-2 py-0.5 rounded border border-gray-200">{item.raw_data.previous_state || item.raw_data.previous_tier || 'N/A'}</span>
+                              <ChevronRight size={12} className="text-gray-300" />
+                              <span className="text-[10px] font-bold uppercase text-vnpost-blue bg-blue-50 px-2 py-0.5 rounded border border-blue-100">{item.raw_data.new_state || item.raw_data.new_tier}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
