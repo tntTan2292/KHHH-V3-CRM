@@ -21,11 +21,16 @@ async def get_templates(
     nhom_kh: str = None, 
     db: Session = Depends(get_db)
 ):
+    # Minimal compatibility adapter for Phase 4C-2
+    mapped_nhom_kh = nhom_kh
+    if loai_doi_tuong == "HienHuu" and nhom_kh in ["new_pop", "active", "recovered"]:
+        mapped_nhom_kh = "new"
+        
     query = db.query(ActionTaskTemplate)
     if loai_doi_tuong:
         query = query.filter(ActionTaskTemplate.loai_doi_tuong == loai_doi_tuong)
-    if nhom_kh:
-        query = query.filter(ActionTaskTemplate.nhom_kh == nhom_kh)
+    if mapped_nhom_kh:
+        query = query.filter(ActionTaskTemplate.nhom_kh == mapped_nhom_kh)
         
     templates = query.all()
     return [{"id": t.id, "tieu_de": t.tieu_de, "noi_dung_mau": t.noi_dung_mau, "nhom_kh": t.nhom_kh, "loai_doi_tuong": t.loai_doi_tuong} for t in templates]

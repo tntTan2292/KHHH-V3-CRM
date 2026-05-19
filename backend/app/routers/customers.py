@@ -30,7 +30,7 @@ async def get_filter_options(db: Session = Depends(get_db)):
     }
 
 @router.get("")
-@cache_response(ttl_hours=12)
+# @cache_response(ttl_hours=12)  # Temporarily bypassed in Phase 4C-2 to allow instant staff-assignment refresh
 async def get_customers(
     db: Session = Depends(get_db),
     page: int = 1,
