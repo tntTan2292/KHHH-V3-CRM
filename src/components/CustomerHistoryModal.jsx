@@ -413,7 +413,7 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
             ) : (
               <div className="space-y-4.5">
                 {/* Current State Banner */}
-                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.01)] flex justify-between items-center">
+                <div className="bg-slate-50/40 p-4 rounded-xl border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.01)] flex justify-between items-center">
                   <div>
                     <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Trạng thái hiện tại</p>
                     <div className="flex items-center gap-2 mt-1">
@@ -428,7 +428,7 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
 
                 {/* Vertical Timeline */}
                 <div className="relative">
-                  <div className="absolute left-[19px] top-4 bottom-4 border-l border-dashed border-gray-200"></div>
+                  <div className="absolute left-[19px] top-4 bottom-4 border-l border-dashed border-slate-200/60"></div>
                   
                   <div className="space-y-4.5">
                     {tlCache[tlPage].map((item, idx) => (
@@ -447,7 +447,7 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
                         <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.01)] group-hover:border-vnpost-blue/10 transition-colors">
                           <div className="flex justify-between items-start mb-3">
                             <div>
-                              <span className="text-[11px] font-bold text-vnpost-blue">{item.timestamp}</span>
+                              <span className="text-[11px] font-bold text-slate-500 tracking-wide">{item.timestamp}</span>
                               <div className="flex items-center gap-2 mt-2">
                                 {getLifecycleStateBadge(item.previous_state)}
                                 <ChevronRight size={12} className="text-gray-300" />
@@ -455,8 +455,8 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
                               </div>
                             </div>
                           </div>
-                          <div className="bg-gray-50/80 p-3 rounded-lg border border-gray-100/50 mt-2">
-                            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Nguyên nhân kích hoạt trạng thái</p>
+                          <div className="bg-slate-50/30 p-3 rounded-lg border border-slate-100 mt-2">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Nguyên nhân kích hoạt trạng thái</p>
                             <p className="text-xs font-bold text-gray-700 leading-relaxed">{item.trigger_reason}</p>
                           </div>
                         </div>
