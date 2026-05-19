@@ -144,7 +144,7 @@ const lifecycleConfig = [
 // RF5B: Memoized Customer Row for Performance
 const CustomerRow = React.memo(({ c, handleRowClick, handleHistoryModal, formatCurrency, getRankBadge, lifecycleConfig }) => {
   return (
-    <tr onClick={() => handleRowClick(c?.ma_crm_cms)} className="group transition-all duration-300 cursor-pointer hover:bg-indigo-50/30">
+    <tr onClick={() => handleRowClick(c?.ma_crm_cms)} className="group transition-colors duration-200 cursor-pointer even:bg-slate-50/20 hover:bg-slate-50/70">
       <td className="p-2 relative">
         <span className="font-mono text-[11px] font-black px-1.5 py-0.5 rounded-md bg-blue-50 text-vnpost-blue">
           {c?.ma_crm_cms}
@@ -1634,7 +1634,7 @@ export default function Customers() {
                 <th className="p-2 font-bold uppercase tracking-wider text-slate-500/90 text-center w-28 text-[11px]">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-slate-100/60">
               {loading ? (
                 <tr><td colSpan="11" className="p-0">
                   <div className="bg-white/50 backdrop-blur-sm">
