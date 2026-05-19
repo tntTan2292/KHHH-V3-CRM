@@ -229,6 +229,8 @@ class ActionTask(Base):
     # Structured Reporting
     kenh_tiep_can = Column(String(50), nullable=True) # Gọi điện, Zalo, Gặp trực tiếp
     ket_qua = Column(String(50), nullable=True) # Thành công, Hẹn lại, Từ chối
+    bao_cao_ket_qua = Column(Text, nullable=True)
+    ngay_hoan_thanh = Column(DateTime, nullable=True)
     
     # Collaboration Mode
     cross_point_flag = Column(Boolean, default=False) # Đánh dấu khách chuyển điểm phục vụ
