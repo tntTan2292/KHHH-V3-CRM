@@ -529,3 +529,236 @@ async def patch_customer(
     
     db.commit()
     return {"message": "Đã cập nhật thông tin khách hàng thành công", "ma_kh": ma_kh}
+
+@router.get("/{ma_crm}/timeline-360")
+async def get_customer_timeline_360(
+    ma_crm: str,
+    page: int = 1,
+    page_size: int = 10,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    [PHASE 3B-4A] Aggregate API Unified Timeline
+    Gom 5 luồng: lifecycle_logs, vip_logs, priority_logs, action_tasks, transactions.
+    """
+    # Check if customer exists
+    customer = db.query(Customer).filter(Customer.ma_crm_cms == ma_crm).first()
+    if not customer:
+        raise HTTPException(status_code=404, detail="Không tìm thấy khách hàng")
+        
+    # Check Scope
+    node = db.query(HierarchyNode).filter(HierarchyNode.code == customer.ma_bc_phu_trach).first()
+    if node:
+        from ..auth.permissions import check_scope
+        check_scope(db, current_user, node.id)
+        
+    page_size = min(page_size, 50)
+    if page < 1: page = 1
+    offset = (page - 1) * page_size
+
+    # Total Count using SQL
+    count_sql = text("""
+        SELECT SUM(cnt) FROM (
+            SELECT count(*) as cnt FROM lifecycle_logs WHERE ma_kh = :ma_crm
+            UNION ALL
+            SELECT count(*) as cnt FROM vip_logs WHERE ma_kh = :ma_crm
+            UNION ALL
+            SELECT count(*) as cnt FROM priority_logs WHERE ma_kh = :ma_crm
+            UNION ALL
+            SELECT count(*) as cnt FROM action_tasks WHERE target_id = :ma_crm
+            UNION ALL
+            SELECT count(*) as cnt FROM transactions WHERE ma_kh = :ma_crm
+        )
+    """)
+    total_result = db.execute(count_sql, {"ma_crm": ma_crm}).scalar()
+    total = total_result if total_result else 0
+
+    # Main Query using UNION ALL for extremely fast aggregation without massive object hydration
+    main_sql = text("""
+        SELECT * FROM (
+            SELECT 
+                'lifecycle' as event_type, id as source_id, timestamp,
+                previous_state as raw_1, new_state as raw_2, trigger_reason as raw_3,
+                NULL as raw_4, NULL as raw_5, NULL as raw_6
+            FROM lifecycle_logs WHERE ma_kh = :ma_crm
+            
+            UNION ALL
+            
+            SELECT 
+                'vip' as event_type, id as source_id, timestamp,
+                previous_tier as raw_1, new_tier as raw_2, trigger_reason as raw_3,
+                NULL as raw_4, NULL as raw_5, NULL as raw_6
+            FROM vip_logs WHERE ma_kh = :ma_crm
+            
+            UNION ALL
+            
+            SELECT 
+                'priority' as event_type, id as source_id, timestamp,
+                CAST(previous_score as TEXT) as raw_1, CAST(new_score as TEXT) as raw_2,
+                previous_level as raw_3, new_level as raw_4, trigger_reason as raw_5,
+                NULL as raw_6
+            FROM priority_logs WHERE ma_kh = :ma_crm
+            
+            UNION ALL
+            
+            SELECT 
+                'action' as event_type, t.id as source_id, t.created_at as timestamp,
+                t.phan_loai_giao_viec as raw_1, tp.tieu_de as raw_2, t.noi_dung as raw_3,
+                t.trang_thai as raw_4, t.bao_cao_ket_qua as raw_5, n.full_name as raw_6
+            FROM action_tasks t
+            LEFT JOIN templates tp ON t.template_id = tp.id
+            LEFT JOIN nhan_su n ON t.staff_id = n.id
+            WHERE t.target_id = :ma_crm
+            
+            UNION ALL
+            
+            SELECT 
+                'transaction' as event_type, id as source_id, ngay_chap_nhan as timestamp,
+                shbg as raw_1, dich_vu_chinh as raw_2, CAST(doanh_thu as TEXT) as raw_3,
+                NULL as raw_4, NULL as raw_5, NULL as raw_6
+            FROM transactions WHERE ma_kh = :ma_crm
+        )
+        ORDER BY timestamp DESC
+        LIMIT :limit OFFSET :offset
+    """)
+    
+    rows = db.execute(main_sql, {"ma_crm": ma_crm, "limit": page_size, "offset": offset}).fetchall()
+    
+    tier_ranks = {"DIAMOND": 5, "PLATINUM": 4, "GOLD": 3, "SILVER": 2, "BRONZE": 1, "NORMAL": 0}
+    
+    items = []
+    for r in rows:
+        evt_type = r[0]
+        src_id = r[1]
+        ts_val = r[2]
+        
+        # Basic common payload
+        event_obj = {
+            "timestamp": ts_val if isinstance(ts_val, str) else ts_val.strftime("%Y-%m-%d %H:%M:%S") if ts_val else None,
+            "event_type": evt_type,
+            "source_type": evt_type,
+            "severity": "INFO",
+            "narrative_text": "",
+            "raw_data": {}
+        }
+        
+        # Narrative Translation Logic
+        if evt_type == 'lifecycle':
+            old_s = r[3]
+            new_s = r[4]
+            reason = r[5]
+            event_obj["raw_data"] = {"previous_state": old_s, "new_state": new_s, "trigger_reason": reason}
+            
+            if new_s == 'NEW':
+                event_obj["severity"] = "INFO"
+                event_obj["narrative_text"] = "Khách hàng mới phát sinh giao dịch đầu tiên"
+            elif new_s == 'AT_RISK':
+                event_obj["severity"] = "HIGH"
+                event_obj["narrative_text"] = "Cảnh báo: Khách hàng ngừng giao dịch > 30 ngày"
+            elif new_s == 'CHURNED':
+                event_obj["severity"] = "MEDIUM"
+                event_obj["narrative_text"] = "Chuyển nhóm: Khách hàng đã rời bỏ (> 90 ngày)"
+            elif new_s in ['RECOVERED', 'ACTIVE']:
+                event_obj["severity"] = "HIGH"
+                event_obj["narrative_text"] = "Tin vui: Khách hàng đã giao dịch trở lại!"
+            else:
+                event_obj["severity"] = "LOW"
+                event_obj["narrative_text"] = "Chuyển đổi trạng thái"
+                
+        elif evt_type == 'vip':
+            old_t = r[3] or 'NORMAL'
+            new_t = r[4] or 'NORMAL'
+            reason = r[5]
+            event_obj["raw_data"] = {"previous_tier": old_t, "new_tier": new_t, "trigger_reason": reason}
+            
+            o_rank = tier_ranks.get(old_t, 0)
+            n_rank = tier_ranks.get(new_t, 0)
+            
+            if n_rank > o_rank:
+                event_obj["severity"] = "HIGH"
+                event_obj["narrative_text"] = f"Thăng hạng thành công lên {new_t}"
+            elif n_rank < o_rank:
+                event_obj["severity"] = "MEDIUM"
+                event_obj["narrative_text"] = f"Đã bị tụt hạng xuống {new_t}"
+            else:
+                event_obj["severity"] = "LOW"
+                event_obj["narrative_text"] = "Cập nhật xét hạng định kỳ"
+                
+        elif evt_type == 'priority':
+            old_score = r[3]
+            new_score = r[4]
+            old_lvl = r[5]
+            new_lvl = r[6]
+            reason = r[7] or ""
+            event_obj["raw_data"] = {"new_level": new_lvl, "trigger_reason": reason}
+            
+            if "REVENUE_DROP" in reason:
+                event_obj["severity"] = "CRITICAL"
+                event_obj["narrative_text"] = "Báo động: Doanh thu sụt giảm đột ngột!"
+            elif "VIP_DOWNGRADE_RISK" in reason:
+                event_obj["severity"] = "CRITICAL"
+                event_obj["narrative_text"] = "Cảnh báo khẩn: Nguy cơ tụt hạng VIP"
+            elif "AT_RISK_AGING" in reason:
+                event_obj["severity"] = "HIGH"
+                event_obj["narrative_text"] = "Nhắc nhở: Tình trạng 'Nguy Cơ' kéo dài chưa xử lý"
+            elif "GROWTH_MOMENTUM" in reason:
+                event_obj["severity"] = "INFO"
+                event_obj["narrative_text"] = "Tín hiệu tốt: Đang trên đà tăng trưởng mạnh"
+            else:
+                event_obj["severity"] = "LOW"
+                event_obj["narrative_text"] = "Cập nhật điểm ưu tiên định kỳ"
+                
+        elif evt_type == 'action':
+            phan_loai = r[3]
+            tieu_de = r[4] or "Giao việc thủ công"
+            noi_dung = r[5]
+            trang_thai = r[6]
+            bao_cao = r[7]
+            staff_name = r[8] or "Hệ thống"
+            
+            event_obj["raw_data"] = {
+                "tieu_de": tieu_de,
+                "trang_thai": trang_thai,
+                "bao_cao_ket_qua": bao_cao,
+                "staff_name": staff_name
+            }
+            
+            if trang_thai == 'Hoàn thành':
+                event_obj["severity"] = "INFO"
+                event_obj["narrative_text"] = f"Đã hoàn thành chăm sóc ({staff_name})"
+            elif trang_thai == 'Thất bại':
+                event_obj["severity"] = "MEDIUM"
+                event_obj["narrative_text"] = f"Chăm sóc thất bại ({staff_name})"
+            else:
+                event_obj["severity"] = "INFO"
+                event_obj["narrative_text"] = f"Được giao chăm sóc: {tieu_de}"
+                
+        elif evt_type == 'transaction':
+            shbg = r[3]
+            dv = r[4]
+            doanh_thu = r[5]
+            
+            event_obj["raw_data"] = {
+                "shbg": shbg,
+                "dich_vu_chinh": dv,
+                "doanh_thu": doanh_thu
+            }
+            
+            event_obj["severity"] = "INFO"
+            event_obj["narrative_text"] = f"Phát sinh giao dịch: {shbg}"
+
+        items.append(event_obj)
+        
+    total_pages = (total + page_size - 1) // page_size if page_size > 0 else 1
+    
+    return {
+        "current_state": customer.lifecycle_state or "UNKNOWN",
+        "current_tier": customer.vip_tier or "NORMAL",
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages
+    }
+
