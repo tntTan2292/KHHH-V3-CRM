@@ -195,6 +195,43 @@ async def create_staff(
         phone=staff_in.phone
     )
     db.add(new_staff)
+    db.flush()
+    
+    # Automated Role & Scope Mapping (same logic as Excel import)
+    role_id = 5 # Default STAFF
+    scope_id = staff_in.point_id
+    chuc_vu_upper = str(staff_in.chuc_vu or "").upper()
+    
+    if any(k in chuc_vu_upper for k in ["LÃNH ĐẠO", "GIÁM ĐỐC", "PHÓ GIÁM ĐỐC", "TRƯỞNG CỤM", "TRƯỞNG ĐẠI DIỆN", "QUẢN LÝ"]):
+        if "XÃ" in chuc_vu_upper or "PHƯỜNG" in chuc_vu_upper or "GĐX" in chuc_vu_upper:
+            role_id = 3
+        else:
+            role_id = 2
+    elif any(k in chuc_vu_upper for k in ["TRƯỞNG BƯU CỤC", "TRƯỞNG CỤC"]):
+        role_id = 4
+        
+    if role_id == 2:
+        if "BĐTP" in chuc_vu_upper or "TỈNH" in chuc_vu_upper:
+            scope_id = 1
+        elif "TTKD" in chuc_vu_upper or "KINH DOANH" in chuc_vu_upper:
+            scope_id = 3
+        elif "TTVH" in chuc_vu_upper or "VẬN HÀNH" in chuc_vu_upper:
+            scope_id = 2
+            
+    # Auto create User account if not exists
+    user = db.query(User).filter(User.username == staff_in.hr_id).first()
+    if not user:
+        user = User(
+            username=staff_in.hr_id,
+            hashed_password=get_password_hash("Vnpost@2026"),
+            full_name=staff_in.full_name,
+            role_id=role_id,
+            nhan_su_id=new_staff.id,
+            scope_node_id=scope_id,
+            is_active=True
+        )
+        db.add(user)
+
     db.commit()
     db.refresh(new_staff)
     return new_staff
