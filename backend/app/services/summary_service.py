@@ -240,7 +240,8 @@ class SummaryService:
             print(f"- Rebuilt summary for {month_str}: {len(summary_data)} records.")
             
             # Sync customers table for list views
-            LifecycleEngine.sync_customers_table(month_str)
+            is_current_month = (month_str == datetime.now().strftime('%Y-%m'))
+            LifecycleEngine.sync_customers_table(month_str, force_refresh=is_current_month)
             VIPTierEngine.sync_customers_table(month_str)
             PriorityEngine.sync_customers_table(month_str, priority_results)
         except Exception as e:
