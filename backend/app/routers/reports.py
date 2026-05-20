@@ -54,12 +54,11 @@ async def get_movement_report(
     if scope_ids is not None and not scope_ids:
          return {"summary": {}, "items": [], "total": 0}
 
-    # 2. Query Period A (Current)
     query_a = db.query(
         Transaction.ma_kh,
         func.sum(Transaction.doanh_thu).label("rev_a"),
         func.count(Transaction.id).label("count_a"),
-        func.max(Transaction.ten_nguoi_gui).label("ten_kh"),
+        literal("").label("ten_kh"),
         func.max(Transaction.point_id).label("point_id")
     ).filter(
         Transaction.ngay_chap_nhan.between(dt_start_a, dt_end_a),
@@ -91,11 +90,11 @@ async def get_movement_report(
     # 4. Merge and Identify Status
     all_ma_khs = set(data_a.keys()) | set(data_b.keys())
     
-    # Pre-fetch Customer metadata for filtering
+    # Pre-fetch Customer metadata for filtering and display
     customer_meta = {}
     if all_ma_khs:
-        customers = db.query(Customer.ma_crm_cms, Customer.rfm_segment, Customer.nhom_kh).filter(Customer.ma_crm_cms.in_(list(all_ma_khs))).all()
-        customer_meta = {c.ma_crm_cms: {"rfm": c.rfm_segment, "nhom": c.nhom_kh} for c in customers}
+        customers = db.query(Customer.ma_crm_cms, Customer.ten_kh, Customer.rfm_segment, Customer.nhom_kh).filter(Customer.ma_crm_cms.in_(list(all_ma_khs))).all()
+        customer_meta = {c.ma_crm_cms: {"name": c.ten_kh, "rfm": c.rfm_segment, "nhom": c.nhom_kh} for c in customers}
 
     # Fetch Point names and codes
     point_ids = list(set(r.point_id for r in results_a if r.point_id))
@@ -111,9 +110,9 @@ async def get_movement_report(
     }
 
     for ma_kh in all_ma_khs:
-        a = data_a.get(ma_kh, {"rev": 0, "count": 0, "name": "N/A", "point_id": None})
+        a = data_a.get(ma_kh, {"rev": 0, "count": 0, "point_id": None})
         b = data_b.get(ma_kh, {"rev": 0, "count": 0})
-        meta = customer_meta.get(ma_kh, {"rfm": "Thường", "nhom": "Khác"})
+        meta = customer_meta.get(ma_kh, {"name": None, "rfm": "Thường", "nhom": "Khác"})
 
         # Apply Filters
         if rfm_segment and meta["rfm"] != rfm_segment: continue
@@ -144,7 +143,7 @@ async def get_movement_report(
 
         merged_results.append({
             "ma_kh": ma_kh,
-            "ten_kh": a["name"] if a["name"] != "N/A" else "KH chưa định danh",
+            "ten_kh": meta.get("name") or f"KH: {ma_kh}",
             "point_name": point_map.get(a["point_id"], "N/A"),
             "rfm_segment": meta["rfm"],
             "nhom_kh": meta["nhom"],

@@ -601,12 +601,11 @@ async def get_top_movers(
     
     name_map = {}
     if all_involved_ids:
-        # Query này lấy tên từ giao dịch có ngày lớn nhất cho mỗi mã (Trong toàn bộ DB)
+        # [GOVERNANCE] Lấy tên từ bảng customers (SSOT duy nhất)
         names_query = db.query(
-            Transaction.ma_kh,
-            Transaction.ten_nguoi_gui,
-            func.max(Transaction.ngay_chap_nhan)
-        ).filter(Transaction.ma_kh.in_(all_involved_ids)).group_by(Transaction.ma_kh).all()
+            Customer.ma_crm_cms,
+            Customer.ten_kh
+        ).filter(Customer.ma_crm_cms.in_(all_involved_ids)).all()
         name_map = {r[0]: r[1] for r in names_query if r[0]}
 
     # 5. Tính toán chênh lệch
@@ -850,15 +849,14 @@ async def get_customer_performance_scoring(
     
     if not metrics: return []
 
-    # Lấy tên mới nhất (Data-Driven)
+    # [GOVERNANCE] Lấy tên từ bảng customers (SSOT duy nhất)
     involved_ids = [m.ma_kh for m in metrics if m.ma_kh]
     name_map = {}
     if involved_ids:
         names = db.query(
-            Transaction.ma_kh,
-            Transaction.ten_nguoi_gui,
-            func.max(Transaction.ngay_chap_nhan)
-        ).filter(Transaction.ma_kh.in_(involved_ids)).group_by(Transaction.ma_kh).all()
+            Customer.ma_crm_cms,
+            Customer.ten_kh
+        ).filter(Customer.ma_crm_cms.in_(involved_ids)).all()
         name_map = {r[0]: r[1] for r in names if r[0]}
     
     # Chấm điểm Percentile (Xếp hạng phần trăm)
@@ -871,10 +869,7 @@ async def get_customer_performance_scoring(
     results = []
     for m in metrics:
         # Fallback Name Logic
-        ten_kh = name_map.get(m.ma_kh)
-        if not ten_kh or ten_kh == "N/A":
-            cust = db.query(Customer).filter(Customer.ma_crm_cms == m.ma_kh).first()
-            ten_kh = cust.ten_kh if cust else f"KH: {m.ma_kh}"
+        ten_kh = name_map.get(m.ma_kh) or f"KH: {m.ma_kh}"
 
         # Score based on Percentile
         r_score = rev_ranks.get(m.ma_kh, 0)
@@ -938,19 +933,23 @@ async def get_churn_prediction_alerts(
      .filter(prev_rev.c.rev > 1000000) 
      
     results = []
-    # Lấy tên mới nhất và ngày gửi cuối cùng (Data-Driven)
+    # [GOVERNANCE] Lấy tên từ bảng customers (SSOT duy nhất) và ngày gửi từ transactions
     prediction_list = prediction.all()
     involved_ids = [r.ma_crm_cms for r in prediction_list]
     name_map = {}
     last_date_map = {}
     if involved_ids:
         names = db.query(
+            Customer.ma_crm_cms,
+            Customer.ten_kh
+        ).filter(Customer.ma_crm_cms.in_(involved_ids)).all()
+        name_map = {r[0]: r[1] for r in names if r[0]}
+        
+        dates = db.query(
             Transaction.ma_kh,
-            Transaction.ten_nguoi_gui,
             func.max(Transaction.ngay_chap_nhan)
         ).filter(Transaction.ma_kh.in_(involved_ids)).group_by(Transaction.ma_kh).all()
-        name_map = {r[0]: r[1] for r in names if r[0]}
-        last_date_map = {r[0]: r[2] for r in names if r[0]}
+        last_date_map = {r[0]: r[1] for r in dates if r[0]}
 
     for r in prediction_list:
         drop_pct = ((r.prev_val - r.curr_val) / r.prev_val) * 100
@@ -964,9 +963,7 @@ async def get_churn_prediction_alerts(
             days_inactive = (max_date - last_date_obj).days if last_date_obj else 99
             
             # Fallback Name Logic
-            ten_kh = name_map.get(r.ma_crm_cms)
-            if not ten_kh or ten_kh == "N/A":
-                ten_kh = r.ten_kh if r.ten_kh and r.ten_kh != "N/A" else f"KH: {r.ma_crm_cms}"
+            ten_kh = name_map.get(r.ma_crm_cms) or f"KH: {r.ma_crm_cms}"
 
             # Detailed Reason Logic
             reasons = []

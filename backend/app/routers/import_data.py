@@ -146,6 +146,7 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None):
         total_transactions = 0
         skipped_duplicates = 0
         affected_months = set()
+        new_customer_names = {}
         from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
         for filepath in bf_files:
@@ -191,6 +192,13 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None):
                 }
                 raw_records.append(record)
                 
+                # [GOVERNANCE] Thu thập tên khách hàng từ cột tenKhachHang nếu có
+                ma_kh = record["ma_kh"]
+                if ma_kh:
+                    ten_kh_col = row.get("ten_khach_hang") or row.get("tenkhachhang") or row.get("tên khách hàng")
+                    if ten_kh_col and str(ten_kh_col).strip() not in ("", "nan", "NaN", "None"):
+                        new_customer_names[ma_kh] = str(ten_kh_col).strip()
+                
                 # Track affected months for incremental summary
                 if record["ngay_chap_nhan"]:
                     affected_months.add(str(record["ngay_chap_nhan"])[:7])
@@ -227,13 +235,19 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None):
         import_status["message"] = "Đồng bộ Khách hàng & RFM..."
         db.execute(text("""
             INSERT INTO customers (ma_crm_cms, ten_kh, loai_kh, nhom_kh, is_churn, tong_doanh_thu, point_id, ma_bc_phu_trach)
-            SELECT t.ma_kh, t.ten_nguoi_gui, 'Ngoài danh mục KHHH', 'Khách hàng mới', 0, 0, t.point_id, t.ma_dv_chap_nhan
+            SELECT t.ma_kh, 'KH ' || t.ma_kh, 'Ngoài danh mục KHHH', 'Khách hàng mới', 0, 0, t.point_id, t.ma_dv_chap_nhan
             FROM transactions t
             LEFT JOIN customers c ON t.ma_kh = c.ma_crm_cms
             WHERE c.ma_crm_cms IS NULL AND t.ma_kh IS NOT NULL AND t.ma_kh NOT IN ('', 'nan', 'NAN', 'None')
             GROUP BY t.ma_kh
         """))
         db.commit()
+
+        # [GOVERNANCE] Cập nhật tên thật từ tenKhachHang nếu có thu thập được
+        if new_customer_names:
+            for ma_kh, real_name in new_customer_names.items():
+                db.execute(text("UPDATE customers SET ten_kh = :name WHERE ma_crm_cms = :ma_kh AND ten_kh LIKE 'KH %'"), {"name": real_name, "ma_kh": ma_kh})
+            db.commit()
         
         # [OPTIMIZATION] Batch Update using SQLite UPDATE FROM (Performance Boost)
         # 1. Create temporary aggregate to avoid repeated scanning of transactions

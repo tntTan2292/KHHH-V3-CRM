@@ -217,7 +217,10 @@ def read_file2(filepath: str = None) -> pd.DataFrame:
         "diachinguoigui": "dia_chi_nguoi_gui",
         "địa chỉ người gửi": "dia_chi_nguoi_gui",
         "dichvuchinh": "dich_vu_chinh",
-        "dịch vụ chính": "dich_vu_chinh"
+        "dịch vụ chính": "dich_vu_chinh",
+        "tenkhachhang": "ten_khach_hang",
+        "tên khách hàng": "ten_khach_hang",
+        "ten_khach_hang": "ten_khach_hang"
     }
 
     # Danh sách các cột "Sạch" chúng ta thực sự cần lưu vào SQLite
@@ -225,7 +228,8 @@ def read_file2(filepath: str = None) -> pd.DataFrame:
         "ma_dv", "shbg", "username", "ma_kh", "ten_nguoi_gui", "dia_chi_nguoi_gui", "dia_chi_goc",
         "lien_tinh_noi_tinh", "trong_nuoc_quoc_te", "ngay_chap_nhan", "kl_tinh_cuoc",
         "cuoc_chinh_co_vat", "phu_phi_xang_dau_co_vat", "phu_phi_vung_xa_co_vat",
-        "phu_phi_khac_co_vat", "cuoc_thu_ho", "cuoc_gtgt", "ma_dv_chap_nhan", "dich_vu_chinh"
+        "phu_phi_khac_co_vat", "cuoc_thu_ho", "cuoc_gtgt", "ma_dv_chap_nhan", "dich_vu_chinh",
+        "ten_khach_hang"
     ]
 
     rename_final = {c: mapping[c] for c in df.columns if c in mapping}
