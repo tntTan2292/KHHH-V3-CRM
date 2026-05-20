@@ -232,6 +232,26 @@ export default function StaffManagement() {
     }
   };
 
+  const handleDelete = async (staffId) => {
+    const target = staff.find(s => s.id === staffId);
+    if (!target) return;
+
+    if (target.has_account) {
+      toast.warning("Nhân sự đã có tài khoản đăng nhập, không thể xóa trực tiếp", { autoClose: 5000 });
+      return;
+    }
+
+    if (!window.confirm(`Xóa nhân sự "${target.full_name}" (${target.hr_id})?\nThao tác này không thể hoàn tác.`)) return;
+
+    try {
+      await api.delete(`/api/admin/personnel/staff/${staffId}`);
+      toast.success("Đã xóa nhân sự thành công");
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Lỗi khi xóa nhân sự");
+    }
+  };
+
   const filteredStaff = staff.filter(s => 
     s.full_name.toLowerCase().includes(search.toLowerCase()) ||
     s.hr_id.toLowerCase().includes(search.toLowerCase()) ||
