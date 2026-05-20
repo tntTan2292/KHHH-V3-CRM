@@ -607,7 +607,7 @@ async def get_customer_timeline_360(
                 t.phan_loai_giao_viec as raw_1, tp.tieu_de as raw_2, t.noi_dung as raw_3,
                 t.trang_thai as raw_4, t.bao_cao_ket_qua as raw_5, n.full_name as raw_6
             FROM action_tasks t
-            LEFT JOIN templates tp ON t.template_id = tp.id
+            LEFT JOIN action_task_templates tp ON t.template_id = tp.id
             LEFT JOIN nhan_su n ON t.staff_id = n.id
             WHERE t.target_id = :ma_crm
             
