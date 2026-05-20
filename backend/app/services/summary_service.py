@@ -94,12 +94,19 @@ class SummaryService:
         print(f"  - Rebuilding {month_str} using Constitutional Logic...")
         logger.info(f"📊 [TRACE] SUMMARY_SERVICE: Rebuilding {month_str}...")
         
+        # 1. Sync snapshot/customer state trước
+        is_current_month = (month_str == datetime.now().strftime('%Y-%m'))
+        print(f"    - Syncing Lifecycle state...")
+        LifecycleEngine.sync_customers_table(month_str, force_refresh=is_current_month)
+        
+        print(f"    - Syncing VIP Tiers...")
+        VIPTierEngine.sync_customers_table(month_str)
+        
         print(f"    - Processing VIP Tiers using VIPTierEngine...")
         vip_results = VIPTierEngine.process_vip_month(month_str)
         vip_df = pd.DataFrame(vip_results) if vip_results else pd.DataFrame()
         
-        print(f"    - Calculating Priority using PriorityEngine...")
-        # Snapshot-first lifecycle truth set
+        # Snapshot-first lifecycle truth set (Now synced and up to date!)
         sql_snapshot = """
         SELECT
             ma_kh,
@@ -120,8 +127,12 @@ class SummaryService:
         if not df_snap.empty:
             ident_results = df_snap.to_dict('records')
 
+        print(f"    - Calculating Priority using PriorityEngine...")
         priority_results = PriorityEngine.process_priority_month(month_str, ident_results, vip_results)
         priority_df = pd.DataFrame(priority_results) if priority_results else pd.DataFrame()
+        
+        print(f"    - Syncing Priority levels...")
+        PriorityEngine.sync_customers_table(month_str, priority_results)
 
         summary_data = []
 
@@ -238,12 +249,6 @@ class SummaryService:
             cursor.executemany(insert_sql, summary_data)
             conn.execute("COMMIT")
             print(f"- Rebuilt summary for {month_str}: {len(summary_data)} records.")
-            
-            # Sync customers table for list views
-            is_current_month = (month_str == datetime.now().strftime('%Y-%m'))
-            LifecycleEngine.sync_customers_table(month_str, force_refresh=is_current_month)
-            VIPTierEngine.sync_customers_table(month_str)
-            PriorityEngine.sync_customers_table(month_str, priority_results)
         except Exception as e:
             conn.execute("ROLLBACK")
             print(f"ERROR rebuilding month {month_str}: {e}")
