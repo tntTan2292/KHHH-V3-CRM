@@ -6,7 +6,7 @@ import Skeleton from '../../Skeleton';
 const PopulationKpiGroup = ({ stats, summaryData, selectedNode, navigate, saveNavigationContext }) => {
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-1">
         <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2 mt-2 mb-2">
           <Users size={14} /> 01. HIỆN TRẠNG TỆP KHÁCH HÀNG (POPULATION)
         </h3>
@@ -31,8 +31,8 @@ const PopulationKpiGroup = ({ stats, summaryData, selectedNode, navigate, saveNa
             >
               <div className="flex flex-col h-full justify-between">
                 <div>
-                  <div className="flex items-center justify-between">
-                    <span className="kpi-label" style={{ color: 'var(--crm-active-base)' }}>HIỆN HỮU (ACTIVE)</span>
+                  <div className="flex items-center justify-between flex-wrap gap-1">
+                    <span className="kpi-label truncate" style={{ color: 'var(--crm-active-base)' }}>HIỆN HỮU (ACTIVE)</span>
                     <Users size={18} style={{ color: 'var(--crm-active-base)', opacity: 0.15 }} />
                   </div>
                   <div className="kpi-number text-3xl" style={{ color: 'var(--crm-active-base)' }}>{(stats?.lifecycle?.["active"] || 0).toLocaleString()}</div>
@@ -58,8 +58,8 @@ const PopulationKpiGroup = ({ stats, summaryData, selectedNode, navigate, saveNa
             >
               <div className="flex flex-col h-full justify-between">
                 <div>
-                  <div className="flex items-center justify-between">
-                    <span className="kpi-label" style={{ color: 'var(--crm-active-base)' }}>NGUY CƠ (AT RISK)</span>
+                  <div className="flex items-center justify-between flex-wrap gap-1">
+                    <span className="kpi-label truncate" style={{ color: 'var(--crm-active-base)' }}>NGUY CƠ (AT RISK)</span>
                     <AlertCircle size={18} style={{ color: 'var(--crm-warning-base)', opacity: 0.15 }} />
                   </div>
                   <div className="kpi-number text-3xl" style={{ color: 'var(--crm-warning-base)' }}>{(stats?.lifecycle?.["at_risk"] || 0).toLocaleString()}</div>
@@ -85,8 +85,8 @@ const PopulationKpiGroup = ({ stats, summaryData, selectedNode, navigate, saveNa
             >
               <div className="flex flex-col h-full justify-between">
                 <div>
-                  <div className="flex items-center justify-between">
-                    <span className="kpi-label" style={{ color: 'var(--crm-active-base)' }}>RỜI BỎ (CHURNED POP)</span>
+                  <div className="flex items-center justify-between flex-wrap gap-1">
+                    <span className="kpi-label truncate" style={{ color: 'var(--crm-active-base)' }}>RỜI BỎ (CHURNED POP)</span>
                     <UserMinus size={18} style={{ color: 'var(--crm-danger-base)', opacity: 0.15 }} />
                   </div>
                   <div className="kpi-number text-3xl" style={{ color: 'var(--crm-danger-base)' }}>{(stats?.lifecycle?.["churn_pop"] || 0).toLocaleString()}</div>
@@ -116,8 +116,8 @@ const PopulationKpiGroup = ({ stats, summaryData, selectedNode, navigate, saveNa
             >
               <div className="flex flex-col h-full justify-between">
                 <div>
-                  <div className="flex items-center justify-between">
-                    <span className="kpi-label" style={{ color: 'var(--crm-onboarding-base)' }}>MỚI (NEW POP)</span>
+                  <div className="flex items-center justify-between flex-wrap gap-1">
+                    <span className="kpi-label truncate" style={{ color: 'var(--crm-onboarding-base)' }}>MỚI (NEW POP)</span>
                     <Sparkles size={18} style={{ color: 'var(--crm-onboarding-base)', opacity: 0.15 }} />
                   </div>
                   <div className="kpi-number text-2xl" style={{ color: 'var(--crm-onboarding-base)' }}>{(stats?.lifecycle?.["new_pop"] || 0).toLocaleString()}</div>
@@ -138,8 +138,8 @@ const PopulationKpiGroup = ({ stats, summaryData, selectedNode, navigate, saveNa
             >
               <div className="flex flex-col h-full justify-between">
                 <div>
-                  <div className="flex items-center justify-between">
-                    <span className="kpi-label" style={{ color: 'var(--crm-recovery-base)' }}>TÁI BẢN (RECOVERED POP)</span>
+                  <div className="flex items-center justify-between flex-wrap gap-1">
+                    <span className="kpi-label truncate" style={{ color: 'var(--crm-recovery-base)' }}>TÁI BẢN (RECOVERED POP)</span>
                     <RefreshCw size={18} style={{ color: 'var(--crm-recovery-base)', opacity: 0.15 }} />
                   </div>
                   <div className="kpi-number text-2xl" style={{ color: 'var(--crm-recovery-base)' }}>{(stats?.lifecycle?.["recovered_pop"] || 0).toLocaleString()}</div>

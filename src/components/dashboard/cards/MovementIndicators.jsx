@@ -30,7 +30,7 @@ const MovementIndicators = ({ stats, summaryData, selectedNode, navigate, saveNa
                     <Sparkles size={20} />
                   </div>
                   <div>
-                    <span className="kpi-label block" style={{ color: 'var(--crm-onboarding-base)' }}>Mới phát sinh</span>
+                    <span className="kpi-label truncate block" style={{ color: 'var(--crm-onboarding-base)' }}>Mới phát sinh</span>
                     <span className="kpi-number text-xl" style={{ color: 'var(--crm-onboarding-base)' }}>{(stats?.lifecycle?.["new_event"] || 0).toLocaleString()}</span>
                   </div>
                 </div>
@@ -54,7 +54,7 @@ const MovementIndicators = ({ stats, summaryData, selectedNode, navigate, saveNa
                     <RefreshCw size={20} />
                   </div>
                   <div>
-                    <span className="kpi-label block" style={{ color: 'var(--crm-recovery-base)' }}>Tái bản trong kỳ</span>
+                    <span className="kpi-label truncate block" style={{ color: 'var(--crm-recovery-base)' }}>Tái bản trong kỳ</span>
                     <span className="kpi-number text-xl" style={{ color: 'var(--crm-recovery-base)' }}>{(stats?.lifecycle?.["recovered_event"] || 0).toLocaleString()}</span>
                   </div>
                 </div>
@@ -78,7 +78,7 @@ const MovementIndicators = ({ stats, summaryData, selectedNode, navigate, saveNa
                     <UserMinus size={20} />
                   </div>
                   <div>
-                    <span className="kpi-label block" style={{ color: 'var(--crm-danger-base)' }}>Rời bỏ trong kỳ</span>
+                    <span className="kpi-label truncate block" style={{ color: 'var(--crm-danger-base)' }}>Rời bỏ trong kỳ</span>
                     <span className="kpi-number text-xl" style={{ color: 'var(--crm-danger-base)' }}>{(stats?.lifecycle?.["churn_event"] || 0).toLocaleString()}</span>
                   </div>
                 </div>
