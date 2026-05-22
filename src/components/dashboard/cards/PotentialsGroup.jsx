@@ -16,7 +16,7 @@ const PotentialsGroup = ({ stats, summaryData, selectedNode, navigate, saveNavig
         ) : (
           <>
             <div 
-              className="executive-card p-4 border-t-4 border-t-blue-600 relative overflow-hidden group cursor-pointer"
+              className="executive-card p-5 border-t-4 border-t-blue-600 relative overflow-hidden group cursor-pointer"
               onClick={() => {
                 const node = selectedNode;
                 if (node) saveNavigationContext(node);
@@ -32,7 +32,7 @@ const PotentialsGroup = ({ stats, summaryData, selectedNode, navigate, saveNavig
             </div>
 
             <div 
-              className="executive-card p-6 border-t-[6px] border-t-vnpost-orange relative overflow-hidden group cursor-pointer"
+              className="executive-card p-5 border-t-[6px] border-t-vnpost-orange relative overflow-hidden group cursor-pointer"
               onClick={() => {
                 const node = selectedNode;
                 if (node) saveNavigationContext(node);
@@ -48,7 +48,7 @@ const PotentialsGroup = ({ stats, summaryData, selectedNode, navigate, saveNavig
             </div>
 
             <div 
-              className="executive-card p-6 border-t-[6px] border-t-orange-800 relative overflow-hidden group cursor-pointer"
+              className="executive-card p-5 border-t-[6px] border-t-orange-800 relative overflow-hidden group cursor-pointer"
               onClick={() => {
                 const node = selectedNode;
                 if (node) saveNavigationContext(node);
