@@ -6,7 +6,41 @@ Chào mừng đến với hệ thống quản trị khách hàng **CRM 3.0 của
 
 ---
 
-## 🚀 1. HƯỚNG DẪN VẬN HÀNH NHANH (QUICK START)
+## 🎯 1. AI-READY BUSINESS CONTEXT
+
+### 1.1 Business Context
+Hệ thống được xây dựng phục vụ **Ban lãnh đạo và Đội ngũ kinh doanh Bưu điện TP Huế**. 
+- **Mục tiêu chính**: Số hóa công tác quản trị, chấm dứt việc quản lý rời rạc. Cung cấp góc nhìn 360 độ về sức khỏe tập khách hàng và tự động hóa cảnh báo rủi ro.
+- **Vai trò Dashboard**: Là "Trung tâm chỉ huy" giúp lãnh đạo nắm bắt biến động doanh thu theo thời gian thực, nhận diện vùng lõm và ra quyết định điều hành tức thời.
+
+### 1.2 User Roles
+- **Ban Giám Đốc / Lãnh Đạo**: Xem toàn cảnh báo cáo vĩ mô, theo dõi dòng chảy doanh thu và cảnh báo cấp bách toàn tỉnh.
+- **Trưởng/Phó Phòng**: Theo dõi KPI theo cụm/bưu cục, phát hiện xu hướng và điều phối chiến lược.
+- **Trưởng Đại Diện / GĐ Phường Xã**: Quản lý hiệu quả điểm giao dịch trực thuộc.
+- **Nhân Viên Kinh Doanh (Sale/AM)**: Theo dõi danh sách khách hàng được giao, tiếp nhận cảnh báo tự động, thực hiện chăm sóc và báo cáo.
+
+### 1.3 User Flow
+Luồng vận hành thực tế thường diễn ra như sau:
+`Dashboard (Nhìn số tổng)` → `Nhận diện rủi ro/cơ hội` → `Drilldown (Lọc xuống cấp dưới)` → `Phân tích (Xem chi tiết KH)` → `Hành động (Giao việc/Xử lý)`.
+
+### 1.4 Module Overview
+- **Dashboard**: Cung cấp chỉ số vĩ mô, biểu đồ xu hướng và cảnh báo nhanh.
+- **Customer Management**: Lưới dữ liệu chi tiết 360 độ mọi thông tin khách hàng.
+- **Lifecycle Analytics**: Phân loại vòng đời khách hàng tự động bằng thuật toán.
+- **Bot & Tasks**: Hệ thống giao việc tự động và đẩy báo cáo định kỳ qua Zalo.
+- **Reports**: Hệ thống xuất báo cáo dữ liệu.
+
+### 1.5 KPI Definitions
+- **Revenue (Doanh thu)**: Tổng doanh thu phát sinh từ khách hàng.
+- **Active (Hiện hữu)**: Tệp nòng cốt, có doanh thu ổn định liên tục.
+- **At Risk (Nguy cơ)**: Khách hàng có dấu hiệu ngừng gửi hoặc rớt doanh thu nghiêm trọng.
+- **Churn (Rời bỏ)**: Khách hàng đã ngừng giao dịch trong thời gian dài.
+- **Reactivated (Tái bản)**: Tệp khách hàng cũ quay lại giao dịch.
+- **KPI cốt lõi**: Tỷ lệ giữ chân khách hàng (Retention Rate) và Tăng trưởng so với cùng kỳ (MoM/YoY).
+
+---
+
+## 🚀 2. HƯỚNG DẪN VẬN HÀNH NHANH (QUICK START)
 
 Dành cho AI Assistant và Cộng tác viên muốn khởi chạy hệ thống locally:
 
@@ -23,7 +57,7 @@ Dành cho AI Assistant và Cộng tác viên muốn khởi chạy hệ thống l
 
 ---
 
-## 🧠 2. KIẾN TRÚC & LUỒNG DỮ LIỆU (THE BRAIN)
+## 🧠 3. KIẾN TRÚC & LUỒNG DỮ LIỆU (THE BRAIN)
 
 Hệ thống được vận hành bởi 4 "Động cơ" cốt lõi:
 1.  **[Hierarchy Engine](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/app/services/hierarchy_service.py)**: Quản trị mô hình 5 cấp chức danh (BĐTP -> Trung tâm -> Trưởng đại diện -> Giám đốc Phường/Xã -> Nhân viên).
@@ -33,14 +67,14 @@ Hệ thống được vận hành bởi 4 "Động cơ" cốt lõi:
 
 ---
 
-## 📜 3. HIẾN PHÁP & QUY TẮC PHÁT TRIỂN
+## 📜 4. HIẾN PHÁP & QUY TẮC PHÁT TRIỂN
 Tuyệt đối không vi phạm các nguyên tắc quản trị trong các tài liệu sau:
 - [📖 HIÊN PHÁP CRM 3.0](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/Rules/HIEN_PHAP_CRM_3.0.md) (Quy tắc tối thượng)
 - [📝 NHẬT KÝ PHÁT TRIỂN](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/Rules/NK_PHAT_TRIEN_V3.0.md) (Theo dõi thay đổi)
 
 ---
 
-## 🗺️ 4. BẢN ĐỒ TRA CỨU MÃ NGUỒN (TECHNICAL INDEX)
+## 🗺️ 5. BẢN ĐỒ TRA CỨU MÃ NGUỒN (TECHNICAL INDEX)
 
 Sử dụng các liên kết dưới đây để truy cập trực tiếp vào các module quan trọng:
 
@@ -59,7 +93,7 @@ Sử dụng các liên kết dưới đây để truy cập trực tiếp vào c
 
 ---
 
-## 🛠️ 5. CÔNG CỤ BẢO TRÌ (ADMIN SCRIPTS)
+## 🛠️ 6. CÔNG CỤ BẢO TRÌ (ADMIN SCRIPTS)
 - [rebuild_summary.py](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/scripts/rebuild_summary.py) - Chạy khi cần làm mới toàn bộ Dashboard.
 - [database_optimizer.py](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/scripts/database_optimizer.py) - Tối ưu hiệu năng Database.
 
