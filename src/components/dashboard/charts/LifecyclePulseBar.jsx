@@ -7,7 +7,7 @@ const LifecyclePulseBar = ({ stats }) => {
   return (
     <div className="card flex flex-col p-6 bg-white/40 shadow-sm border border-white/60 group">
       <div className="flex items-center justify-between mb-4">
-        <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+        <h4 className="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
           <Activity size={14} className="text-vnpost-blue" /> Cơ cấu Vòng đời
         </h4>
         <div className="px-3 py-1 bg-blue-50 rounded-full text-[10px] font-bold text-blue-600 border border-blue-100 shadow-sm">
@@ -56,7 +56,7 @@ const LifecyclePulseBar = ({ stats }) => {
               <div className="p-3 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all hover:-translate-y-1 group/cap">
                 <div className="flex items-center gap-2 mb-1.5">
                   <div className="w-2 h-2 rounded-full bg-blue-600 shadow-[0_0_8px_rgba(37,99,235,0.5)] animate-pulse"></div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Active</span>
+                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Active</span>
                 </div>
                 <div className="flex justify-between items-end">
                   <span className="text-xl font-black text-vnpost-blue">{active.toLocaleString()}</span>
@@ -67,7 +67,7 @@ const LifecyclePulseBar = ({ stats }) => {
               <div className="p-3 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all hover:-translate-y-1 group/cap">
                 <div className="flex items-center gap-2 mb-1.5">
                   <div className="w-2 h-2 rounded-full bg-vnpost-orange shadow-[0_0_8px_rgba(249,165,26,0.5)]"></div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">At Risk</span>
+                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">At Risk</span>
                 </div>
                 <div className="flex justify-between items-end">
                   <span className="text-xl font-black text-orange-700">{at_risk.toLocaleString()}</span>
@@ -79,7 +79,7 @@ const LifecyclePulseBar = ({ stats }) => {
         })()}
       </div>
       <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center opacity-60 group-hover:opacity-100 transition-opacity">
-        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider italic">Live Lifecycle Pulse</span>
+        <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider italic">Live Lifecycle Pulse</span>
         <div className="flex gap-1.5">
           <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" title="New"></div>
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" title="Recovered"></div>

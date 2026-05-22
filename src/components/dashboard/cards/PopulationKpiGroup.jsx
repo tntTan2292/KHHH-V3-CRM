@@ -40,7 +40,7 @@ const PopulationKpiGroup = ({ stats, summaryData, selectedNode, navigate, saveNa
                 {stats?.lifecycle_growth?.active !== undefined && (
                   <div className={`text-xs font-bold flex items-center gap-1 mt-2 ${stats.lifecycle_growth.active >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                     {stats.lifecycle_growth.active >= 0 ? "▲" : "▼"} {Math.abs(stats.lifecycle_growth.active)}%
-                    <span className="text-gray-400 opacity-60 ml-0.5 uppercase font-bold text-[10px]">vs T-1</span>
+                    <span className="text-gray-500 opacity-60 ml-0.5 uppercase font-bold text-[10px]">vs T-1</span>
                   </div>
                 )}
               </div>
@@ -67,7 +67,7 @@ const PopulationKpiGroup = ({ stats, summaryData, selectedNode, navigate, saveNa
                 {stats?.lifecycle_growth?.at_risk !== undefined && (
                   <div className={`text-xs font-bold flex items-center gap-1 mt-2 ${stats.lifecycle_growth.at_risk <= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                     {stats.lifecycle_growth.at_risk >= 0 ? "▲" : "▼"} {Math.abs(stats.lifecycle_growth.at_risk)}%
-                    <span className="text-gray-400 opacity-60 ml-0.5 uppercase font-bold text-[10px]">vs T-1</span>
+                    <span className="text-gray-500 opacity-60 ml-0.5 uppercase font-bold text-[10px]">vs T-1</span>
                   </div>
                 )}
               </div>
@@ -91,7 +91,7 @@ const PopulationKpiGroup = ({ stats, summaryData, selectedNode, navigate, saveNa
                   </div>
                   <div className="kpi-number text-3xl" style={{ color: 'var(--crm-danger-base)' }}>{(stats?.lifecycle?.["churn_pop"] || 0).toLocaleString()}</div>
                 </div>
-                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-normal mt-2 italic">Dừng giao dịch &gt; 60 ngày</div>
+                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-normal mt-2 italic">Dừng giao dịch &gt; 60 ngày</div>
               </div>
             </div>
           </>
@@ -122,7 +122,7 @@ const PopulationKpiGroup = ({ stats, summaryData, selectedNode, navigate, saveNa
                   </div>
                   <div className="kpi-number text-2xl" style={{ color: 'var(--crm-onboarding-base)' }}>{(stats?.lifecycle?.["new_pop"] || 0).toLocaleString()}</div>
                 </div>
-                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-normal mt-2 italic">Tệp đang thử thách (30d)</div>
+                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-normal mt-2 italic">Tệp đang thử thách (30d)</div>
               </div>
             </div>
 
@@ -144,7 +144,7 @@ const PopulationKpiGroup = ({ stats, summaryData, selectedNode, navigate, saveNa
                   </div>
                   <div className="kpi-number text-2xl" style={{ color: 'var(--crm-recovery-base)' }}>{(stats?.lifecycle?.["recovered_pop"] || 0).toLocaleString()}</div>
                 </div>
-                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-normal mt-2 italic">Tệp quay lại đang thử thách</div>
+                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-normal mt-2 italic">Tệp quay lại đang thử thách</div>
               </div>
             </div>
           </>

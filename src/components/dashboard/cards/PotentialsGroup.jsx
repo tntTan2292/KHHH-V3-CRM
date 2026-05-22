@@ -27,7 +27,7 @@ const PotentialsGroup = ({ stats, summaryData, selectedNode, navigate, saveNavig
                 <DollarSign size={100} />
               </div>
               <p className="kpi-label mb-2 text-blue-700">💎 Kim Cương (Diamond)</p>
-              <h3 className="kpi-number text-4xl text-blue-900">{(stats?.potential_ranks?.["Kim Cương"] || 0).toLocaleString()}</h3>
+              <h3 className="kpi-number text-3xl text-blue-900">{(stats?.potential_ranks?.["Kim Cương"] || 0).toLocaleString()}</h3>
               <p className="text-[10px] text-blue-500 font-bold mt-4 uppercase tracking-wider opacity-60">DT &gt; 5M & &gt; 20 đơn/tháng</p>
             </div>
 
@@ -43,7 +43,7 @@ const PotentialsGroup = ({ stats, summaryData, selectedNode, navigate, saveNavig
                 <DollarSign size={100} />
               </div>
               <p className="kpi-label mb-2 text-vnpost-orange">🥇 Vàng (Gold)</p>
-              <h3 className="kpi-number text-4xl text-vnpost-orange">{(stats?.potential_ranks?.["Vàng"] || 0).toLocaleString()}</h3>
+              <h3 className="kpi-number text-3xl text-vnpost-orange">{(stats?.potential_ranks?.["Vàng"] || 0).toLocaleString()}</h3>
               <p className="text-[10px] text-vnpost-orange font-bold mt-4 uppercase tracking-wider opacity-60">DT &gt; 1M & &gt; 10 đơn/tháng</p>
             </div>
 
@@ -59,7 +59,7 @@ const PotentialsGroup = ({ stats, summaryData, selectedNode, navigate, saveNavig
                 <DollarSign size={100} />
               </div>
               <p className="kpi-label mb-2 text-orange-900">🥉 Bạc (Silver)</p>
-              <h3 className="kpi-number text-4xl text-orange-950">{(stats?.potential_ranks?.["Bạc"] || 0).toLocaleString()}</h3>
+              <h3 className="kpi-number text-3xl text-orange-950">{(stats?.potential_ranks?.["Bạc"] || 0).toLocaleString()}</h3>
               <p className="text-[10px] text-orange-900 font-bold mt-4 uppercase tracking-wider opacity-60">DT &gt; 500K & &gt; 5 đơn/tháng</p>
             </div>
           </>

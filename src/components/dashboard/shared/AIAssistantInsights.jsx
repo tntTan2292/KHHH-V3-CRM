@@ -44,11 +44,11 @@ const AIAssistantInsights = ({ summary, stats, churnPrediction, heatmapData }) =
           <div className="grid grid-cols-2 gap-2">
             <div className="bg-white/80 p-1.5 rounded-lg border border-indigo-50 shadow-sm">
               <p className="text-[14px] font-bold text-indigo-600">{churnPrediction?.length || 0} KH</p>
-              <p className="text-[9px] font-bold text-gray-400 uppercase">Nguy cơ rời bỏ</p>
+              <p className="text-[9px] font-bold text-gray-500 uppercase">Nguy cơ rời bỏ</p>
             </div>
             <div className="bg-white/80 p-1.5 rounded-lg border border-indigo-50 shadow-sm">
               <p className="text-[14px] font-bold text-emerald-600">{heatmapData?.filter(h => Number(h.growth) > 10).length || 0} Đ.Bàn</p>
-              <p className="text-[9px] font-bold text-gray-400 uppercase">Tăng trưởng mạnh</p>
+              <p className="text-[9px] font-bold text-gray-500 uppercase">Tăng trưởng mạnh</p>
             </div>
           </div>
         </div>
