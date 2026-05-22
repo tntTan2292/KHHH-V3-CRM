@@ -227,7 +227,7 @@ const HeatmapSection = forwardRef(({
                               const contribution = totalRev > 0 ? ((item.revenue / totalRev) * 100).toFixed(1) + '%' : '0%';
                               
                               return (
-                                <tr key={item.id || idx} className={`border-b border-gray-50 transition-colors group ${pinnedRows.includes(item.id) ? 'bg-amber-50/50' : 'hover:bg-gray-50/50'}`}>
+                                <tr key={item.id || idx} className={`border-b transition-colors group ${pinnedRows.includes(item.id) ? 'bg-amber-50/80 border-amber-200 shadow-sm relative z-10' : 'border-gray-50 hover:bg-gray-50/50'}`}>
                                   <td className="p-1.5 pl-3">
                                     <div className="flex items-center gap-2">
                                       <div className={`w-1 h-8 rounded-full ${_isWeak ? 'bg-red-500' : 'bg-gray-200'}`}></div>

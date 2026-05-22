@@ -52,11 +52,15 @@ const AIAssistantInsights = ({ summary, stats, churnPrediction, heatmapData, onA
         <div className="space-y-1.5">
           <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-normal">Điều hành nhanh</p>
           <div className="grid grid-cols-2 gap-2">
-            <div className="bg-white/80 p-1.5 rounded-lg border border-indigo-50 shadow-sm">
+            <div 
+              onClick={() => onAction && onAction('SHOW_CHURN_LIST')}
+              className="bg-white/80 p-1.5 rounded-lg border border-indigo-50 shadow-sm cursor-pointer hover:bg-white hover:border-indigo-200 hover:shadow-md transition-all group"
+            >
               <div className="flex items-center justify-between">
-                <p className="text-[14px] font-bold text-indigo-600">{churnPrediction?.length || 0} KH</p>
+                <p className="text-[14px] font-bold text-indigo-600 group-hover:scale-105 transition-transform">{churnPrediction?.length || 0} KH</p>
+                <ArrowRight size={12} className="text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0" />
               </div>
-              <p className="text-[9px] font-bold text-gray-500 uppercase">Nguy cơ rời bỏ</p>
+              <p className="text-[9px] font-bold text-gray-500 uppercase group-hover:text-indigo-600 transition-colors">Nguy cơ rời bỏ</p>
             </div>
             <div 
               onClick={() => onAction && onAction('FILTER_STAR')}
