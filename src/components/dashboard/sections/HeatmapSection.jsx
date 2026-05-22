@@ -1,9 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, forwardRef, useImperativeHandle, useDeferredValue } from 'react';
 import { Target, Search, DownloadCloud, Maximize2, Minimize2, ArrowLeft, ChevronRight, TrendingUp, ArrowUpRight, Sparkles, AlertCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Skeleton from '../../Skeleton';
 
-const HeatmapSection = ({ 
+const HeatmapSection = forwardRef(({ 
   heatmapDataRes, 
   loadingHeatmap, 
   navStack, 
@@ -12,11 +12,17 @@ const HeatmapSection = ({
   handleGoBack, 
   handleDrillDown,
   formatCurrency
-}) => {
+}, ref) => {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [quickFilter, setQuickFilter] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
   const [pinnedRows, setPinnedRows] = useState([]);
+
+  useImperativeHandle(ref, () => ({
+    applyQuickFilter: (filterType) => {
+      setQuickFilter(filterType);
+    }
+  }));
 
   const processedHeatmapData = useMemo(() => {
     if (!heatmapDataRes || !heatmapDataRes.length) return [];
@@ -31,13 +37,15 @@ const HeatmapSection = ({
     }));
   }, [heatmapDataRes]);
 
+  const deferredSearchTerm = useDeferredValue(searchTerm);
+
   const heatmapFilteredData = useMemo(() => {
     if (!processedHeatmapData.length) return [];
     const totalRev = processedHeatmapData.reduce((acc, curr) => acc + curr.revenue, 0);
     const avgRev = totalRev / processedHeatmapData.length;
     
     return processedHeatmapData.filter(item => {
-      const matchSearch = !searchTerm || item.title?.toLowerCase().includes(searchTerm.toLowerCase()) || String(item.id).toLowerCase().includes(searchTerm.toLowerCase());
+      const matchSearch = !deferredSearchTerm || item.title?.toLowerCase().includes(deferredSearchTerm.toLowerCase()) || String(item.id).toLowerCase().includes(deferredSearchTerm.toLowerCase());
       if (!matchSearch) return false;
 
       if (quickFilter === 'ALL') return true;
@@ -47,7 +55,7 @@ const HeatmapSection = ({
       if (quickFilter === 'DANGER') return item.growth < 0 && item.revenue < avgRev;
       return true;
     });
-  }, [processedHeatmapData, quickFilter, searchTerm]);
+  }, [processedHeatmapData, quickFilter, deferredSearchTerm]);
 
   const handleCopyTSV = () => {
     if (!heatmapFilteredData.length) return;
@@ -344,7 +352,6 @@ const HeatmapSection = ({
           </div>
         </div>
   );
-};
-
+});
 // Memoize to prevent re-render unless inputs change
 export default React.memo(HeatmapSection);

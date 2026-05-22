@@ -4,6 +4,37 @@ import { Activity, Loader2, RefreshCw, TrendingUp, BarChart3 } from 'lucide-reac
 import Skeleton from '../../Skeleton';
 import AIAssistantInsights from '../shared/AIAssistantInsights';
 
+const CustomTooltip = ({ active, payload, label, unit, formatCurrency }) => {
+  if (active && payload && payload.length) {
+    const total = payload.reduce((sum, entry) => sum + (entry.value || 0), 0);
+    return (
+      <div className="bg-white p-4 rounded-2xl shadow-2xl border border-gray-100 min-w-[200px]">
+        <p className="text-sm font-black text-gray-800 mb-2 border-b border-gray-100 pb-2">{label}</p>
+        <div className="space-y-1.5">
+          {payload.map((entry, index) => (
+            <div key={`${entry.name}-${index}`} className="flex justify-between items-center gap-6">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.fill }}></div>
+                <span className="text-xs font-bold text-gray-500">{entry.name}:</span>
+              </div>
+              <span className="text-xs font-black text-gray-700">
+                {unit === 'VND' ? formatCurrency(entry.value) : (entry.value || 0).toLocaleString() + ' đơn'}
+              </span>
+            </div>
+          ))}
+          <div className="flex justify-between items-center gap-6 pt-2 mt-2 border-t border-dashed border-gray-200">
+            <span className="text-xs font-black text-vnpost-blue uppercase tracking-wider">Tổng cộng:</span>
+            <span className="text-sm font-black text-vnpost-blue">
+              {unit === 'VND' ? formatCurrency(total) : total.toLocaleString() + ' đơn'}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
 const MovementComparison = ({
   monthlyDataRes,
   moversData,
@@ -14,36 +45,7 @@ const MovementComparison = ({
   onInsightAction,
   formatCurrency
 }) => {
-  const CustomTooltip = ({ active, payload, label, unit }) => {
-    if (active && payload && payload.length) {
-      const total = payload.reduce((sum, entry) => sum + (entry.value || 0), 0);
-      return (
-        <div className="bg-white p-4 rounded-2xl shadow-2xl border border-gray-100 min-w-[200px]">
-          <p className="text-sm font-black text-gray-800 mb-2 border-b border-gray-100 pb-2">{label}</p>
-          <div className="space-y-1.5">
-            {payload.map((entry, index) => (
-              <div key={`${entry.name}-${index}`} className="flex justify-between items-center gap-6">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.fill }}></div>
-                  <span className="text-xs font-bold text-gray-500">{entry.name}:</span>
-                </div>
-                <span className="text-xs font-black text-gray-700">
-                  {unit === 'VND' ? formatCurrency(entry.value) : (entry.value || 0).toLocaleString() + ' đơn'}
-                </span>
-              </div>
-            ))}
-            <div className="flex justify-between items-center gap-6 pt-2 mt-2 border-t border-dashed border-gray-200">
-              <span className="text-xs font-black text-vnpost-blue uppercase tracking-wider">Tổng cộng:</span>
-              <span className="text-sm font-black text-vnpost-blue">
-                {unit === 'VND' ? formatCurrency(total) : total.toLocaleString() + ' đơn'}
-              </span>
-            </div>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
+
 
   return (
     <>
@@ -200,7 +202,7 @@ const MovementComparison = ({
                         <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                         <XAxis type="number" hide />
                         <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold', fill: '#1e293b' }} width={80} />
-                        <RechartsTooltip content={<CustomTooltip unit="VND" />} cursor={{ fill: '#f8fafc', opacity: 0.4 }} />
+                          <RechartsTooltip content={<CustomTooltip unit="VND" formatCurrency={formatCurrency} />} cursor={{ fill: '#f8fafc', opacity: 0.4 }} />
                         <Legend verticalAlign="top" align="right" iconType="circle" />
                         {activeServices.map((svc, idx) => (
                           <Bar key={idx} dataKey={svc} name={svc} stackId="a" fill={SERVICE_COLORS[svc] || '#cbd5e1'} barSize={35} />
@@ -250,7 +252,7 @@ const MovementComparison = ({
                         <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                         <XAxis type="number" hide />
                         <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold', fill: '#1e293b' }} width={80} />
-                        <RechartsTooltip content={<CustomTooltip unit="UNIT" />} cursor={{ fill: '#f8fafc', opacity: 0.4 }} />
+                          <RechartsTooltip content={<CustomTooltip unit="UNIT" formatCurrency={formatCurrency} />} cursor={{ fill: '#f8fafc', opacity: 0.4 }} />
                         <Legend verticalAlign="top" align="right" iconType="circle" />
                         {activeServices.map((svc, idx) => (
                           <Bar key={idx} dataKey={svc} name={svc} stackId="a" fill={SERVICE_COLORS[svc] || '#cbd5e1'} barSize={35} />
