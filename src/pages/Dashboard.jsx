@@ -491,7 +491,6 @@ function Dashboard() {
       if (quickFilter === 'ALL') return true;
       if (quickFilter === 'DANGER') return item.growth < 0 && item.revenue < avgRev;
       if (quickFilter === 'STAR') return item.growth >= 0 && item.revenue >= avgRev;
-      if (quickFilter === 'RISK_CHURN') return item.growth < -10;
       return true;
     });
   }, [processedHeatmapData, quickFilter]);
@@ -513,8 +512,31 @@ function Dashboard() {
         const q = getQuadrant(item.revenue, item.growth);
         return `${item.title}\t${item.id}\t${item.revenue}\t${item.growth}%\t${q.label}`;
     }).join('\n');
-    navigator.clipboard.writeText(header + rows);
-    toast.success("Đã copy dữ liệu bảng Heatmap!");
+    const copyText = header + rows;
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(copyText).then(() => {
+            toast.success("Đã copy dữ liệu bảng Heatmap!");
+        }).catch(err => {
+            console.error(err);
+            toast.error("Lỗi khi copy. Vui lòng thử lại!");
+        });
+    } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = copyText;
+        textArea.style.position = "absolute";
+        textArea.style.left = "-999999px";
+        document.body.prepend(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            toast.success("Đã copy dữ liệu bảng Heatmap!");
+        } catch (error) {
+            console.error(error);
+            toast.error("Trình duyệt không hỗ trợ copy.");
+        } finally {
+            textArea.remove();
+        }
+    }
   };
 
   return (
@@ -708,7 +730,6 @@ function Dashboard() {
                   <button onClick={() => setQuickFilter('ALL')} className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all ${quickFilter === 'ALL' ? 'bg-vnpost-blue text-white shadow-sm' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>Tất cả</button>
                   <button onClick={() => setQuickFilter('DANGER')} className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all ${quickFilter === 'DANGER' ? 'bg-red-500 text-white shadow-sm' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}>🔥 Yếu kém</button>
                   <button onClick={() => setQuickFilter('STAR')} className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all ${quickFilter === 'STAR' ? 'bg-emerald-500 text-white shadow-sm' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}>⭐ Ngôi sao</button>
-                  <button onClick={() => setQuickFilter('RISK_CHURN')} className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all ${quickFilter === 'RISK_CHURN' ? 'bg-orange-500 text-white shadow-sm' : 'bg-orange-50 text-orange-600 hover:bg-orange-100'}`}>⚠️ Nguy cơ</button>
                 </div>
                 <div className="flex items-center gap-3">
                   <button onClick={handleCopyTSV} className="text-[10px] font-bold bg-vnpost-blue/10 text-vnpost-blue hover:bg-vnpost-blue/20 px-2 py-1 rounded-full uppercase tracking-wider transition-all flex items-center gap-1 shadow-sm">
@@ -1028,7 +1049,6 @@ function Dashboard() {
                 heatmapData={heatmapDataRes} 
                 onAction={(action) => {
                   if (action === 'FILTER_WEAK') setQuickFilter('DANGER');
-                  if (action === 'FILTER_RISK') setQuickFilter('RISK_CHURN');
                   if (action === 'FILTER_STAR') setQuickFilter('STAR');
                   const heatmapSection = document.getElementById('heatmap-section');
                   if (heatmapSection) heatmapSection.scrollIntoView({ behavior: 'smooth' });

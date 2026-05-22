@@ -52,13 +52,9 @@ const AIAssistantInsights = ({ summary, stats, churnPrediction, heatmapData, onA
         <div className="space-y-1.5">
           <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-normal">Điều hành nhanh</p>
           <div className="grid grid-cols-2 gap-2">
-            <div 
-              onClick={() => onAction && onAction('FILTER_RISK')}
-              className="bg-white/80 p-1.5 rounded-lg border border-indigo-50 shadow-sm cursor-pointer hover:bg-white hover:shadow-md transition-all group"
-            >
+            <div className="bg-white/80 p-1.5 rounded-lg border border-indigo-50 shadow-sm">
               <div className="flex items-center justify-between">
-                <p className="text-[14px] font-bold text-indigo-600 group-hover:scale-105 transition-transform">{churnPrediction?.length || 0} KH</p>
-                <ArrowRight size={12} className="text-indigo-300 opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0" />
+                <p className="text-[14px] font-bold text-indigo-600">{churnPrediction?.length || 0} KH</p>
               </div>
               <p className="text-[9px] font-bold text-gray-500 uppercase">Nguy cơ rời bỏ</p>
             </div>
