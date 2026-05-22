@@ -27,14 +27,16 @@ Luồng vận hành thực tế thường diễn ra như sau:
 - **Dashboard**: Cung cấp chỉ số vĩ mô, biểu đồ xu hướng và cảnh báo nhanh.
 - **Customer Management**: Lưới dữ liệu chi tiết 360 độ mọi thông tin khách hàng.
 - **Lifecycle Analytics**: Phân loại vòng đời khách hàng tự động bằng thuật toán.
+- **Lead Tier & 5B Journey**: Quản lý phễu khách hàng tiềm năng (Lead Pipeline) cho khách chưa giao dịch/chưa có mã CMS (hành trình B1 → B5).
 - **Bot & Tasks**: Hệ thống giao việc tự động và đẩy báo cáo định kỳ qua Zalo.
 - **Reports**: Hệ thống xuất báo cáo dữ liệu.
 
-### 1.5 KPI Definitions
-- **Revenue (Doanh thu)**: Tổng doanh thu phát sinh từ khách hàng.
-- **Active (Hiện hữu)**: Tệp nòng cốt, có doanh thu ổn định liên tục.
-- **At Risk (Nguy cơ)**: Khách hàng có dấu hiệu ngừng gửi hoặc rớt doanh thu nghiêm trọng.
-- **Churn (Rời bỏ)**: Khách hàng đã ngừng giao dịch trong thời gian dài.
+### 1.5 KPI / Lifecycle Definitions (SSOT Constitution)
+*CRM phân loại 5 trạng thái vòng đời (Mutually Exclusive Population States), tổng 5 tệp luôn bao phủ 100% Customer Universe:*
+- **New (Mới)**: Khách hàng có đơn hàng đầu tiên (trong 3 tháng đầu).
+- **Active (Hiện hữu)**: Tệp nòng cốt, duy trì giao dịch ổn định.
+- **At Risk (Nguy cơ)**: Khách hàng có dấu hiệu rớt. **(Luật cố định: Inactive > 30 days)**.
+- **Churn (Rời bỏ)**: Khách hàng chính thức rời bỏ. **(Luật cố định: Inactive > 90 days)**.
 - **Reactivated (Tái bản)**: Tệp khách hàng cũ quay lại giao dịch.
 - **KPI cốt lõi**: Tỷ lệ giữ chân khách hàng (Retention Rate) và Tăng trưởng so với cùng kỳ (MoM/YoY).
 
