@@ -21,8 +21,8 @@ import PopulationKpiGroup from '../components/dashboard/cards/PopulationKpiGroup
 import MovementIndicators from '../components/dashboard/cards/MovementIndicators';
 import PotentialsGroup from '../components/dashboard/cards/PotentialsGroup';
 import LifecyclePulseBar from '../components/dashboard/charts/LifecyclePulseBar';
+import CustomerListModal from '../components/dashboard/shared/CustomerListModal';
 import { useAuth } from '../context/AuthContext';
-
 // Fetcher function cho SWR với Diagnostics
 const fetcher = url => {
   console.log(`[API START] ${url}`);
@@ -131,6 +131,7 @@ function Dashboard() {
   const [selectedMonth, setSelectedMonth] = useState("");
   const [quickFilter, setQuickFilter] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
+  const [showChurnModal, setShowChurnModal] = useState(false);
 
   const selectedMonthLabel = useMemo(() => {
     if (selectedMonth) return selectedMonth;
@@ -1066,10 +1067,14 @@ function Dashboard() {
                 churnPrediction={churnDataRes} 
                 heatmapData={heatmapDataRes} 
                 onAction={(action) => {
-                  if (action === 'FILTER_WEAK') setQuickFilter('DANGER');
-                  if (action === 'FILTER_STAR') setQuickFilter('STAR');
-                  const heatmapSection = document.getElementById('heatmap-section');
-                  if (heatmapSection) heatmapSection.scrollIntoView({ behavior: 'smooth' });
+                  if (action === 'SHOW_CHURN_LIST') {
+                    setShowChurnModal(true);
+                  } else {
+                    if (action === 'FILTER_WEAK') setQuickFilter('DANGER');
+                    if (action === 'FILTER_STAR') setQuickFilter('STAR');
+                    const heatmapSection = document.getElementById('heatmap-section');
+                    if (heatmapSection) heatmapSection.scrollIntoView({ behavior: 'smooth' });
+                  }
                 }}
               />
               
@@ -1445,6 +1450,12 @@ function Dashboard() {
           />
         </Suspense>
       )}
+
+      <CustomerListModal 
+        isOpen={showChurnModal} 
+        onClose={() => setShowChurnModal(false)} 
+        customers={churnDataRes} 
+      />
     </div>
   );
 }
