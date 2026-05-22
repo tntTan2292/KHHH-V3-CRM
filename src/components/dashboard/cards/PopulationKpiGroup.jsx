@@ -7,7 +7,7 @@ const PopulationKpiGroup = ({ stats, summaryData, selectedNode, navigate, saveNa
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-[11px] font-bold text-vnpost-blue uppercase tracking-wider flex items-center gap-2">
+        <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2 mt-2 mb-2">
           <Users size={14} /> 01. HIỆN TRẠNG TỆP KHÁCH HÀNG (POPULATION)
         </h3>
         <Link to="/guidelines#lifecycle" className="text-[9px] font-bold text-vnpost-orange uppercase hover:underline">Định nghĩa</Link>
