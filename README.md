@@ -6,115 +6,22 @@ Chào mừng đến với hệ thống quản trị khách hàng **CRM 3.0 của
 
 ---
 
-## 🎯 1. AI-READY BUSINESS CONTEXT
+## 🧠 1. AI CONTEXT DOCUMENTS (Deep Dive)
+Hệ thống tài liệu chuyên sâu dành cho AI (Claude Code / Antigravity / ChatGPT) và Developer mới. Đọc các tài liệu này để hiểu toàn bộ Business Logic và Frontend Architecture trước khi code:
 
-### 1.1 Business Context
-Hệ thống được xây dựng phục vụ **Ban lãnh đạo và Đội ngũ kinh doanh Bưu điện TP Huế**. 
-- **Mục tiêu chính**: Số hóa công tác quản trị, chấm dứt việc quản lý rời rạc. Cung cấp góc nhìn 360 độ về sức khỏe tập khách hàng và tự động hóa cảnh báo rủi ro.
-- **Vai trò Dashboard**: Là "Trung tâm chỉ huy" giúp lãnh đạo nắm bắt biến động doanh thu theo thời gian thực, nhận diện vùng lõm và ra quyết định điều hành tức thời.
-
-### 1.2 User Roles
-- **Ban Giám Đốc / Lãnh Đạo**: Xem toàn cảnh báo cáo vĩ mô, theo dõi dòng chảy doanh thu và cảnh báo cấp bách toàn tỉnh.
-- **Trưởng/Phó Phòng**: Theo dõi KPI theo cụm/bưu cục, phát hiện xu hướng và điều phối chiến lược.
-- **Trưởng Đại Diện / GĐ Phường Xã**: Quản lý hiệu quả điểm giao dịch trực thuộc.
-- **Nhân Viên Kinh Doanh (Sale/AM)**: Theo dõi danh sách khách hàng được giao, tiếp nhận cảnh báo tự động, thực hiện chăm sóc và báo cáo.
-
-### 1.3 User Flow
-Luồng vận hành thực tế thường diễn ra như sau:
-`Dashboard (Nhìn số tổng)` → `Nhận diện rủi ro/cơ hội` → `Drilldown (Lọc xuống cấp dưới)` → `Phân tích (Xem chi tiết KH)` → `Hành động (Giao việc/Xử lý)`.
-
-### 1.4 Module Overview
-- **Dashboard**: Cung cấp chỉ số vĩ mô, biểu đồ xu hướng và cảnh báo nhanh.
-- **Customer Management**: Lưới dữ liệu chi tiết 360 độ mọi thông tin khách hàng.
-- **Lifecycle Analytics**: Phân loại vòng đời khách hàng tự động bằng thuật toán.
-- **Lead Tier & 5B Journey**: Quản lý phễu khách hàng tiềm năng (Lead Pipeline) cho khách chưa giao dịch/chưa có mã CMS (hành trình B1 → B5).
-- **Bot & Tasks**: Hệ thống giao việc tự động và đẩy báo cáo định kỳ qua Zalo.
-- **Reports**: Hệ thống xuất báo cáo dữ liệu.
-
-### 1.5 KPI / Lifecycle Definitions (SSOT Constitution)
-*CRM phân loại 5 trạng thái vòng đời (Mutually Exclusive Population States), tổng 5 tệp luôn bao phủ 100% Customer Universe:*
-- **New (Mới)**: Khách hàng có đơn hàng đầu tiên (trong 3 tháng đầu).
-- **Active (Hiện hữu)**: Tệp nòng cốt, duy trì giao dịch ổn định.
-- **At Risk (Nguy cơ)**: Khách hàng có dấu hiệu rớt. **(Luật cố định: Inactive > 30 days)**.
-- **Churn (Rời bỏ)**: Khách hàng chính thức rời bỏ. **(Luật cố định: Inactive > 90 days)**.
-- **Reactivated (Tái bản)**: Tệp khách hàng cũ quay lại giao dịch.
-- **KPI cốt lõi**: Tỷ lệ giữ chân khách hàng (Retention Rate) và Tăng trưởng so với cùng kỳ (MoM/YoY).
+- 🎯 [PROJECT_OVERVIEW.md](AI_CONTEXT/PROJECT_OVERVIEW.md) - Mục tiêu và phạm vi hệ thống.
+- 🌊 [USER_FLOW.md](AI_CONTEXT/USER_FLOW.md) - Luồng vận hành thực tế.
+- 📊 [KPI_DEFINITIONS.md](AI_CONTEXT/KPI_DEFINITIONS.md) - Định nghĩa Vòng đời và KPI (SSOT).
+- 🎨 [UI_UX_GOALS.md](AI_CONTEXT/UI_UX_GOALS.md) - Mục tiêu thiết kế giao diện.
+- 🔄 [DATA_FLOW.md](AI_CONTEXT/DATA_FLOW.md) - Luồng dữ liệu Frontend -> Backend.
+- 📁 [IMPORTANT_FILES.md](AI_CONTEXT/IMPORTANT_FILES.md) - Các file quan trọng/nguy hiểm.
+- 🛡️ [SAFE_REFACTOR_RULES.md](AI_CONTEXT/SAFE_REFACTOR_RULES.md) - Nguyên tắc an toàn khi sửa code.
+- ⚠️ [TECHNICAL_DEBT.md](AI_CONTEXT/TECHNICAL_DEBT.md) - Vấn đề kỹ thuật hiện tại cần xử lý.
+- 📸 [SCREENSHOTS.md](AI_CONTEXT/SCREENSHOTS.md) - Hình ảnh giao diện thực tế.
 
 ---
 
-## 🎨 2. AI-READY UI/UX CONTEXT
-
-### 2.1 Frontend Structure
-- **Pages**: Các màn hình chính (Dashboard, Customers, Guidelines).
-- **Components**: Các mảnh ghép UI tái sử dụng (Modals, Charts, KPI Cards, TreeExplorer).
-- **Layouts**: Khung bao bọc ứng dụng (Sidebar, Header, Main Content).
-- **Services/Hooks**: Xử lý logic API (SWR fetcher, Navigation Context) tách biệt khỏi UI.
-- **Theme/Style**: Sử dụng TailwindCSS kết hợp custom CSS (hiệu ứng gradient/animations đặc thù).
-
-### 2.2 Dashboard Structure
-- **Filters Area**: Bộ lọc theo cấp độ địa bàn, thời gian, và chế độ xem (MoM/YoY).
-- **Elite Pulse (Realtime)**: Widget báo cáo nhanh buổi sáng với nút push lên Zalo.
-- **Population (Hiện trạng)**: Các thẻ KPI lớn hiển thị 5 nhóm vòng đời khách hàng.
-- **Potentials**: Phân hạng khách hàng VIP (Kim Cương, Vàng, Bạc).
-- **Charts & Tables**: Biểu đồ biến động doanh thu và bảng Heatmap đánh giá hiệu quả từng địa bàn.
-- **Drilldown**: Khả năng click trực tiếp vào các chỉ số để nhảy sang màn hình danh sách chi tiết.
-
-### 2.3 UI/UX Goals
-- **Enterprise Operation Center**: Thiết kế chuẩn hệ thống điều hành cấp doanh nghiệp.
-- **Tập trung Dữ liệu**: Đưa các số liệu quan trọng lên hàng đầu, dễ đọc lướt (scannability).
-- **Hiện đại & Compact**: Giao diện tối giản, tối ưu không gian hiển thị, dữ liệu tải nhanh.
-- **Responsive**: Thích ứng đa màn hình, đáp ứng nhu cầu xem báo cáo mọi lúc mọi nơi.
-
-### 2.4 Current UI/UX Problems
-- **Monolithic File**: File `Dashboard.jsx` quá lớn (>1800 dòng), khó duy trì.
-- **Layout bất đối xứng**: Một số block (VD: Cơ cấu vòng đời) chưa được đưa vào hệ Grid tổng thể chuẩn mực.
-- **Responsive hạn chế**: Bảng dữ liệu dễ bị tràn ngang (overflow-x) trên màn hình nhỏ. Các filter có thể bị lệch.
-- **Tính đồng nhất**: Các widget đôi khi thiếu sự nhất quán về khoảng cách (spacing/padding).
-
-### 2.5 Screenshots
-- 🖼️ *[Placeholder: Dashboard Overview - Desktop]*
-- 🖼️ *[Placeholder: Dashboard Overview - Mobile]*
-- 🖼️ *[Placeholder: Customer List & Drilldown View]*
-
----
-
-## 🛠️ 3. AI-READY REFACTOR CONTEXT
-
-### 3.1 Important Files
-- **`src/pages/Dashboard.jsx`**: Trái tim UI của hệ thống, chứa toàn bộ logic hiển thị chỉ số vĩ mô.
-- **`src/pages/Customers.jsx`**: Lưới dữ liệu chi tiết khách hàng và logic Drill-down.
-- **`backend/app/routers/analytics.py`**: API cấp số liệu cho Dashboard (Summary, Trends, Heatmap).
-- **`backend/app/services/lifecycle_engine.py`**: Chứa logic phân loại Vòng đời cốt lõi (Tuyệt đối cẩn trọng khi sửa).
-- **`backend/app/services/summary_service.py`**: Build bảng Summary từ Transactions (Nặng về tính toán).
-- **`backend/app/services/scoping_service.py`**: Xử lý phân quyền 5 cấp (Phải test kỹ nếu chạm vào).
-
-### 3.2 Data Flow Overview
-Luồng dữ liệu tổng quan:
-`Frontend (SWR)` → `API Router` → `Service Layer (Logic)` → `Database (SQLite)` → `Summary Tables` → `Dashboard Render`
-- Dashboard *không* query trực tiếp từ bảng raw `Transactions` mà lấy từ bảng `MonthlyAnalyticsSummary` (đã tổng hợp) để đảm bảo tốc độ Realtime.
-
-### 3.3 Safe Refactor Rules
-- **Tôn trọng Business Logic**: KHÔNG thay đổi các định nghĩa về Lifecycle, KPI nếu không có chỉ thị.
-- **Không phá API Contract**: Tránh đổi cấu trúc response JSON trừ khi đã đồng bộ với Frontend.
-- **Refactor vi phẫu**: Chia nhỏ PR, không đập đi xây lại toàn bộ file `Dashboard.jsx` cùng một lúc.
-- **Ưu tiên Component hóa**: Tách các khối UI lặp lại thành Reusable Components.
-- **Giữ nguyên Scoping**: Không bypass hệ thống phân quyền (Scoping Service).
-
-### 3.4 Technical Debt
-- **Dashboard.jsx phình to**: File quá lớn, trộn lẫn cả fetching data, UI layout và format logic.
-- **Lặp code UI**: Một số thẻ KPI và Widget đang bị duplicate cấu trúc HTML/Tailwind.
-- **Responsive Table**: Các bảng dữ liệu (Heatmap) xử lý overflow-x chưa triệt để trên màn hình nhỏ.
-- **Data Fetching**: Một số luồng gọi API có thể tối ưu hơn thay vì phụ thuộc lẫn nhau.
-
-### 3.5 Future Refactor Direction
-- **Modular Dashboard**: Đập nhỏ Dashboard thành các Sub-components (`ElitePulse.jsx`, `PopulationCard.jsx`...).
-- **Widget-based Structure**: Biến các module thành dạng Widget độc lập.
-- **Lazy Loading**: Áp dụng Lazy/Suspense cho các Chart nặng để giảm TTI (Time to Interactive).
-- **Responsive Optimization**: Chuẩn hóa hệ thống Grid/Flex để hoạt động hoàn hảo trên Tablet/Mobile.
-
----
-
-## 🚀 4. HƯỚNG DẪN VẬN HÀNH NHANH (QUICK START)
+## 🚀 2. HƯỚNG DẪN VẬN HÀNH NHANH (QUICK START)
 
 Dành cho AI Assistant và Cộng tác viên muốn khởi chạy hệ thống locally:
 
@@ -131,7 +38,7 @@ Dành cho AI Assistant và Cộng tác viên muốn khởi chạy hệ thống l
 
 ---
 
-## 🧠 5. KIẾN TRÚC & LUỒNG DỮ LIỆU (THE BRAIN)
+## 🧠 3. KIẾN TRÚC & LUỒNG DỮ LIỆU (THE BRAIN)
 
 Hệ thống được vận hành bởi 4 "Động cơ" cốt lõi:
 1.  **[Hierarchy Engine](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/app/services/hierarchy_service.py)**: Quản trị mô hình 5 cấp chức danh (BĐTP -> Trung tâm -> Trưởng đại diện -> Giám đốc Phường/Xã -> Nhân viên).
@@ -141,14 +48,14 @@ Hệ thống được vận hành bởi 4 "Động cơ" cốt lõi:
 
 ---
 
-## 📜 6. HIẾN PHÁP & QUY TẮC PHÁT TRIỂN
+## 📜 4. HIẾN PHÁP & QUY TẮC PHÁT TRIỂN
 Tuyệt đối không vi phạm các nguyên tắc quản trị trong các tài liệu sau:
 - [📖 HIÊN PHÁP CRM 3.0](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/Rules/HIEN_PHAP_CRM_3.0.md) (Quy tắc tối thượng)
 - [📝 NHẬT KÝ PHÁT TRIỂN](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/Rules/NK_PHAT_TRIEN_V3.0.md) (Theo dõi thay đổi)
 
 ---
 
-## 🗺️ 7. BẢN ĐỒ TRA CỨU MÃ NGUỒN (TECHNICAL INDEX)
+## 🗺️ 5. BẢN ĐỒ TRA CỨU MÃ NGUỒN (TECHNICAL INDEX)
 
 Sử dụng các liên kết dưới đây để truy cập trực tiếp vào các module quan trọng:
 
@@ -167,7 +74,7 @@ Sử dụng các liên kết dưới đây để truy cập trực tiếp vào c
 
 ---
 
-## 🛠️ 8. CÔNG CỤ BẢO TRÌ (ADMIN SCRIPTS)
+## 🛠️ 6. CÔNG CỤ BẢO TRÌ (ADMIN SCRIPTS)
 - [rebuild_summary.py](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/scripts/rebuild_summary.py) - Chạy khi cần làm mới toàn bộ Dashboard.
 - [database_optimizer.py](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/scripts/database_optimizer.py) - Tối ưu hiệu năng Database.
 
