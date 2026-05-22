@@ -181,19 +181,20 @@ class SummaryService:
                 if int(r['is_churn_transition'] or 0) > 0:
                     summary_data.append((month_str, int(r['point_id']), 'CHURN_TRANSITION', None, r['vip_tier'], r['priority_level'], 'ALL', 'ALL', 0.0, 0, int(r['is_churn_transition'] or 0)))
             
-            # Tính doanh thu thực tế cho nhóm định danh
+            # Tính doanh thu thực tế cho nhóm định danh (Tuân thủ Historical Ownership)
             sql_rev_ident = """
-            SELECT point_id, ma_kh, ma_dv, 
+            SELECT COALESCE(s.point_id, t.point_id) as point_id, t.ma_kh, t.ma_dv, 
                    CASE 
-                        WHEN trong_nuoc_quoc_te IN ('quốc tế', 'quoc te') OR ma_dv = 'L' THEN 'Quốc tế'
-                        WHEN lien_tinh_noi_tinh IN ('1', 'nội tỉnh', 'noi tinh') THEN 'Nội tỉnh'
+                        WHEN t.trong_nuoc_quoc_te IN ('quốc tế', 'quoc te') OR t.ma_dv = 'L' THEN 'Quốc tế'
+                        WHEN t.lien_tinh_noi_tinh IN ('1', 'nội tỉnh', 'noi tinh') THEN 'Nội tỉnh'
                         ELSE 'Liên tỉnh'
                    END as region_type,
-                   SUM(doanh_thu) as rev, COUNT(id) as orders
-            FROM transactions
-            WHERE ngay_chap_nhan BETWEEN ? AND ? AND ma_kh IS NOT NULL AND ma_kh != ''
-            GROUP BY point_id, ma_kh, ma_dv, region_type
-            """
+                   SUM(t.doanh_thu) as rev, COUNT(t.id) as orders
+            FROM transactions t
+            LEFT JOIN customer_monthly_snapshots s ON t.ma_kh = s.ma_kh AND s.year_month = '{month_str}'
+            WHERE t.ngay_chap_nhan BETWEEN ? AND ? AND t.ma_kh IS NOT NULL AND t.ma_kh != ''
+            GROUP BY COALESCE(s.point_id, t.point_id), t.ma_kh, t.ma_dv, region_type
+            """.format(month_str=month_str)
             df_rev_ident = pd.read_sql_query(sql_rev_ident, conn, params=(start_date, end_date))
             
             # Map VIP and Priority

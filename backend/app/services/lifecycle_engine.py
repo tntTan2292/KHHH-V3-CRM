@@ -95,16 +95,20 @@ class LifecycleEngine:
                 h.first_order_date,
                 h.last_order_before,
                 h.last_churn_marker,
-                COALESCE(cust.point_id, c.point_id) as point_id
+                COALESCE(
+                    (SELECT point_id FROM customer_monthly_snapshots s WHERE s.ma_kh = COALESCE(c.ma_kh, h.ma_kh) AND s.year_month = '{month_str}'),
+                    c.point_id,
+                    (SELECT ma_dv_chap_nhan FROM transactions t2 WHERE t2.ma_kh = COALESCE(c.ma_kh, h.ma_kh) AND t2.ngay_chap_nhan <= '{m_end}' ORDER BY ngay_chap_nhan DESC LIMIT 1)
+                ) as point_id
             FROM historical_evidence h
             LEFT JOIN current_activity c ON h.ma_kh = c.ma_kh
-            LEFT JOIN customers cust ON h.ma_kh = cust.ma_crm_cms
             WHERE (COALESCE(c.curr_rev, 0) > 0 OR h.first_order_date IS NOT NULL)
             AND h.first_order_date <= '{m_end}'
             {p_filter}
             """.format(m_start=month_start, 
                        m_end=month_end,
-                       p_filter=f"AND COALESCE(cust.point_id, c.point_id) = {point_id}" if point_id else "")
+                       month_str=month_str,
+                       p_filter=f"AND point_id = {point_id}" if point_id else "")
             
             df = pd.read_sql_query(sql, conn)
             if df.empty: return []

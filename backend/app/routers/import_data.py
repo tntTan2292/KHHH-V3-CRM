@@ -254,7 +254,21 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None):
         db.execute(text("CREATE TEMP TABLE temp_agg AS SELECT ma_kh, SUM(doanh_thu) as total FROM transactions WHERE ma_kh IS NOT NULL GROUP BY ma_kh"))
         db.execute(text("CREATE INDEX temp_idx_ma_kh ON temp_agg(ma_kh)"))
         
+        # [GOVERNANCE] SSOT Bưu cục quản lý: Phải lấy từ giao dịch mới nhất
+        db.execute(text("""
+            CREATE TEMP TABLE temp_latest_tx AS
+            SELECT ma_kh, point_id, ma_dv_chap_nhan
+            FROM (
+                SELECT ma_kh, point_id, ma_dv_chap_nhan,
+                       ROW_NUMBER() OVER(PARTITION BY ma_kh ORDER BY ngay_chap_nhan DESC, id DESC) as rn
+                FROM transactions
+                WHERE ma_kh IS NOT NULL
+            ) WHERE rn = 1;
+        """))
+        db.execute(text("CREATE INDEX temp_idx_latest_tx_ma_kh ON temp_latest_tx(ma_kh)"))
+
         # 2. Update customers in a single pass (O(N) instead of O(N*M))
+        # Update 1: Revenue & Churn
         db.execute(text("""
             UPDATE customers 
             SET tong_doanh_thu = agg.total,
@@ -263,8 +277,19 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None):
             WHERE customers.ma_crm_cms = agg.ma_kh
         """))
         
+        # Update 2: Latest point ownership
+        db.execute(text("""
+            UPDATE customers
+            SET ma_bc_phu_trach = latest.ma_dv_chap_nhan,
+                point_id = latest.point_id
+            FROM temp_latest_tx AS latest
+            WHERE customers.ma_crm_cms = latest.ma_kh
+              AND (customers.ma_bc_phu_trach != latest.ma_dv_chap_nhan OR customers.point_id != latest.point_id)
+        """))
+        
         # 3. Cleanup
         db.execute(text("DROP TABLE temp_agg"))
+        db.execute(text("DROP TABLE temp_latest_tx"))
         db.commit()
         # RFM (Tối ưu nhẹ cho data lớn)
         all_customers = db.query(Customer).all()
