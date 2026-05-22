@@ -489,8 +489,10 @@ function Dashboard() {
     
     return processedHeatmapData.filter(item => {
       if (quickFilter === 'ALL') return true;
-      if (quickFilter === 'DANGER') return item.growth < 0 && item.revenue < avgRev;
       if (quickFilter === 'STAR') return item.growth >= 0 && item.revenue >= avgRev;
+      if (quickFilter === 'POTENTIAL') return item.growth >= 0 && item.revenue < avgRev;
+      if (quickFilter === 'COW') return item.growth < 0 && item.revenue >= avgRev;
+      if (quickFilter === 'DANGER') return item.growth < 0 && item.revenue < avgRev;
       return true;
     });
   }, [processedHeatmapData, quickFilter]);
@@ -728,8 +730,10 @@ function Dashboard() {
                 </h3>
                 <div className="flex flex-wrap items-center gap-2 mt-2">
                   <button onClick={() => setQuickFilter('ALL')} className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all ${quickFilter === 'ALL' ? 'bg-vnpost-blue text-white shadow-sm' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>Tất cả</button>
-                  <button onClick={() => setQuickFilter('DANGER')} className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all ${quickFilter === 'DANGER' ? 'bg-red-500 text-white shadow-sm' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}>🔥 Yếu kém</button>
                   <button onClick={() => setQuickFilter('STAR')} className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all ${quickFilter === 'STAR' ? 'bg-emerald-500 text-white shadow-sm' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}>⭐ Ngôi sao</button>
+                  <button onClick={() => setQuickFilter('POTENTIAL')} className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all ${quickFilter === 'POTENTIAL' ? 'bg-blue-500 text-white shadow-sm' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}>🚀 Triển vọng</button>
+                  <button onClick={() => setQuickFilter('COW')} className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all ${quickFilter === 'COW' ? 'bg-orange-500 text-white shadow-sm' : 'bg-orange-50 text-orange-600 hover:bg-orange-100'}`}>🐄 Bò sữa</button>
+                  <button onClick={() => setQuickFilter('DANGER')} className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all ${quickFilter === 'DANGER' ? 'bg-red-500 text-white shadow-sm' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}>⚠️ Yếu kém</button>
                 </div>
                 <div className="flex items-center gap-3">
                   <button onClick={handleCopyTSV} className="text-[10px] font-bold bg-vnpost-blue/10 text-vnpost-blue hover:bg-vnpost-blue/20 px-2 py-1 rounded-full uppercase tracking-wider transition-all flex items-center gap-1 shadow-sm">
