@@ -40,7 +40,43 @@ Luồng vận hành thực tế thường diễn ra như sau:
 
 ---
 
-## 🚀 2. HƯỚNG DẪN VẬN HÀNH NHANH (QUICK START)
+## 🎨 2. AI-READY UI/UX CONTEXT
+
+### 2.1 Frontend Structure
+- **Pages**: Các màn hình chính (Dashboard, Customers, Guidelines).
+- **Components**: Các mảnh ghép UI tái sử dụng (Modals, Charts, KPI Cards, TreeExplorer).
+- **Layouts**: Khung bao bọc ứng dụng (Sidebar, Header, Main Content).
+- **Services/Hooks**: Xử lý logic API (SWR fetcher, Navigation Context) tách biệt khỏi UI.
+- **Theme/Style**: Sử dụng TailwindCSS kết hợp custom CSS (hiệu ứng gradient/animations đặc thù).
+
+### 2.2 Dashboard Structure
+- **Filters Area**: Bộ lọc theo cấp độ địa bàn, thời gian, và chế độ xem (MoM/YoY).
+- **Elite Pulse (Realtime)**: Widget báo cáo nhanh buổi sáng với nút push lên Zalo.
+- **Population (Hiện trạng)**: Các thẻ KPI lớn hiển thị 5 nhóm vòng đời khách hàng.
+- **Potentials**: Phân hạng khách hàng VIP (Kim Cương, Vàng, Bạc).
+- **Charts & Tables**: Biểu đồ biến động doanh thu và bảng Heatmap đánh giá hiệu quả từng địa bàn.
+- **Drilldown**: Khả năng click trực tiếp vào các chỉ số để nhảy sang màn hình danh sách chi tiết.
+
+### 2.3 UI/UX Goals
+- **Enterprise Operation Center**: Thiết kế chuẩn hệ thống điều hành cấp doanh nghiệp.
+- **Tập trung Dữ liệu**: Đưa các số liệu quan trọng lên hàng đầu, dễ đọc lướt (scannability).
+- **Hiện đại & Compact**: Giao diện tối giản, tối ưu không gian hiển thị, dữ liệu tải nhanh.
+- **Responsive**: Thích ứng đa màn hình, đáp ứng nhu cầu xem báo cáo mọi lúc mọi nơi.
+
+### 2.4 Current UI/UX Problems
+- **Monolithic File**: File `Dashboard.jsx` quá lớn (>1800 dòng), khó duy trì.
+- **Layout bất đối xứng**: Một số block (VD: Cơ cấu vòng đời) chưa được đưa vào hệ Grid tổng thể chuẩn mực.
+- **Responsive hạn chế**: Bảng dữ liệu dễ bị tràn ngang (overflow-x) trên màn hình nhỏ. Các filter có thể bị lệch.
+- **Tính đồng nhất**: Các widget đôi khi thiếu sự nhất quán về khoảng cách (spacing/padding).
+
+### 2.5 Screenshots
+- 🖼️ *[Placeholder: Dashboard Overview - Desktop]*
+- 🖼️ *[Placeholder: Dashboard Overview - Mobile]*
+- 🖼️ *[Placeholder: Customer List & Drilldown View]*
+
+---
+
+## 🚀 3. HƯỚNG DẪN VẬN HÀNH NHANH (QUICK START)
 
 Dành cho AI Assistant và Cộng tác viên muốn khởi chạy hệ thống locally:
 
@@ -57,7 +93,7 @@ Dành cho AI Assistant và Cộng tác viên muốn khởi chạy hệ thống l
 
 ---
 
-## 🧠 3. KIẾN TRÚC & LUỒNG DỮ LIỆU (THE BRAIN)
+## 🧠 4. KIẾN TRÚC & LUỒNG DỮ LIỆU (THE BRAIN)
 
 Hệ thống được vận hành bởi 4 "Động cơ" cốt lõi:
 1.  **[Hierarchy Engine](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/app/services/hierarchy_service.py)**: Quản trị mô hình 5 cấp chức danh (BĐTP -> Trung tâm -> Trưởng đại diện -> Giám đốc Phường/Xã -> Nhân viên).
@@ -67,14 +103,14 @@ Hệ thống được vận hành bởi 4 "Động cơ" cốt lõi:
 
 ---
 
-## 📜 4. HIẾN PHÁP & QUY TẮC PHÁT TRIỂN
+## 📜 5. HIẾN PHÁP & QUY TẮC PHÁT TRIỂN
 Tuyệt đối không vi phạm các nguyên tắc quản trị trong các tài liệu sau:
 - [📖 HIÊN PHÁP CRM 3.0](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/Rules/HIEN_PHAP_CRM_3.0.md) (Quy tắc tối thượng)
 - [📝 NHẬT KÝ PHÁT TRIỂN](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/Rules/NK_PHAT_TRIEN_V3.0.md) (Theo dõi thay đổi)
 
 ---
 
-## 🗺️ 5. BẢN ĐỒ TRA CỨU MÃ NGUỒN (TECHNICAL INDEX)
+## 🗺️ 6. BẢN ĐỒ TRA CỨU MÃ NGUỒN (TECHNICAL INDEX)
 
 Sử dụng các liên kết dưới đây để truy cập trực tiếp vào các module quan trọng:
 
@@ -93,7 +129,7 @@ Sử dụng các liên kết dưới đây để truy cập trực tiếp vào c
 
 ---
 
-## 🛠️ 6. CÔNG CỤ BẢO TRÌ (ADMIN SCRIPTS)
+## 🛠️ 7. CÔNG CỤ BẢO TRÌ (ADMIN SCRIPTS)
 - [rebuild_summary.py](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/scripts/rebuild_summary.py) - Chạy khi cần làm mới toàn bộ Dashboard.
 - [database_optimizer.py](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/scripts/database_optimizer.py) - Tối ưu hiệu năng Database.
 
