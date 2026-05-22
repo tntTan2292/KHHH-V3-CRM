@@ -470,6 +470,53 @@ function Dashboard() {
     });
   };
 
+  const processedHeatmapData = useMemo(() => {
+    if (!heatmapDataRes || !heatmapDataRes.length) return [];
+    const rawData = Array.isArray(heatmapDataRes) ? heatmapDataRes : [];
+    return rawData.map(h => ({
+      ...h,
+      id: h.ma_don_vi,
+      title: h.don_vi,
+      revenue: Number(h?.revenue) || 0,
+      growth: Number(h?.growth) || 0
+    }));
+  }, [heatmapDataRes]);
+
+  const heatmapFilteredData = useMemo(() => {
+    if (!processedHeatmapData.length) return [];
+    const totalRev = processedHeatmapData.reduce((acc, curr) => acc + curr.revenue, 0);
+    const avgRev = totalRev / processedHeatmapData.length;
+    
+    return processedHeatmapData.filter(item => {
+      if (quickFilter === 'ALL') return true;
+      if (quickFilter === 'DANGER') return item.growth < 0 && item.revenue < avgRev;
+      if (quickFilter === 'STAR') return item.growth >= 0 && item.revenue >= avgRev;
+      if (quickFilter === 'RISK_CHURN') return item.growth < -10;
+      return true;
+    });
+  }, [processedHeatmapData, quickFilter]);
+
+  const handleCopyTSV = () => {
+    if (!heatmapFilteredData.length) return;
+    const totalRev = processedHeatmapData.reduce((acc, curr) => acc + curr.revenue, 0);
+    const avgRev = totalRev / processedHeatmapData.length;
+
+    const getQuadrant = (rev, growth) => {
+        if (rev >= avgRev && growth >= 0) return { label: "NGÔI SAO", color: "bg-emerald-500", text: "text-emerald-500", bg: "bg-emerald-50", icon: <Sparkles size={12}/> };
+        if (rev >= avgRev && growth < 0) return { label: "BÒ SỮA", color: "bg-orange-500", text: "text-orange-500", bg: "bg-orange-50", icon: <Target size={12}/> };
+        if (rev < avgRev && growth >= 0) return { label: "TRIỂN VỌNG", color: "bg-blue-500", text: "text-blue-500", bg: "bg-blue-50", icon: <TrendingUp size={12}/> };
+        return { label: "YẾU KÉM", color: "bg-red-500", text: "text-red-500", bg: "bg-red-50", icon: <AlertCircle size={12}/> };
+    };
+
+    const header = "Đơn vị\tID\tDoanh thu\tTăng trưởng\tChiến lược\n";
+    const rows = [...heatmapFilteredData].sort((a, b) => b.revenue - a.revenue).map(item => {
+        const q = getQuadrant(item.revenue, item.growth);
+        return `${item.title}\t${item.id}\t${item.revenue}\t${item.growth}%\t${q.label}`;
+    }).join('\n');
+    navigator.clipboard.writeText(header + rows);
+    toast.success("Đã copy dữ liệu bảng Heatmap!");
+  };
+
   return (
     <div className="flex bg-gray-50/50 min-h-screen">
       <div className={`flex-1 p-4 md:p-6 space-y-3 ${isExporting ? 'is-exporting' : ''}`} ref={dashboardRef}>
@@ -722,15 +769,7 @@ function Dashboard() {
                   <Skeleton.Table rows={8} />
                 ) : heatmapDataRes && heatmapDataRes.length > 0 ? (() => {
                    try {
-                     const rawData = Array.isArray(heatmapDataRes) ? heatmapDataRes : [];
-                     const data = rawData.map(h => ({
-                       ...h,
-                       id: h.ma_don_vi,
-                       title: h.don_vi,
-                       revenue: Number(h?.revenue) || 0,
-                       growth: Number(h?.growth) || 0
-                     }));
-                     
+                     const data = processedHeatmapData;
                      const totalRev = data.reduce((acc, curr) => acc + curr.revenue, 0);
                      const avgRev = totalRev / data.length;
 
@@ -741,23 +780,7 @@ function Dashboard() {
                         return { label: "YẾU KÉM", color: "bg-red-500", text: "text-red-500", bg: "bg-red-50", icon: <AlertCircle size={12}/> };
                      };
 
-                     const filteredData = data.filter(item => {
-                       if (quickFilter === 'ALL') return true;
-                       if (quickFilter === 'DANGER') return item.growth < 0 && item.revenue < avgRev;
-                       if (quickFilter === 'STAR') return item.growth >= 0 && item.revenue >= avgRev;
-                       if (quickFilter === 'RISK_CHURN') return item.growth < -10;
-                       return true;
-                     });
-
-                     const handleCopyTSV = () => {
-                        const header = "Đơn vị\tID\tDoanh thu\tTăng trưởng\tChiến lược\n";
-                        const rows = filteredData.sort((a, b) => b.revenue - a.revenue).map(item => {
-                            const q = getQuadrant(item.revenue, item.growth);
-                            return `${item.title}\t${item.id}\t${item.revenue}\t${item.growth}%\t${q.label}`;
-                        }).join('\n');
-                        navigator.clipboard.writeText(header + rows);
-                        toast.success("Đã copy dữ liệu bảng Heatmap!");
-                     };
+                     const filteredData = heatmapFilteredData;
 
                      return (
                         <div className={`h-full flex flex-col ${isFullScreen ? 'fixed inset-0 z-[9999] bg-white p-10 w-screen h-screen left-0 top-0 overflow-y-auto' : ''}`}>
