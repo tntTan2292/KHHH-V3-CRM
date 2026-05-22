@@ -21,7 +21,18 @@ Hệ thống tài liệu chuyên sâu dành cho AI (Claude Code / Antigravity / 
 
 ---
 
-## 🚀 2. HƯỚNG DẪN VẬN HÀNH NHANH (QUICK START)
+## 📐 2. DEVELOPMENT CONVENTIONS
+Chuẩn mực code và thiết kế bắt buộc dành cho mọi Developer và AI Agent nhằm đảm bảo kiến trúc dài hạn:
+
+- 🛠️ [DEVELOPMENT_CONVENTIONS.md](AI_CONTEXT/DEVELOPMENT_CONVENTIONS.md) - Quy tắc naming, folder, code.
+- 🧩 [COMPONENT_GUIDELINES.md](AI_CONTEXT/COMPONENT_GUIDELINES.md) - Tiêu chuẩn tạo và tách UI Component.
+- 🏗️ [DASHBOARD_ARCHITECTURE.md](AI_CONTEXT/DASHBOARD_ARCHITECTURE.md) - Triết lý layout và tương lai Widget-based.
+- 💅 [UI_STYLE_GUIDE.md](AI_CONTEXT/UI_STYLE_GUIDE.md) - Chuẩn màu sắc, typography và UI enterprise.
+- 🐙 [GIT_WORKFLOW.md](AI_CONTEXT/GIT_WORKFLOW.md) - Quy tắc commit, phân nhánh và refactor an toàn.
+
+---
+
+## 🚀 3. HƯỚNG DẪN VẬN HÀNH NHANH (QUICK START)
 
 Dành cho AI Assistant và Cộng tác viên muốn khởi chạy hệ thống locally:
 
@@ -38,7 +49,7 @@ Dành cho AI Assistant và Cộng tác viên muốn khởi chạy hệ thống l
 
 ---
 
-## 🧠 3. KIẾN TRÚC & LUỒNG DỮ LIỆU (THE BRAIN)
+## 🧠 4. KIẾN TRÚC & LUỒNG DỮ LIỆU (THE BRAIN)
 
 Hệ thống được vận hành bởi 4 "Động cơ" cốt lõi:
 1.  **[Hierarchy Engine](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/app/services/hierarchy_service.py)**: Quản trị mô hình 5 cấp chức danh (BĐTP -> Trung tâm -> Trưởng đại diện -> Giám đốc Phường/Xã -> Nhân viên).
@@ -48,14 +59,14 @@ Hệ thống được vận hành bởi 4 "Động cơ" cốt lõi:
 
 ---
 
-## 📜 4. HIẾN PHÁP & QUY TẮC PHÁT TRIỂN
+## 📜 5. HIẾN PHÁP & QUY TẮC PHÁT TRIỂN
 Tuyệt đối không vi phạm các nguyên tắc quản trị trong các tài liệu sau:
 - [📖 HIÊN PHÁP CRM 3.0](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/Rules/HIEN_PHAP_CRM_3.0.md) (Quy tắc tối thượng)
 - [📝 NHẬT KÝ PHÁT TRIỂN](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/Rules/NK_PHAT_TRIEN_V3.0.md) (Theo dõi thay đổi)
 
 ---
 
-## 🗺️ 5. BẢN ĐỒ TRA CỨU MÃ NGUỒN (TECHNICAL INDEX)
+## 🗺️ 6. BẢN ĐỒ TRA CỨU MÃ NGUỒN (TECHNICAL INDEX)
 
 Sử dụng các liên kết dưới đây để truy cập trực tiếp vào các module quan trọng:
 
@@ -74,7 +85,7 @@ Sử dụng các liên kết dưới đây để truy cập trực tiếp vào c
 
 ---
 
-## 🛠️ 6. CÔNG CỤ BẢO TRÌ (ADMIN SCRIPTS)
+## 🛠️ 7. CÔNG CỤ BẢO TRÌ (ADMIN SCRIPTS)
 - [rebuild_summary.py](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/scripts/rebuild_summary.py) - Chạy khi cần làm mới toàn bộ Dashboard.
 - [database_optimizer.py](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/scripts/database_optimizer.py) - Tối ưu hiệu năng Database.
 
