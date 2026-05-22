@@ -130,6 +130,7 @@ function Dashboard() {
   const [waitingForDefaultDate, setWaitingForDefaultDate] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState("");
   const [quickFilter, setQuickFilter] = useState("ALL");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const selectedMonthLabel = useMemo(() => {
     if (selectedMonth) return selectedMonth;
@@ -488,6 +489,9 @@ function Dashboard() {
     const avgRev = totalRev / processedHeatmapData.length;
     
     return processedHeatmapData.filter(item => {
+      const matchSearch = !searchTerm || item.title?.toLowerCase().includes(searchTerm.toLowerCase()) || String(item.id).toLowerCase().includes(searchTerm.toLowerCase());
+      if (!matchSearch) return false;
+
       if (quickFilter === 'ALL') return true;
       if (quickFilter === 'STAR') return item.growth >= 0 && item.revenue >= avgRev;
       if (quickFilter === 'POTENTIAL') return item.growth >= 0 && item.revenue < avgRev;
@@ -495,7 +499,7 @@ function Dashboard() {
       if (quickFilter === 'DANGER') return item.growth < 0 && item.revenue < avgRev;
       return true;
     });
-  }, [processedHeatmapData, quickFilter]);
+  }, [processedHeatmapData, quickFilter, searchTerm]);
 
   const handleCopyTSV = () => {
     if (!heatmapFilteredData.length) return;
@@ -729,6 +733,16 @@ function Dashboard() {
                   Bảng Quản trị Hiệu quả & Tăng trưởng Địa bàn
                 </h3>
                 <div className="flex flex-wrap items-center gap-2 mt-2">
+                  <div className="relative flex items-center">
+                    <Search size={12} className="absolute left-2 text-gray-400" />
+                    <input 
+                      type="text" 
+                      placeholder="Tìm ID / Đơn vị..." 
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-6 pr-2 py-1 rounded-full text-[10px] border border-gray-200 bg-white shadow-sm focus:outline-none focus:border-vnpost-blue focus:ring-1 focus:ring-vnpost-blue transition-all w-36"
+                    />
+                  </div>
                   <button onClick={() => setQuickFilter('ALL')} className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all ${quickFilter === 'ALL' ? 'bg-vnpost-blue text-white shadow-sm' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>Tất cả</button>
                   <button onClick={() => setQuickFilter('STAR')} className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all ${quickFilter === 'STAR' ? 'bg-emerald-500 text-white shadow-sm' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}>⭐ Ngôi sao</button>
                   <button onClick={() => setQuickFilter('POTENTIAL')} className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all ${quickFilter === 'POTENTIAL' ? 'bg-blue-500 text-white shadow-sm' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}>🚀 Triển vọng</button>
