@@ -132,6 +132,7 @@ function Dashboard() {
   const [quickFilter, setQuickFilter] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
   const [showChurnModal, setShowChurnModal] = useState(false);
+  const [pinnedRows, setPinnedRows] = useState([]);
 
   const selectedMonthLabel = useMemo(() => {
     if (selectedMonth) return selectedMonth;
@@ -521,12 +522,12 @@ function Dashboard() {
     }).join('\n');
     const copyText = header + rows;
     if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(copyText).then(() => {
-            toast.success("Đã copy dữ liệu bảng Heatmap!");
-        }).catch(err => {
-            console.error(err);
-            toast.error("Lỗi khi copy. Vui lòng thử lại!");
-        });
+        try {
+            navigator.clipboard.writeText(copyText);
+            toast.success("Đã sao chép bảng Heatmap (TSV)");
+        } catch (err) {
+            toast.error("Lỗi khi sao chép");
+        }
     } else {
         const textArea = document.createElement("textarea");
         textArea.value = copyText;
@@ -544,6 +545,15 @@ function Dashboard() {
             textArea.remove();
         }
     }
+  };
+
+  const handlePinRow = (id) => {
+    setPinnedRows(prev => prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]);
+  };
+  
+  const handleCopyRowId = (id) => {
+    navigator.clipboard.writeText(id);
+    toast.success(`Đã sao chép ID: ${id}`);
   };
 
   return (
@@ -847,7 +857,7 @@ function Dashboard() {
                                     const contribution = totalRev > 0 ? ((item.revenue / totalRev) * 100).toFixed(1) + '%' : '0%';
                                     
                                     return (
-                                      <tr key={item.id || idx} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors group">
+                                      <tr key={item.id || idx} className={`border-b border-gray-50 transition-colors group ${pinnedRows.includes(item.id) ? 'bg-amber-50/50' : 'hover:bg-gray-50/50'}`}>
                                         <td className="p-1.5 pl-3">
                                           <div className="flex items-center gap-2">
                                             <div className={`w-1 h-8 rounded-full ${_isWeak ? 'bg-red-500' : 'bg-gray-200'}`}></div>
@@ -879,12 +889,29 @@ function Dashboard() {
                                           </div>
                                         </td>
                                         <td className="p-1.5 text-right pr-3">
-                                          <button 
-                                            onClick={() => handleDrillDown(item)}
-                                            className="p-1.5 bg-gray-100 text-gray-400 rounded-lg hover:bg-vnpost-blue hover:text-white transition-all shadow-sm"
-                                          >
-                                            <ChevronRight size={14} />
-                                          </button>
+                                          <div className="flex items-center justify-end gap-1.5">
+                                            <button 
+                                              onClick={() => handleCopyRowId(item.id)}
+                                              title="Sao chép ID"
+                                              className="p-1.5 bg-gray-50 text-gray-400 rounded-lg hover:bg-gray-200 hover:text-gray-700 transition-all shadow-sm"
+                                            >
+                                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                            </button>
+                                            <button 
+                                              onClick={() => handlePinRow(item.id)}
+                                              title="Đánh dấu"
+                                              className={`p-1.5 rounded-lg transition-all shadow-sm ${pinnedRows.includes(item.id) ? 'bg-amber-100 text-amber-600' : 'bg-gray-50 text-gray-400 hover:bg-amber-50 hover:text-amber-500'}`}
+                                            >
+                                              <svg width="12" height="12" viewBox="0 0 24 24" fill={pinnedRows.includes(item.id) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                            </button>
+                                            <button 
+                                              onClick={() => handleDrillDown(item)}
+                                              title="Xem chi tiết"
+                                              className="p-1.5 bg-vnpost-blue/10 text-vnpost-blue rounded-lg hover:bg-vnpost-blue hover:text-white transition-all shadow-sm"
+                                            >
+                                              <ChevronRight size={12} />
+                                            </button>
+                                          </div>
                                         </td>
                                       </tr>
                                     );

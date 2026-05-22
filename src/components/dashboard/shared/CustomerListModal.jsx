@@ -1,6 +1,5 @@
 import React from 'react';
 import { X, AlertCircle } from 'lucide-react';
-import { formatCurrency } from '../../../utils/formatters';
 
 const CustomerListModal = ({ isOpen, onClose, customers, title = "Khách hàng nguy cơ rời bỏ" }) => {
   if (!isOpen) return null;
