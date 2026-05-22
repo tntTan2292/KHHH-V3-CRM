@@ -559,17 +559,24 @@ function Dashboard() {
         </div>
 
         {/* SECTION: POPULATION (HIỆN TRẠNG) - TOP PRIORITY */}
-        <PopulationKpiGroup stats={stats} summaryData={summaryData} selectedNode={selectedNode} navigate={navigate} saveNavigationContext={saveNavigationContext} />
+        <PopulationKpiGroup stats={stats} summaryData={summaryData} selectedNode={selectedNode} navigate={navigate} saveNavigationContext={saveNavigationContext} onAction={handleInsightAction} />
 
         {/* SECTION: EVENTS (BIẾN ĐỘNG TRONG KỲ) - SECONDARY PRIORITY */}
-        <MovementIndicators stats={stats} summaryData={summaryData} selectedNode={selectedNode} navigate={navigate} saveNavigationContext={saveNavigationContext} />
+        <MovementIndicators stats={stats} summaryData={summaryData} selectedNode={selectedNode} navigate={navigate} saveNavigationContext={saveNavigationContext} onAction={handleInsightAction} />
             
         {/* ELITE TIERS (Potentials) */}
-        <PotentialsGroup stats={stats} summaryData={summaryData} selectedNode={selectedNode} navigate={navigate} saveNavigationContext={saveNavigationContext} />
+        <PotentialsGroup stats={stats} summaryData={summaryData} selectedNode={selectedNode} navigate={navigate} saveNavigationContext={saveNavigationContext} onAction={handleInsightAction} />
           
         <LifecyclePulseBar stats={stats} />
 
-
+        {/* P7.1 Executive Briefing */}
+        <AIAssistantInsights 
+          summary={moversData?.summary} 
+          stats={stats} 
+          churnPrediction={churnDataRes} 
+          heatmapData={heatmapDataRes} 
+          onAction={handleInsightAction}
+        />
 
       {/* Heatmap & Trends */}
         <div className="grid grid-cols-1 gap-6" id="heatmap-section">

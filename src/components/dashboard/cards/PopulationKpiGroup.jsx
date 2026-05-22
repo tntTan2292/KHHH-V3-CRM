@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Users, AlertCircle, UserMinus, Sparkles, RefreshCw } from 'lucide-react';
 import Skeleton from '../../Skeleton';
 
-const PopulationKpiGroup = ({ stats, summaryData, selectedNode, navigate, saveNavigationContext }) => {
+const PopulationKpiGroup = ({ stats, summaryData, selectedNode, navigate, saveNavigationContext, onAction }) => {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between flex-wrap gap-1">
@@ -43,6 +43,14 @@ const PopulationKpiGroup = ({ stats, summaryData, selectedNode, navigate, saveNa
                     <span className="text-gray-500 opacity-60 ml-0.5 uppercase font-bold text-[10px]">vs T-1</span>
                   </div>
                 )}
+                <div className="mt-2 pt-2 border-t border-blue-100/30 flex justify-end">
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onAction && onAction('FILTER_STAR'); }}
+                    className="text-[9px] font-bold text-blue-600/70 hover:text-blue-800 uppercase tracking-widest flex items-center gap-1 transition-colors group/btn"
+                  >
+                    Phân tích vùng sáng <span className="group-hover/btn:translate-x-0.5 transition-transform">→</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -70,6 +78,14 @@ const PopulationKpiGroup = ({ stats, summaryData, selectedNode, navigate, saveNa
                     <span className="text-gray-500 opacity-60 ml-0.5 uppercase font-bold text-[10px]">vs T-1</span>
                   </div>
                 )}
+                <div className="mt-2 pt-2 border-t border-amber-200/30 flex justify-end">
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onAction && onAction('FILTER_WEAK'); }}
+                    className="text-[9px] font-bold text-amber-600/70 hover:text-amber-800 uppercase tracking-widest flex items-center gap-1 transition-colors group/btn"
+                  >
+                    Phân tích vùng tối <span className="group-hover/btn:translate-x-0.5 transition-transform">→</span>
+                  </button>
+                </div>
               </div>
             </div>
 

@@ -2,7 +2,6 @@ import React from 'react';
 import { ResponsiveContainer, ComposedChart, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip, Bar, Line, BarChart, Legend } from 'recharts';
 import { Activity, Loader2, RefreshCw, TrendingUp, BarChart3 } from 'lucide-react';
 import Skeleton from '../../Skeleton';
-import AIAssistantInsights from '../shared/AIAssistantInsights';
 
 const CustomTooltip = ({ active, payload, label, unit, formatCurrency }) => {
   if (active && payload && payload.length) {
@@ -154,13 +153,6 @@ const MovementComparison = ({
                 return null;
               })()}
             </div>
-            <AIAssistantInsights 
-              summary={moversData.summary} 
-              stats={stats} 
-              churnPrediction={churnDataRes} 
-              heatmapData={heatmapDataRes} 
-              onAction={onInsightAction}
-            />
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Revenue Comparison */}
