@@ -474,16 +474,16 @@ function Dashboard() {
       <div className={`flex-1 p-4 md:p-6 space-y-3 ${isExporting ? 'is-exporting' : ''}`} ref={dashboardRef}>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-3 rounded-2xl shadow-sm border border-gray-100 relative z-50">
           <div>
-            <h2 className="text-xl font-black text-vnpost-blue uppercase tracking-tight">CRM 3.0 Dashboard</h2>
+            <h2 className="text-xl font-bold text-vnpost-blue uppercase tracking-wider">CRM 3.0 Dashboard</h2>
             <div className="flex items-center gap-2 mt-0.5">
               {selectedNode ? (
-                <span className="text-[10px] bg-vnpost-orange text-white px-2 py-0.5 rounded-full font-black uppercase shadow-sm">Đang soi: {selectedNode.title}</span>
+                <span className="text-[10px] bg-vnpost-orange text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-sm">Đang soi: {selectedNode.title}</span>
               ) : (
                 <span className="text-[10px] bg-vnpost-blue/10 text-vnpost-blue px-2 py-0.5 rounded-full font-bold uppercase border border-vnpost-blue/10">
                   {user?.scope || "Toàn tỉnh"}
                 </span>
               )}
-              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest bg-gray-100 px-1.5 py-0.5 rounded">Elite</span>
+              <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider bg-gray-100 px-1.5 py-0.5 rounded">Elite</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -501,11 +501,11 @@ function Dashboard() {
             <div className="flex items-center gap-4">
               <div className="bg-white/20 p-2 rounded-xl backdrop-blur-md border border-white/30"><AlertCircle size={24} /></div>
               <div>
-                <p className="text-[11px] font-black uppercase tracking-widest opacity-80 mb-0.5">Cảnh báo Sức khỏe Hệ thống (QA Detected)</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider opacity-80 mb-0.5">Cảnh báo Sức khỏe Hệ thống (QA Detected)</p>
                 <p className="text-sm font-bold leading-tight">{healthDataRes.message}</p>
               </div>
             </div>
-            <button className="bg-white/10 hover:bg-white/20 text-white border border-white/30 px-5 py-2 rounded-xl font-black text-[11px] transition-all uppercase backdrop-blur-md">Kiểm tra Master File</button>
+            <button className="bg-white/10 hover:bg-white/20 text-white border border-white/30 px-5 py-2 rounded-xl font-bold text-[11px] transition-all uppercase tracking-wider backdrop-blur-md">Kiểm tra Master File</button>
           </div>
         )}
 
@@ -652,12 +652,12 @@ function Dashboard() {
           <div className="card p-4 overflow-hidden relative z-20 min-w-0">
             <div className="flex flex-col gap-2 mb-4 border-b border-gray-50 pb-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-black text-gray-800 uppercase tracking-tighter flex items-center gap-2">
+                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
                   <Target size={18} className="text-vnpost-orange" /> 
                   Bảng Quản trị Hiệu quả & Tăng trưởng Địa bàn
                 </h3>
                 <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-black bg-vnpost-orange/10 text-vnpost-orange px-2 py-1 rounded-full uppercase tracking-widest">
+                  <span className="text-[10px] font-bold bg-vnpost-orange/10 text-vnpost-orange px-2 py-1 rounded-full uppercase tracking-wider">
                     PHÂN LOẠI CHIẾN LƯỢC 4 NHÓM
                   </span>
                   <button 
@@ -678,7 +678,7 @@ function Dashboard() {
                     className="p-1.5 bg-white border border-gray-200 rounded-lg text-gray-400 hover:text-vnpost-blue hover:border-vnpost-blue shadow-sm transition-all flex items-center gap-1 group"
                   >
                     <ArrowLeft size={12} className="group-hover:-translate-x-0.5 transition-transform" />
-                    <span className="text-[9px] font-black uppercase">Quay lại</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider">Quay lại</span>
                   </button>
                   
                   <div className="h-4 w-[1px] bg-gray-200 mx-1"></div>
@@ -693,7 +693,7 @@ function Dashboard() {
                             setNavStack(newStack);
                             setSelectedNode(step);
                           }}
-                          className={`px-2 py-1 rounded-md text-[10px] font-black uppercase whitespace-nowrap transition-all ${
+                          className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-all ${
                             idx === navStack.length - 1 
                               ? 'bg-vnpost-blue text-white shadow-sm' 
                               : 'text-gray-400 hover:bg-white hover:text-vnpost-blue'
@@ -737,12 +737,12 @@ function Dashboard() {
                             <table className="w-full text-left border-collapse">
                               <thead className="sticky top-0 bg-white/80 backdrop-blur-md z-10">
                                 <tr className="border-b border-gray-100">
-                                  <th className="p-2.5 text-[11px] font-black text-gray-500 uppercase tracking-widest">Đơn vị địa bàn</th>
-                                  <th className="p-2.5 text-[11px] font-black text-gray-500 uppercase tracking-widest text-right">Doanh thu</th>
-                                  <th className="p-2.5 text-[11px] font-black text-gray-500 uppercase tracking-widest text-right">Tỷ trọng</th>
-                                  <th className="p-2.5 text-[11px] font-black text-gray-500 uppercase tracking-widest text-center">Tăng trưởng</th>
-                                  <th className="p-2.5 text-[11px] font-black text-gray-500 uppercase tracking-widest text-center">Chiến lược</th>
-                                  <th className="p-2.5 text-[11px] font-black text-gray-500 uppercase tracking-widest text-center">Thao tác</th>
+                                  <th className="p-2.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Đơn vị địa bàn</th>
+                                  <th className="p-2.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Doanh thu</th>
+                                  <th className="p-2.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Tỷ trọng</th>
+                                  <th className="p-2.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-center">Tăng trưởng</th>
+                                  <th className="p-2.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-center">Chiến lược</th>
+                                  <th className="p-2.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-center">Thao tác</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -761,22 +761,22 @@ function Dashboard() {
                                           <div className="flex items-center gap-2">
                                             <div className={`w-1 h-8 rounded-full ${_isWeak ? 'bg-red-500' : 'bg-gray-200'}`}></div>
                                             <div className="flex flex-col min-w-0">
-                                              <span className="text-[11px] font-black text-gray-800 truncate leading-tight group-hover:text-vnpost-blue">{item.title}</span>
-                                              <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">ID: {item.id}</span>
+                                              <span className="text-[11px] font-semibold text-gray-800 truncate leading-tight group-hover:text-vnpost-blue">{item.title}</span>
+                                              <span className="text-[9px] font-medium text-gray-400 uppercase tracking-wider">ID: {item.id}</span>
                                             </div>
                                           </div>
                                         </td>
-                                        <td className="p-1.5 text-right font-black text-gray-700 text-[11px]">
+                                        <td className="p-1.5 text-right font-semibold text-gray-700 text-[11px]">
                                           {formatCurrency(item.revenue)} <span className="text-gray-300 font-normal ml-0.5">₫</span>
                                         </td>
                                         <td className="p-1.5 text-right">
                                            <div className="flex flex-col items-end">
-                                              <span className="text-[10px] font-black text-vnpost-blue/40 uppercase tracking-tighter">Tỷ trọng</span>
-                                              <span className="text-[11px] font-black text-gray-600">{contribution}</span>
+                                              <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Tỷ trọng</span>
+                                              <span className="text-[11px] font-semibold text-gray-600">{contribution}</span>
                                            </div>
                                         </td>
                                         <td className="p-1.5 text-center">
-                                          <div className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full font-black text-[9px] ${item.growth >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                                          <div className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full font-bold text-[10px] ${item.growth >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
                                             {item.growth >= 0 ? <ArrowUpRight size={10}/> : <TrendingUp size={10} className="rotate-180"/>}
                                             {item.growth > 0 ? '+' : ''}{item.growth}%
                                           </div>
@@ -784,7 +784,7 @@ function Dashboard() {
                                         <td className="p-1.5 text-center">
                                           <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border ${q.bg} ${q.text} border-transparent group-hover:border-current transition-all shadow-sm`}>
                                             {q.icon}
-                                            <span className="text-[9px] font-black uppercase tracking-tighter">{q.label}</span>
+                                            <span className="text-[9px] font-bold uppercase tracking-wider tracking-tighter">{q.label}</span>
                                           </div>
                                         </td>
                                         <td className="p-1.5 text-right pr-3">
@@ -810,7 +810,7 @@ function Dashboard() {
                                         <td className="p-1.5 pl-3">
                                           <div className="flex flex-col">
                                             <span className="text-[11px] font-black text-vnpost-blue uppercase tracking-tight">TỔNG CỘNG ĐỊA BÀN</span>
-                                            <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">{data.length} đơn vị con</span>
+                                            <span className="text-[9px] font-medium text-gray-400 uppercase tracking-wider">{data.length} đơn vị con</span>
                                           </div>
                                         </td>
                                         <td className="p-1.5 text-right">
@@ -1206,7 +1206,7 @@ function Dashboard() {
                   <div key={idx} className="flex items-center justify-between gap-3 p-2 px-4 border-b border-gray-50 last:border-0 hover:bg-red-50 transition-all cursor-pointer group" onClick={() => setSelectedCustomer(p)}>
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div className="flex flex-col min-w-0">
-                        <p className="text-[11px] font-black text-gray-800 truncate uppercase group-hover:text-red-700">{p.ten_kh}</p>
+                        <p className="text-[11px] font-semibold text-gray-800 truncate uppercase group-hover:text-red-700">{p.ten_kh}</p>
                         <div className="flex items-center gap-1.5 mt-0.5">
                            <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">{p.ma_kh}</span>
                            <span className="text-[8px] px-1 bg-red-100 text-red-600 rounded font-black uppercase tracking-tighter">{p.segment}</span>
@@ -1269,7 +1269,7 @@ function Dashboard() {
                         {s.score}
                       </div>
                       <div className="flex flex-col min-w-0">
-                        <p className="text-[11px] font-black text-gray-800 truncate uppercase group-hover:text-indigo-700">{s.ten_kh}</p>
+                        <p className="text-[11px] font-semibold text-gray-800 truncate uppercase group-hover:text-indigo-700">{s.ten_kh}</p>
                         <div className="flex items-center gap-1.5 mt-0.5">
                            <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">{s.ma_kh}</span>
                            <span className="text-[8px] px-1 bg-indigo-100 text-indigo-600 rounded font-black uppercase tracking-tighter">{s.rank}</span>
