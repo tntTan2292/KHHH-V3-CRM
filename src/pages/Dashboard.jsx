@@ -9,7 +9,7 @@ import {
 } from 'recharts';
 import {
   ArrowUpRight, Users, UserMinus, DollarSign, DownloadCloud, Loader2,
-  Calendar, MapPin, TrendingUp, Info, X, BarChart3, Target, Sparkles, AlertCircle, RefreshCw, ArrowLeft, ChevronRight, Zap, Send, Activity, Maximize2, Minimize2
+  Calendar, MapPin, TrendingUp, Info, X, BarChart3, Target, Sparkles, AlertCircle, RefreshCw, ArrowLeft, ChevronRight, Zap, Send, Activity, Maximize2, Minimize2, Search
 } from 'lucide-react';
 const TreeExplorer = lazy(() => import('../components/TreeExplorer'));
 const CustomerProfileModal = lazy(() => import('../components/CustomerProfileModal'));
