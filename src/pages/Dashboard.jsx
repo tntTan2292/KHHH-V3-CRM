@@ -450,7 +450,7 @@ function Dashboard() {
 
   return (
     <div className="flex bg-gray-50/50 min-h-screen">
-      <div className={`flex-1 p-4 md:p-6 space-y-3 ${isExporting ? 'is-exporting' : ''}`} ref={dashboardRef}>
+      <div className={`flex-1 p-4 md:p-6 space-y-6 ${isExporting ? 'is-exporting' : ''}`} ref={dashboardRef}>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-3 rounded-2xl shadow-sm border border-gray-100 relative z-50">
           <div>
             <h2 className="text-xl font-bold text-vnpost-blue uppercase tracking-wider">CRM 3.0 Dashboard</h2>

@@ -10,7 +10,7 @@ const AIAssistantInsights = ({ summary, stats, churnPrediction, heatmapData, onA
 
   // [UI OPTIMIZATION] Compact Mode Styling
   return (
-    <div className="bg-gradient-to-br from-indigo-50/50 via-white to-blue-50/50 rounded-2xl border border-indigo-100/50 p-3 mb-4 animate-in fade-in slide-in-from-bottom-2 duration-700">
+    <div className="bg-white rounded-2xl border border-gray-200/60 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] p-3 mb-4 animate-in fade-in slide-in-from-bottom-2 duration-700">
       <div className="flex items-center gap-2 mb-2">
         <div className="p-1.5 bg-indigo-500 text-white rounded-lg shadow-sm">
           <Zap size={14} className="animate-pulse" />
@@ -43,7 +43,7 @@ const AIAssistantInsights = ({ summary, stats, churnPrediction, heatmapData, onA
             <div className="flex items-start gap-2 bg-white/60 p-1.5 rounded-lg border border-indigo-50/50">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1 flex-shrink-0"></div>
               <p className="text-[11px] text-gray-700 leading-tight">
-                <span className="font-bold text-emerald-600">Động lực chính:</span> <span className="font-black">Elite Performance</span> đang duy trì tỷ trọng cao.
+                <span className="font-bold text-emerald-600">Động lực chính:</span> <span className="font-bold">Elite Performance</span> đang duy trì tỷ trọng cao.
               </p>
             </div>
           </div>

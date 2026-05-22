@@ -59,7 +59,7 @@ const LifecyclePulseBar = ({ stats }) => {
                   <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Active</span>
                 </div>
                 <div className="flex justify-between items-end">
-                  <span className="text-xl font-black text-vnpost-blue">{active.toLocaleString()}</span>
+                  <span className="text-xl font-bold text-vnpost-blue">{active.toLocaleString()}</span>
                   <span className="text-[10px] font-bold text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-md">{((active/total)*100).toFixed(1)}%</span>
                 </div>
               </div>
@@ -70,7 +70,7 @@ const LifecyclePulseBar = ({ stats }) => {
                   <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">At Risk</span>
                 </div>
                 <div className="flex justify-between items-end">
-                  <span className="text-xl font-black text-orange-700">{at_risk.toLocaleString()}</span>
+                  <span className="text-xl font-bold text-orange-700">{at_risk.toLocaleString()}</span>
                   <span className="text-[10px] font-bold text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded-md">{((at_risk/total)*100).toFixed(1)}%</span>
                 </div>
               </div>

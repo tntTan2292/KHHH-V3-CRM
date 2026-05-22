@@ -263,9 +263,9 @@ const HeatmapSection = forwardRef(({
                                       </div>
                                     </td>
                                     <td className="p-1.5 text-center">
-                                      <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border ${q.bg} ${q.text} border-transparent group-hover:border-current transition-all shadow-sm`}>
-                                        {q.icon}
-                                        <span className="text-[9px] font-bold uppercase tracking-wider tracking-tighter">{q.label}</span>
+                                      <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg border border-transparent`}>
+                                        <div className={`w-2 h-2 rounded-full ${q.color} shadow-sm`}></div>
+                                        <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">{q.label}</span>
                                       </div>
                                     </td>
                                     <td className="p-1.5 text-right pr-3">
@@ -308,24 +308,24 @@ const HeatmapSection = forwardRef(({
                                 <tr className="bg-vnpost-blue/5">
                                   <td className="p-1.5 pl-3">
                                     <div className="flex flex-col">
-                                      <span className="text-[11px] font-black text-vnpost-blue uppercase tracking-tight">TỔNG CỘNG ĐỊA BÀN</span>
+                                      <span className="text-[11px] font-bold text-vnpost-blue uppercase tracking-tight">TỔNG CỘNG ĐỊA BÀN</span>
                                       <span className="text-[9px] font-medium text-gray-400 uppercase tracking-wider">{data.length} đơn vị con</span>
                                     </div>
                                   </td>
                                   <td className="p-1.5 text-right">
-                                    <span className="text-[13px] font-black text-vnpost-blue">{formatCurrency(totalRev)} <span className="text-[9px] font-normal">₫</span></span>
+                                    <span className="text-[13px] font-bold text-vnpost-blue">{formatCurrency(totalRev)} <span className="text-[9px] font-normal">₫</span></span>
                                   </td>
                                   <td className="p-1.5 text-right">
-                                      <span className="text-[11px] font-black text-vnpost-blue/40 uppercase tracking-widest">100.0%</span>
+                                      <span className="text-[11px] font-bold text-vnpost-blue/40 uppercase tracking-widest">100.0%</span>
                                   </td>
                                   <td className="p-1.5">
-                                    <div className={`flex items-center justify-center gap-0.5 font-black text-[11px] ${totalGrowth >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                    <div className={`flex items-center justify-center gap-0.5 font-bold text-[11px] ${totalGrowth >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                                       {totalGrowth >= 0 ? <ArrowUpRight size={12}/> : <TrendingUp size={12} className="rotate-180"/>}
                                       {totalGrowth > 0 ? '+' : ''}{totalGrowth.toFixed(1)}%
                                     </div>
                                   </td>
                                   <td colSpan="2" className="p-2 text-center">
-                                    <div className="text-[8px] font-black text-gray-400 uppercase tracking-widest bg-white/50 py-1 rounded-lg border border-gray-100 italic">
+                                    <div className="text-[8px] font-bold text-gray-400 uppercase tracking-widest bg-white/50 py-1 rounded-lg border border-gray-100 italic">
                                       Hiệu quả tổng hợp của phạm vi đang soi
                                     </div>
                                   </td>
@@ -341,23 +341,23 @@ const HeatmapSection = forwardRef(({
                 console.error("Board Render Error:", e);
                 return <div className="h-full flex items-center justify-center text-red-500 font-bold">Lỗi hiển thị bảng quản trị.</div>;
               }
-          })() : <div className="h-full flex items-center justify-center text-gray-300 italic text-xs uppercase font-black tracking-widest animate-pulse">Đang nạp dữ liệu điều hành...</div>}
+          })() : <div className="h-full flex items-center justify-center text-gray-300 italic text-xs uppercase font-bold tracking-widest animate-pulse">Đang nạp dữ liệu điều hành...</div>}
         </div>
           <div className="grid grid-cols-4 gap-3 mt-4">
             <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100 transition-all duration-300 transform hover:scale-105 hover:shadow-xl cursor-default group">
-               <p className="text-[13px] font-black text-emerald-700 uppercase mb-1 flex items-center gap-2">⭐ NGÔI SAO</p>
+               <p className="text-[13px] font-bold text-emerald-700 uppercase mb-1 flex items-center gap-2">⭐ NGÔI SAO</p>
                <p className="text-[10px] text-emerald-800 leading-tight font-bold opacity-70 group-hover:opacity-100">Quy mô lớn & Tăng trưởng tốt.</p>
             </div>
             <div className="p-3 rounded-xl bg-blue-50 border border-blue-100 transition-all duration-300 transform hover:scale-105 hover:shadow-xl cursor-default group">
-               <p className="text-[13px] font-black text-blue-700 uppercase mb-1 flex items-center gap-2">🚀 TRIỂN VỌNG</p>
+               <p className="text-[13px] font-bold text-blue-700 uppercase mb-1 flex items-center gap-2">🚀 TRIỂN VỌNG</p>
                <p className="text-[10px] text-blue-800 leading-tight font-bold opacity-70 group-hover:opacity-100">Quy mô nhỏ nhưng tăng trưởng nhanh.</p>
             </div>
             <div className="p-3 rounded-xl bg-orange-50 border border-orange-100 transition-all duration-300 transform hover:scale-105 hover:shadow-xl cursor-default group">
-               <p className="text-[13px] font-black text-orange-700 uppercase mb-1 flex items-center gap-2">🐄 BÒ SỮA</p>
+               <p className="text-[13px] font-bold text-orange-700 uppercase mb-1 flex items-center gap-2">🐄 BÒ SỮA</p>
                <p className="text-[10px] text-orange-800 leading-tight font-bold opacity-70 group-hover:opacity-100">Quy mô lớn nhưng tăng trưởng âm.</p>
             </div>
             <div className="p-3 rounded-xl bg-red-50 border border-red-100 transition-all duration-300 transform hover:scale-105 hover:shadow-xl cursor-default group">
-               <p className="text-[13px] font-black text-red-700 uppercase mb-1 flex items-center gap-2">⚠️ YẾU KÉM</p>
+               <p className="text-[13px] font-bold text-red-700 uppercase mb-1 flex items-center gap-2">⚠️ YẾU KÉM</p>
                <p className="text-[10px] text-red-800 leading-tight font-bold opacity-70 group-hover:opacity-100">Cả quy mô và tăng trưởng đều thấp.</p>
             </div>
           </div>

@@ -8,7 +8,7 @@ const CustomTooltip = ({ active, payload, label, unit, formatCurrency }) => {
     const total = payload.reduce((sum, entry) => sum + (entry.value || 0), 0);
     return (
       <div className="bg-white p-4 rounded-2xl shadow-2xl border border-gray-100 min-w-[200px]">
-        <p className="text-sm font-black text-gray-800 mb-2 border-b border-gray-100 pb-2">{label}</p>
+        <p className="text-sm font-bold text-gray-800 mb-2 border-b border-gray-100 pb-2">{label}</p>
         <div className="space-y-1.5">
           {payload.map((entry, index) => (
             <div key={`${entry.name}-${index}`} className="flex justify-between items-center gap-6">
@@ -16,14 +16,14 @@ const CustomTooltip = ({ active, payload, label, unit, formatCurrency }) => {
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.fill }}></div>
                 <span className="text-xs font-bold text-gray-500">{entry.name}:</span>
               </div>
-              <span className="text-xs font-black text-gray-700">
+              <span className="text-xs font-bold text-gray-700">
                 {unit === 'VND' ? formatCurrency(entry.value) : (entry.value || 0).toLocaleString() + ' đơn'}
               </span>
             </div>
           ))}
           <div className="flex justify-between items-center gap-6 pt-2 mt-2 border-t border-dashed border-gray-200">
-            <span className="text-xs font-black text-vnpost-blue uppercase tracking-wider">Tổng cộng:</span>
-            <span className="text-sm font-black text-vnpost-blue">
+            <span className="text-xs font-bold text-vnpost-blue uppercase tracking-wider">Tổng cộng:</span>
+            <span className="text-sm font-bold text-vnpost-blue">
               {unit === 'VND' ? formatCurrency(total) : total.toLocaleString() + ' đơn'}
             </span>
           </div>
@@ -56,7 +56,7 @@ const MovementComparison = ({
               return (
                 <div className="flex flex-col h-full items-center justify-center bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
                   <Loader2 className="w-8 h-8 text-vnpost-blue/20 animate-spin" />
-                  <p className="text-[10px] font-black text-gray-400 uppercase mt-4">Đang phân tích xu hướng...</p>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase mt-4">Đang phân tích xu hướng...</p>
                 </div>
               );
             }
@@ -69,7 +69,7 @@ const MovementComparison = ({
 
             return (
               <div className="flex flex-col h-full">
-                <h3 className="text-[10px] font-black text-vnpost-blue uppercase tracking-widest flex items-center justify-between mb-4 border-b border-gray-50 pb-2">
+                <h3 className="text-[10px] font-bold text-vnpost-blue uppercase tracking-widest flex items-center justify-between mb-4 border-b border-gray-50 pb-2">
                   <span className="flex items-center gap-2">
                     <Activity size={14} /> 
                     Hiệu Suất & Tốc Độ Tăng Trưởng 
@@ -135,7 +135,7 @@ const MovementComparison = ({
         return (
           <div className="space-y-4 !col-span-full">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-2 mt-4 border-b border-gray-100 pb-2">
-              <h3 className="text-[11px] font-black text-vnpost-blue uppercase tracking-widest flex items-center gap-2">
+              <h3 className="text-[11px] font-bold text-vnpost-blue uppercase tracking-widest flex items-center gap-2">
                 <RefreshCw className="w-3 h-3" /> Đối soát & Phân tích Hiệu quả
               </h3>
               {(() => {
@@ -182,7 +182,7 @@ const MovementComparison = ({
                   </div>
                   <div className="p-4 bg-gradient-to-br from-blue-50 to-white rounded-2xl border border-blue-100 relative group overflow-hidden">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Tổng Doanh Thu Kỳ Này</p>
-                    <p className="text-2xl font-black text-vnpost-blue mb-1">{formatCurrency(moversData.summary.revenue.current)}</p>
+                    <p className="text-2xl font-bold text-vnpost-blue mb-1">{formatCurrency(moversData.summary.revenue.current)}</p>
                     <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${(moversData?.summary?.revenue?.current || 0) >= (moversData?.summary?.revenue?.previous || 0) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                       {(moversData?.summary?.revenue?.current || 0) >= (moversData?.summary?.revenue?.previous || 0) ? '↑' : '↓'}
                       {Math.abs((((moversData?.summary?.revenue?.current || 0) - (moversData?.summary?.revenue?.previous || 0)) / (moversData?.summary?.revenue?.previous || 1) * 100)).toFixed(1)}%
@@ -232,7 +232,7 @@ const MovementComparison = ({
                   </div>
                   <div className="p-4 bg-gradient-to-br from-orange-50 to-white rounded-2xl border border-orange-100 relative group overflow-hidden">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Tổng Sản Lượng Kỳ Này</p>
-                    <p className="text-2xl font-black text-vnpost-orange mb-1">{(moversData.summary.volume.current || 0).toLocaleString()} <span className="text-sm font-bold opacity-60">đơn</span></p>
+                    <p className="text-2xl font-bold text-vnpost-orange mb-1">{(moversData.summary.volume.current || 0).toLocaleString()} <span className="text-sm font-bold opacity-60">đơn</span></p>
                     <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${(moversData?.summary?.volume?.current || 0) >= (moversData?.summary?.volume?.previous || 0) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                       {(moversData?.summary?.volume?.current || 0) >= (moversData?.summary?.volume?.previous || 0) ? '↑' : '↓'}
                       {Math.abs((((moversData?.summary?.volume?.current || 0) - (moversData?.summary?.volume?.previous || 0)) / (moversData?.summary?.volume?.previous || 1) * 100)).toFixed(1)}%
@@ -273,14 +273,14 @@ const MovementComparison = ({
                 <TrendingUp size={80} />
               </div>
               <div className="relative z-10">
-                <h3 className="text-sm font-black text-green-800 flex items-center gap-2 uppercase tracking-widest">
+                <h3 className="text-sm font-bold text-green-800 flex items-center gap-2 uppercase tracking-widest">
                   <TrendingUp size={18} /> TOP 20 TĂNG TRƯỞNG (STARS)
                 </h3>
               </div>
             </div>
             <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
               <table className="w-full text-xs">
-                <thead className="bg-gray-50/80 backdrop-blur-sm text-gray-500 text-[9px] uppercase sticky top-0 z-10 shadow-sm border-b border-gray-100 font-black">
+                <thead className="bg-gray-50/80 backdrop-blur-sm text-gray-500 text-[9px] uppercase sticky top-0 z-10 shadow-sm border-b border-gray-100 font-bold">
                   <tr>
                     <th className="px-4 py-2 text-left">Khách hàng</th>
                     <th className="px-4 py-2 text-right">Biến động (VND)</th>
@@ -291,7 +291,7 @@ const MovementComparison = ({
                     <tr key={idx} className="hover:bg-green-50/30 transition-colors group">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <span className="w-6 h-6 flex items-center justify-center bg-green-100 text-green-700 rounded-lg text-[9px] font-black shadow-sm">{idx + 1}</span>
+                          <span className="w-6 h-6 flex items-center justify-center bg-green-100 text-green-700 rounded-lg text-[9px] font-bold shadow-sm">{idx + 1}</span>
                           <div className="min-w-0">
                             <p className="font-bold text-gray-800 leading-none truncate max-w-[150px]">{kh.ten_kh}</p>
                             <p className="text-[8px] text-gray-400 mt-1 uppercase font-bold tracking-tighter">{kh.ma_kh}</p>
@@ -299,7 +299,7 @@ const MovementComparison = ({
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <p className="font-black text-green-600">+{formatCurrency(kh.diff)}</p>
+                        <p className="font-bold text-green-600">+{formatCurrency(kh.diff)}</p>
                         <p className="text-[8px] text-gray-400 font-bold uppercase tracking-tighter italic">Kỳ trước: {formatCurrency(kh.previous)}</p>
                       </td>
                     </tr>
@@ -315,14 +315,14 @@ const MovementComparison = ({
                 <TrendingUp size={80} className="rotate-180" />
               </div>
               <div className="relative z-10">
-                <h3 className="text-sm font-black text-red-800 flex items-center gap-2 uppercase tracking-widest">
+                <h3 className="text-sm font-bold text-red-800 flex items-center gap-2 uppercase tracking-widest">
                   <TrendingUp size={18} className="rotate-180" /> TOP 20 SỤT GIẢM (RISKS)
                 </h3>
               </div>
             </div>
             <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
               <table className="w-full text-xs">
-                <thead className="bg-gray-50/80 backdrop-blur-sm text-gray-500 text-[9px] uppercase sticky top-0 z-10 shadow-sm border-b border-gray-100 font-black">
+                <thead className="bg-gray-50/80 backdrop-blur-sm text-gray-500 text-[9px] uppercase sticky top-0 z-10 shadow-sm border-b border-gray-100 font-bold">
                   <tr>
                     <th className="px-4 py-2 text-left">Khách hàng</th>
                     <th className="px-4 py-2 text-right">Biến động (VND)</th>
@@ -333,7 +333,7 @@ const MovementComparison = ({
                     <tr key={idx} className="hover:bg-red-50/30 transition-colors group">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <span className="w-6 h-6 flex items-center justify-center bg-red-100 text-red-700 rounded-lg text-[9px] font-black shadow-sm">{idx + 1}</span>
+                          <span className="w-6 h-6 flex items-center justify-center bg-red-100 text-red-700 rounded-lg text-[9px] font-bold shadow-sm">{idx + 1}</span>
                           <div className="min-w-0">
                             <p className="font-bold text-gray-800 leading-none truncate max-w-[150px]">{kh.ten_kh}</p>
                             <p className="text-[8px] text-gray-400 mt-1 uppercase font-bold tracking-tighter">{kh.ma_kh}</p>
@@ -341,7 +341,7 @@ const MovementComparison = ({
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <p className="font-black text-red-600">{formatCurrency(kh.diff)}</p>
+                        <p className="font-bold text-red-600">{formatCurrency(kh.diff)}</p>
                         <p className="text-[8px] text-gray-400 font-bold uppercase tracking-tighter italic">Kỳ trước: {formatCurrency(kh.previous)}</p>
                       </td>
                     </tr>
