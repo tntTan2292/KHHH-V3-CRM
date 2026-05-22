@@ -1,7 +1,7 @@
 import React from 'react';
-import { Zap } from 'lucide-react';
+import { Zap, ArrowRight } from 'lucide-react';
 
-const AIAssistantInsights = ({ summary, stats, churnPrediction, heatmapData }) => {
+const AIAssistantInsights = ({ summary, stats, churnPrediction, heatmapData, onAction }) => {
   if (!summary || !summary.revenue || !summary.volume) return null;
   const { revenue } = summary;
   const currentRev = revenue.current || 0;
@@ -26,9 +26,19 @@ const AIAssistantInsights = ({ summary, stats, churnPrediction, heatmapData }) =
           <div className="space-y-1">
             <div className="flex items-start gap-2 bg-white/60 p-1.5 rounded-lg border border-indigo-50/50">
               <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-1 flex-shrink-0"></div>
-              <p className="text-[11px] text-gray-700 leading-tight">
-                <span className="font-bold text-indigo-600">Trọng điểm vận hành:</span> Doanh thu {revGrowth >= 0 ? 'tăng' : 'giảm'} {Math.abs(revGrowth).toFixed(1)}% — {revGrowth < 0 ? 'Ưu tiên rà soát cụm yếu kém.' : 'Đà tăng trưởng ổn định.'}
-              </p>
+              <div className="flex-1">
+                <p className="text-[11px] text-gray-700 leading-tight">
+                  <span className="font-bold text-indigo-600">Trọng điểm vận hành:</span> Doanh thu {revGrowth >= 0 ? 'tăng' : 'giảm'} {Math.abs(revGrowth).toFixed(1)}% — {revGrowth < 0 ? 'Ưu tiên rà soát cụm yếu kém.' : 'Đà tăng trưởng ổn định.'}
+                </p>
+                {revGrowth < 0 && (
+                  <button 
+                    onClick={() => onAction && onAction('FILTER_WEAK')}
+                    className="mt-1.5 text-[9px] font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded flex items-center gap-1 hover:bg-indigo-200 transition-colors"
+                  >
+                    Rà soát ngay <ArrowRight size={10} />
+                  </button>
+                )}
+              </div>
             </div>
             <div className="flex items-start gap-2 bg-white/60 p-1.5 rounded-lg border border-indigo-50/50">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1 flex-shrink-0"></div>
@@ -42,12 +52,24 @@ const AIAssistantInsights = ({ summary, stats, churnPrediction, heatmapData }) =
         <div className="space-y-1.5">
           <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-normal">Điều hành nhanh</p>
           <div className="grid grid-cols-2 gap-2">
-            <div className="bg-white/80 p-1.5 rounded-lg border border-indigo-50 shadow-sm">
-              <p className="text-[14px] font-bold text-indigo-600">{churnPrediction?.length || 0} KH</p>
+            <div 
+              onClick={() => onAction && onAction('FILTER_RISK')}
+              className="bg-white/80 p-1.5 rounded-lg border border-indigo-50 shadow-sm cursor-pointer hover:bg-white hover:shadow-md transition-all group"
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-[14px] font-bold text-indigo-600 group-hover:scale-105 transition-transform">{churnPrediction?.length || 0} KH</p>
+                <ArrowRight size={12} className="text-indigo-300 opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0" />
+              </div>
               <p className="text-[9px] font-bold text-gray-500 uppercase">Nguy cơ rời bỏ</p>
             </div>
-            <div className="bg-white/80 p-1.5 rounded-lg border border-indigo-50 shadow-sm">
-              <p className="text-[14px] font-bold text-emerald-600">{heatmapData?.filter(h => Number(h.growth) > 10).length || 0} Đ.Bàn</p>
+            <div 
+              onClick={() => onAction && onAction('FILTER_STAR')}
+              className="bg-white/80 p-1.5 rounded-lg border border-indigo-50 shadow-sm cursor-pointer hover:bg-white hover:shadow-md transition-all group"
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-[14px] font-bold text-emerald-600 group-hover:scale-105 transition-transform">{heatmapData?.filter(h => Number(h.growth) > 10).length || 0} Đ.Bàn</p>
+                <ArrowRight size={12} className="text-emerald-300 opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0" />
+              </div>
               <p className="text-[9px] font-bold text-gray-500 uppercase">Tăng trưởng mạnh</p>
             </div>
           </div>

@@ -129,6 +129,7 @@ function Dashboard() {
   const [endDate, setEndDate] = useState("");
   const [waitingForDefaultDate, setWaitingForDefaultDate] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState("");
+  const [quickFilter, setQuickFilter] = useState("ALL");
 
   const selectedMonthLabel = useMemo(() => {
     if (selectedMonth) return selectedMonth;
@@ -593,7 +594,7 @@ function Dashboard() {
 
 
       {/* Heatmap & Trends */}
-        <div className="grid grid-cols-1 gap-6">
+        <div className="grid grid-cols-1 gap-6" id="heatmap-section">
           <div className="card p-6 overflow-hidden relative z-10 min-w-0">
             <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2 border-b border-gray-50 pb-3">
               <TrendingUp size={18} className="text-vnpost-blue" /> Biến Động Doanh Thu Theo Ngày
@@ -656,7 +657,16 @@ function Dashboard() {
                   <Target size={18} className="text-vnpost-orange" /> 
                   Bảng Quản trị Hiệu quả & Tăng trưởng Địa bàn
                 </h3>
+                <div className="flex flex-wrap items-center gap-2 mt-2">
+                  <button onClick={() => setQuickFilter('ALL')} className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all ${quickFilter === 'ALL' ? 'bg-vnpost-blue text-white shadow-sm' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>Tất cả</button>
+                  <button onClick={() => setQuickFilter('DANGER')} className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all ${quickFilter === 'DANGER' ? 'bg-red-500 text-white shadow-sm' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}>🔥 Yếu kém</button>
+                  <button onClick={() => setQuickFilter('STAR')} className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all ${quickFilter === 'STAR' ? 'bg-emerald-500 text-white shadow-sm' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}>⭐ Ngôi sao</button>
+                  <button onClick={() => setQuickFilter('RISK_CHURN')} className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all ${quickFilter === 'RISK_CHURN' ? 'bg-orange-500 text-white shadow-sm' : 'bg-orange-50 text-orange-600 hover:bg-orange-100'}`}>⚠️ Nguy cơ</button>
+                </div>
                 <div className="flex items-center gap-3">
+                  <button onClick={handleCopyTSV} className="text-[10px] font-bold bg-vnpost-blue/10 text-vnpost-blue hover:bg-vnpost-blue/20 px-2 py-1 rounded-full uppercase tracking-wider transition-all flex items-center gap-1 shadow-sm">
+                    <DownloadCloud size={12} /> Sao chép TSV
+                  </button>
                   <span className="text-[10px] font-bold bg-vnpost-orange/10 text-vnpost-orange px-2 py-1 rounded-full uppercase tracking-wider">
                     PHÂN LOẠI CHIẾN LƯỢC 4 NHÓM
                   </span>
@@ -731,6 +741,24 @@ function Dashboard() {
                         return { label: "YẾU KÉM", color: "bg-red-500", text: "text-red-500", bg: "bg-red-50", icon: <AlertCircle size={12}/> };
                      };
 
+                     const filteredData = data.filter(item => {
+                       if (quickFilter === 'ALL') return true;
+                       if (quickFilter === 'DANGER') return item.growth < 0 && item.revenue < avgRev;
+                       if (quickFilter === 'STAR') return item.growth >= 0 && item.revenue >= avgRev;
+                       if (quickFilter === 'RISK_CHURN') return item.growth < -10;
+                       return true;
+                     });
+
+                     const handleCopyTSV = () => {
+                        const header = "Đơn vị\tID\tDoanh thu\tTăng trưởng\tChiến lược\n";
+                        const rows = filteredData.sort((a, b) => b.revenue - a.revenue).map(item => {
+                            const q = getQuadrant(item.revenue, item.growth);
+                            return `${item.title}\t${item.id}\t${item.revenue}\t${item.growth}%\t${q.label}`;
+                        }).join('\n');
+                        navigator.clipboard.writeText(header + rows);
+                        toast.success("Đã copy dữ liệu bảng Heatmap!");
+                     };
+
                      return (
                         <div className={`h-full flex flex-col ${isFullScreen ? 'fixed inset-0 z-[9999] bg-white p-10 w-screen h-screen left-0 top-0 overflow-y-auto' : ''}`}>
                           <div className="flex-1 overflow-y-auto no-scrollbar rounded-2xl border border-gray-100 bg-gray-50/30 backdrop-blur-sm">
@@ -746,7 +774,7 @@ function Dashboard() {
                                 </tr>
                               </thead>
                               <tbody>
-                                  {data.sort((a, b) => b.revenue - a.revenue).map((item, idx) => {
+                                  {filteredData.sort((a, b) => b.revenue - a.revenue).map((item, idx) => {
                                     const q = getQuadrant(item.revenue, item.growth);
                                     // [FIX-02] Higher contrast severity highlight
                                     const _isWeak = q.label.includes("YEU") || q.label.includes("YẾU");
@@ -970,7 +998,19 @@ function Dashboard() {
                   return null;
                 })()}
               </div>
-              <AIAssistantInsights summary={moversData.summary} stats={stats} churnPrediction={churnDataRes} heatmapData={heatmapDataRes} />
+              <AIAssistantInsights 
+                summary={moversData.summary} 
+                stats={stats} 
+                churnPrediction={churnDataRes} 
+                heatmapData={heatmapDataRes} 
+                onAction={(action) => {
+                  if (action === 'FILTER_WEAK') setQuickFilter('DANGER');
+                  if (action === 'FILTER_RISK') setQuickFilter('RISK_CHURN');
+                  if (action === 'FILTER_STAR') setQuickFilter('STAR');
+                  const heatmapSection = document.getElementById('heatmap-section');
+                  if (heatmapSection) heatmapSection.scrollIntoView({ behavior: 'smooth' });
+                }}
+              />
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Revenue Comparison */}
