@@ -33,7 +33,7 @@ const AIAssistantInsights = ({ summary, stats, churnPrediction, heatmapData, onA
                 {revGrowth < 0 && (
                   <button 
                     onClick={() => onAction && onAction('FILTER_WEAK')}
-                    className="mt-1.5 text-[9px] font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded flex items-center gap-1 hover:bg-indigo-200 transition-colors"
+                    className="mt-1.5 text-[9px] font-bold bg-indigo-100 text-indigo-700 px-2 py-1 rounded flex items-center gap-1 hover:bg-indigo-200 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
                   >
                     Rà soát ngay <ArrowRight size={10} />
                   </button>
@@ -52,26 +52,26 @@ const AIAssistantInsights = ({ summary, stats, churnPrediction, heatmapData, onA
         <div className="space-y-1.5">
           <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-normal">Điều hành nhanh</p>
           <div className="grid grid-cols-2 gap-2">
-            <div 
+            <button 
               onClick={() => onAction && onAction('SHOW_CHURN_LIST')}
-              className="bg-white/80 p-1.5 rounded-lg border border-indigo-50 shadow-sm cursor-pointer hover:bg-white hover:border-indigo-200 hover:shadow-md transition-all group"
+              className="w-full text-left bg-white/80 p-2 rounded-lg border border-indigo-50 shadow-sm cursor-pointer hover:bg-white hover:border-indigo-200 hover:shadow-md transition-all group focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
             >
               <div className="flex items-center justify-between">
-                <p className="text-[14px] font-bold text-indigo-600 group-hover:scale-105 transition-transform">{churnPrediction?.length || 0} KH</p>
+                <p className="text-[14px] font-bold text-indigo-600 group-hover:scale-105 transition-transform origin-left">{churnPrediction?.length || 0} KH</p>
                 <ArrowRight size={12} className="text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0" />
               </div>
               <p className="text-[9px] font-bold text-gray-500 uppercase group-hover:text-indigo-600 transition-colors">Nguy cơ rời bỏ</p>
-            </div>
-            <div 
+            </button>
+            <button 
               onClick={() => onAction && onAction('FILTER_STAR')}
-              className="bg-white/80 p-1.5 rounded-lg border border-indigo-50 shadow-sm cursor-pointer hover:bg-white hover:shadow-md transition-all group"
+              className="w-full text-left bg-white/80 p-2 rounded-lg border border-indigo-50 shadow-sm cursor-pointer hover:bg-white hover:shadow-md transition-all group focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
             >
               <div className="flex items-center justify-between">
-                <p className="text-[14px] font-bold text-emerald-600 group-hover:scale-105 transition-transform">{heatmapData?.filter(h => Number(h.growth) > 10).length || 0} Đ.Bàn</p>
+                <p className="text-[14px] font-bold text-emerald-600 group-hover:scale-105 transition-transform origin-left">{heatmapData?.filter(h => Number(h.growth) > 10).length || 0} Đ.Bàn</p>
                 <ArrowRight size={12} className="text-emerald-300 opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0" />
               </div>
               <p className="text-[9px] font-bold text-gray-500 uppercase">Tăng trưởng mạnh</p>
-            </div>
+            </button>
           </div>
         </div>
       </div>

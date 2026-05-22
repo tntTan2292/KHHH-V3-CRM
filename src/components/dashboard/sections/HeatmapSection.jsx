@@ -144,7 +144,7 @@ const HeatmapSection = forwardRef(({
             </span>
             <button 
               onClick={() => setIsFullScreen(!isFullScreen)}
-              className="p-1.5 bg-white border border-gray-200 rounded-lg text-gray-400 hover:text-vnpost-blue hover:border-vnpost-blue shadow-sm transition-all"
+              className="p-2 bg-white border border-gray-200 rounded-lg text-gray-400 hover:text-vnpost-blue hover:border-vnpost-blue shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-vnpost-blue/50"
               title={isFullScreen ? "Thu nhỏ" : "Toàn màn hình"}
             >
               {isFullScreen ? <Minimize2 size={14}/> : <Maximize2 size={14}/>}
@@ -156,7 +156,7 @@ const HeatmapSection = forwardRef(({
           <div className="flex items-center gap-1.5 p-1 bg-gray-50/50 rounded-xl border border-gray-100/50 w-fit animate-in fade-in slide-in-from-left-2">
             <button 
               onClick={handleGoBack}
-              className="p-1.5 bg-white border border-gray-200 rounded-lg text-gray-400 hover:text-vnpost-blue hover:border-vnpost-blue shadow-sm transition-all flex items-center gap-1 group"
+              className="p-2 bg-white border border-gray-200 rounded-lg text-gray-400 hover:text-vnpost-blue hover:border-vnpost-blue shadow-sm transition-all flex items-center gap-1 group focus:outline-none focus:ring-2 focus:ring-vnpost-blue/50"
             >
               <ArrowLeft size={12} className="group-hover:-translate-x-0.5 transition-transform" />
               <span className="text-[9px] font-bold uppercase tracking-wider">Quay lại</span>
@@ -174,7 +174,7 @@ const HeatmapSection = forwardRef(({
                       setNavStack(newStack);
                       setSelectedNode(step);
                     }}
-                    className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-all ${
+                    className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-all focus:outline-none focus:ring-2 focus:ring-vnpost-blue/50 ${
                       idx === navStack.length - 1 
                         ? 'bg-vnpost-blue text-white shadow-sm' 
                         : 'text-gray-400 hover:bg-white hover:text-vnpost-blue'
@@ -221,71 +221,82 @@ const HeatmapSection = forwardRef(({
                           </tr>
                         </thead>
                         <tbody>
-                            {filteredData.sort((a, b) => b.revenue - a.revenue).map((item, idx) => {
-                              const q = getQuadrant(item.revenue, item.growth);
-                              const _isWeak = q.label.includes("YEU") || q.label.includes("YẾU");
-                              const contribution = totalRev > 0 ? ((item.revenue / totalRev) * 100).toFixed(1) + '%' : '0%';
-                              
-                              return (
-                                <tr key={item.id || idx} className={`border-b transition-colors group ${pinnedRows.includes(item.id) ? 'bg-amber-50/80 border-amber-200 shadow-sm relative z-10' : 'border-gray-50 hover:bg-gray-50/50'}`}>
-                                  <td className="p-1.5 pl-3">
-                                    <div className="flex items-center gap-2">
-                                      <div className={`w-1 h-8 rounded-full ${_isWeak ? 'bg-red-500' : 'bg-gray-200'}`}></div>
-                                      <div className="flex flex-col min-w-0">
-                                        <span className="text-[11px] font-semibold text-gray-800 truncate leading-tight group-hover:text-vnpost-blue">{item.title}</span>
-                                        <span className="text-[9px] font-medium text-gray-400 uppercase tracking-wider">ID: {item.id}</span>
+                            {filteredData.length === 0 ? (
+                              <tr>
+                                <td colSpan="6" className="py-12 text-center text-gray-400 bg-white">
+                                  <div className="flex flex-col items-center justify-center gap-3">
+                                    <Search size={32} className="text-gray-200" />
+                                    <p className="text-[11px] font-bold uppercase tracking-wider">Không tìm thấy dữ liệu phù hợp</p>
+                                  </div>
+                                </td>
+                              </tr>
+                            ) : (
+                              filteredData.sort((a, b) => b.revenue - a.revenue).map((item, idx) => {
+                                const q = getQuadrant(item.revenue, item.growth);
+                                const _isWeak = q.label.includes("YEU") || q.label.includes("YẾU");
+                                const contribution = totalRev > 0 ? ((item.revenue / totalRev) * 100).toFixed(1) + '%' : '0%';
+                                
+                                return (
+                                  <tr key={item.id || idx} className={`border-b transition-colors group ${pinnedRows.includes(item.id) ? 'bg-amber-50/80 border-amber-200 shadow-sm relative z-10' : 'border-gray-50 hover:bg-gray-50/50'}`}>
+                                    <td className="p-1.5 pl-3">
+                                      <div className="flex items-center gap-2">
+                                        <div className={`w-1 h-8 rounded-full ${_isWeak ? 'bg-red-500' : 'bg-gray-200'}`}></div>
+                                        <div className="flex flex-col min-w-0">
+                                          <span className="text-[11px] font-semibold text-gray-800 truncate leading-tight group-hover:text-vnpost-blue">{item.title}</span>
+                                          <span className="text-[9px] font-medium text-gray-400 uppercase tracking-wider">ID: {item.id}</span>
+                                        </div>
                                       </div>
-                                    </div>
-                                  </td>
-                                  <td className="p-1.5 text-right font-semibold text-gray-700 text-[11px]">
-                                    {formatCurrency(item.revenue)} <span className="text-gray-300 font-normal ml-0.5">₫</span>
-                                  </td>
-                                  <td className="p-1.5 text-right">
-                                      <div className="flex flex-col items-end">
-                                        <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Tỷ trọng</span>
-                                        <span className="text-[11px] font-semibold text-gray-600">{contribution}</span>
+                                    </td>
+                                    <td className="p-1.5 text-right font-semibold text-gray-700 text-[11px]">
+                                      {formatCurrency(item.revenue)} <span className="text-gray-300 font-normal ml-0.5">₫</span>
+                                    </td>
+                                    <td className="p-1.5 text-right">
+                                        <div className="flex flex-col items-end">
+                                          <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Tỷ trọng</span>
+                                          <span className="text-[11px] font-semibold text-gray-600">{contribution}</span>
+                                        </div>
+                                    </td>
+                                    <td className="p-1.5 text-center">
+                                      <div className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full font-bold text-[10px] ${item.growth >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                                        {item.growth >= 0 ? <ArrowUpRight size={10}/> : <TrendingUp size={10} className="rotate-180"/>}
+                                        {item.growth > 0 ? '+' : ''}{item.growth}%
                                       </div>
-                                  </td>
-                                  <td className="p-1.5 text-center">
-                                    <div className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full font-bold text-[10px] ${item.growth >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
-                                      {item.growth >= 0 ? <ArrowUpRight size={10}/> : <TrendingUp size={10} className="rotate-180"/>}
-                                      {item.growth > 0 ? '+' : ''}{item.growth}%
-                                    </div>
-                                  </td>
-                                  <td className="p-1.5 text-center">
-                                    <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border ${q.bg} ${q.text} border-transparent group-hover:border-current transition-all shadow-sm`}>
-                                      {q.icon}
-                                      <span className="text-[9px] font-bold uppercase tracking-wider tracking-tighter">{q.label}</span>
-                                    </div>
-                                  </td>
-                                  <td className="p-1.5 text-right pr-3">
-                                    <div className="flex items-center justify-end gap-1.5">
-                                      <button 
-                                        onClick={() => handleCopyRowId(item.id)}
-                                        title="Sao chép ID"
-                                        className="p-1.5 bg-gray-50 text-gray-400 rounded-lg hover:bg-gray-200 hover:text-gray-700 transition-all shadow-sm"
-                                      >
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                                      </button>
-                                      <button 
-                                        onClick={() => handlePinRow(item.id)}
-                                        title="Đánh dấu"
-                                        className={`p-1.5 rounded-lg transition-all shadow-sm ${pinnedRows.includes(item.id) ? 'bg-amber-100 text-amber-600' : 'bg-gray-50 text-gray-400 hover:bg-amber-50 hover:text-amber-500'}`}
-                                      >
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill={pinnedRows.includes(item.id) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                                      </button>
-                                      <button 
-                                        onClick={() => handleDrillDown(item)}
-                                        title="Xem chi tiết"
-                                        className="p-1.5 bg-vnpost-blue/10 text-vnpost-blue rounded-lg hover:bg-vnpost-blue hover:text-white transition-all shadow-sm"
-                                      >
-                                        <ChevronRight size={12} />
-                                      </button>
-                                    </div>
-                                  </td>
-                                </tr>
-                              );
-                            })}
+                                    </td>
+                                    <td className="p-1.5 text-center">
+                                      <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border ${q.bg} ${q.text} border-transparent group-hover:border-current transition-all shadow-sm`}>
+                                        {q.icon}
+                                        <span className="text-[9px] font-bold uppercase tracking-wider tracking-tighter">{q.label}</span>
+                                      </div>
+                                    </td>
+                                    <td className="p-1.5 text-right pr-3">
+                                      <div className="flex items-center justify-end gap-1.5">
+                                        <button 
+                                          onClick={() => handleCopyRowId(item.id)}
+                                          title="Sao chép ID"
+                                          className="p-2 bg-gray-50 text-gray-400 rounded-lg hover:bg-gray-200 hover:text-gray-700 transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-vnpost-blue/50"
+                                        >
+                                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                        </button>
+                                        <button 
+                                          onClick={() => handlePinRow(item.id)}
+                                          title="Đánh dấu"
+                                          className={`p-2 rounded-lg transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 ${pinnedRows.includes(item.id) ? 'bg-amber-100 text-amber-600' : 'bg-gray-50 text-gray-400 hover:bg-amber-50 hover:text-amber-500'}`}
+                                        >
+                                          <svg width="12" height="12" viewBox="0 0 24 24" fill={pinnedRows.includes(item.id) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                        </button>
+                                        <button 
+                                          onClick={() => handleDrillDown(item)}
+                                          title="Xem chi tiết"
+                                          className="p-2 bg-vnpost-blue/10 text-vnpost-blue rounded-lg hover:bg-vnpost-blue hover:text-white transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-vnpost-blue/50"
+                                        >
+                                          <ChevronRight size={12} />
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })
+                            )}
                           </tbody>
                           <tfoot className="sticky bottom-0 bg-gray-50/90 backdrop-blur-md z-10 border-t border-gray-200">
                             {(() => {
