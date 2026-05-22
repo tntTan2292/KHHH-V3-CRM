@@ -5,7 +5,7 @@ import Skeleton from '../../Skeleton';
 const MovementIndicators = ({ stats, summaryData, selectedNode, navigate, saveNavigationContext }) => {
   return (
     <div className="space-y-3 pt-2">
-      <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] flex items-center gap-2">
+      <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
         <Zap size={14} /> 02. BIẾN ĐỘNG TRONG KỲ (MOVEMENT INDICATORS)
       </h3>
       

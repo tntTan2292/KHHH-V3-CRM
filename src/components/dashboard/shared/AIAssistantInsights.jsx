@@ -15,14 +15,14 @@ const AIAssistantInsights = ({ summary, stats, churnPrediction, heatmapData }) =
         <div className="p-1.5 bg-indigo-500 text-white rounded-lg shadow-sm">
           <Zap size={14} className="animate-pulse" />
         </div>
-        <h4 className="text-[12px] font-black text-indigo-900 uppercase tracking-widest">
+        <h4 className="text-[12px] font-bold text-indigo-900 uppercase tracking-wider">
           Biệt đội Antigravity - Strategic Insights
         </h4>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <p className="text-[10px] font-black text-indigo-400 uppercase tracking-tighter">Lưu ý biến động cơ cấu</p>
+          <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-normal">Lưu ý biến động cơ cấu</p>
           <div className="space-y-1">
             <div className="flex items-start gap-2 bg-white/60 p-1.5 rounded-lg border border-indigo-50/50">
               <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-1 flex-shrink-0"></div>
@@ -40,14 +40,14 @@ const AIAssistantInsights = ({ summary, stats, churnPrediction, heatmapData }) =
         </div>
         
         <div className="space-y-1.5">
-          <p className="text-[10px] font-black text-indigo-400 uppercase tracking-tighter">Điều hành nhanh</p>
+          <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-normal">Điều hành nhanh</p>
           <div className="grid grid-cols-2 gap-2">
             <div className="bg-white/80 p-1.5 rounded-lg border border-indigo-50 shadow-sm">
-              <p className="text-[14px] font-black text-indigo-600">{churnPrediction?.length || 0} KH</p>
+              <p className="text-[14px] font-bold text-indigo-600">{churnPrediction?.length || 0} KH</p>
               <p className="text-[9px] font-bold text-gray-400 uppercase">Nguy cơ rời bỏ</p>
             </div>
             <div className="bg-white/80 p-1.5 rounded-lg border border-indigo-50 shadow-sm">
-              <p className="text-[14px] font-black text-emerald-600">{heatmapData?.filter(h => Number(h.growth) > 10).length || 0} Đ.Bàn</p>
+              <p className="text-[14px] font-bold text-emerald-600">{heatmapData?.filter(h => Number(h.growth) > 10).length || 0} Đ.Bàn</p>
               <p className="text-[9px] font-bold text-gray-400 uppercase">Tăng trưởng mạnh</p>
             </div>
           </div>

@@ -7,10 +7,10 @@ const PopulationKpiGroup = ({ stats, summaryData, selectedNode, navigate, saveNa
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-[11px] font-black text-vnpost-blue uppercase tracking-[0.2em] flex items-center gap-2">
+        <h3 className="text-[11px] font-bold text-vnpost-blue uppercase tracking-wider flex items-center gap-2">
           <Users size={14} /> 01. HIỆN TRẠNG TỆP KHÁCH HÀNG (POPULATION)
         </h3>
-        <Link to="/guidelines#lifecycle" className="text-[9px] font-black text-vnpost-orange uppercase hover:underline">Định nghĩa</Link>
+        <Link to="/guidelines#lifecycle" className="text-[9px] font-bold text-vnpost-orange uppercase hover:underline">Định nghĩa</Link>
       </div>
       
       {/* Row 1: Priority States */}
@@ -38,7 +38,7 @@ const PopulationKpiGroup = ({ stats, summaryData, selectedNode, navigate, saveNa
                   <div className="kpi-number text-3xl" style={{ color: 'var(--crm-active-base)' }}>{(stats?.lifecycle?.["active"] || 0).toLocaleString()}</div>
                 </div>
                 {stats?.lifecycle_growth?.active !== undefined && (
-                  <div className={`text-xs font-black flex items-center gap-1 mt-2 ${stats.lifecycle_growth.active >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  <div className={`text-xs font-bold flex items-center gap-1 mt-2 ${stats.lifecycle_growth.active >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                     {stats.lifecycle_growth.active >= 0 ? "▲" : "▼"} {Math.abs(stats.lifecycle_growth.active)}%
                     <span className="text-gray-400 opacity-60 ml-0.5 uppercase font-bold text-[10px]">vs T-1</span>
                   </div>
@@ -65,7 +65,7 @@ const PopulationKpiGroup = ({ stats, summaryData, selectedNode, navigate, saveNa
                   <div className="kpi-number text-3xl" style={{ color: 'var(--crm-warning-base)' }}>{(stats?.lifecycle?.["at_risk"] || 0).toLocaleString()}</div>
                 </div>
                 {stats?.lifecycle_growth?.at_risk !== undefined && (
-                  <div className={`text-xs font-black flex items-center gap-1 mt-2 ${stats.lifecycle_growth.at_risk <= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  <div className={`text-xs font-bold flex items-center gap-1 mt-2 ${stats.lifecycle_growth.at_risk <= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                     {stats.lifecycle_growth.at_risk >= 0 ? "▲" : "▼"} {Math.abs(stats.lifecycle_growth.at_risk)}%
                     <span className="text-gray-400 opacity-60 ml-0.5 uppercase font-bold text-[10px]">vs T-1</span>
                   </div>
@@ -91,7 +91,7 @@ const PopulationKpiGroup = ({ stats, summaryData, selectedNode, navigate, saveNa
                   </div>
                   <div className="kpi-number text-3xl" style={{ color: 'var(--crm-danger-base)' }}>{(stats?.lifecycle?.["churn_pop"] || 0).toLocaleString()}</div>
                 </div>
-                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mt-2 italic">Dừng giao dịch &gt; 60 ngày</div>
+                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-normal mt-2 italic">Dừng giao dịch &gt; 60 ngày</div>
               </div>
             </div>
           </>
@@ -122,7 +122,7 @@ const PopulationKpiGroup = ({ stats, summaryData, selectedNode, navigate, saveNa
                   </div>
                   <div className="kpi-number text-2xl" style={{ color: 'var(--crm-onboarding-base)' }}>{(stats?.lifecycle?.["new_pop"] || 0).toLocaleString()}</div>
                 </div>
-                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mt-2 italic">Tệp đang thử thách (30d)</div>
+                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-normal mt-2 italic">Tệp đang thử thách (30d)</div>
               </div>
             </div>
 
@@ -144,7 +144,7 @@ const PopulationKpiGroup = ({ stats, summaryData, selectedNode, navigate, saveNa
                   </div>
                   <div className="kpi-number text-2xl" style={{ color: 'var(--crm-recovery-base)' }}>{(stats?.lifecycle?.["recovered_pop"] || 0).toLocaleString()}</div>
                 </div>
-                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mt-2 italic">Tệp quay lại đang thử thách</div>
+                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-normal mt-2 italic">Tệp quay lại đang thử thách</div>
               </div>
             </div>
           </>

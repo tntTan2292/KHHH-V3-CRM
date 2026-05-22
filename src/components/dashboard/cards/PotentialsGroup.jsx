@@ -5,7 +5,7 @@ import Skeleton from '../../Skeleton';
 const PotentialsGroup = ({ stats, summaryData, selectedNode, navigate, saveNavigationContext }) => {
   return (
     <>
-      <h3 className="text-[11px] font-black text-vnpost-orange uppercase tracking-widest flex items-center gap-2 mt-2 mb-2">
+      <h3 className="text-[11px] font-bold text-vnpost-orange uppercase tracking-wider flex items-center gap-2 mt-2 mb-2">
         <ArrowUpRight size={14} /> 03. PHÂN HẠNG KHÁCH HÀNG TIỀM NĂNG (POTENTIALS)
       </h3>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 transition-opacity duration-300">
