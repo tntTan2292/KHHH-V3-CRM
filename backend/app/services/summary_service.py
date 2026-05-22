@@ -1,4 +1,5 @@
 import sqlite3
+import os
 import pandas as pd
 import calendar as py_calendar
 from datetime import datetime, timedelta
@@ -13,7 +14,10 @@ from ..models import CustomerMonthlySnapshot
 logger = logging.getLogger(__name__)
 
 class SummaryService:
-    DB_PATH = r"d:\Antigravity - Project\KHHH - Antigravity - V3.0\data\database\khhh_v3.db"
+    DB_PATH = os.path.join(
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")),
+        "data", "database", "khhh_v3.db"
+    )
 
     @staticmethod
     def get_connection():

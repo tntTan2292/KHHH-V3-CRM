@@ -1,0 +1,30 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: khhh_backend
+    restart: unless-stopped
+    environment:
+      - SFTP_PASSWORD=${SFTP_PASSWORD}
+    volumes:
+      - ./data:/app/data
+    networks:
+      - khhh_net
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: khhh_frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - khhh_net
+
+networks:
+  khhh_net:
+    driver: bridge

@@ -2,7 +2,8 @@ import sqlite3
 import os
 import time
 
-DB_PATH = r"d:\Antigravity - Project\DATA_MASTER\khhh.db"
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+DB_PATH = os.path.join(_PROJECT_ROOT, "data", "database", "khhh_v3.db")
 
 def optimize_database():
     print(f"[Antigravity Team] Starting database optimization at: {DB_PATH}")

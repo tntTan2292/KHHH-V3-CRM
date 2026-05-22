@@ -54,3 +54,6 @@ DATA_MASTER/
 *.xlsx
 *.docx
 .vite_new/
+
+data/database/*.bak
+*.db

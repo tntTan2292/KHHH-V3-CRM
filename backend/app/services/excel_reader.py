@@ -8,9 +8,9 @@ from .province_matcher import extract_and_map_province
 
 logger = logging.getLogger(__name__)
 
-# Thư mục gốc chứa file (KHHH directory)
-# Thư mục dữ liệu MASTER tập trung dùng chung
-BASE_DIR = r"d:\Antigravity - Project\DATA_MASTER"
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+RAW_FILES_DIR = os.path.join(PROJECT_ROOT, "data", "raw_files")
+ARCHIVE_DATA_DIR = os.path.join(PROJECT_ROOT, "archive", "data")
 
 FILE1_COL_MAP = {
     0: "stt",
@@ -31,21 +31,20 @@ FILE1_COL_MAP = {
 }
 
 def find_file(pattern: str) -> str:
-    """ Tìm file trong thư mục gốc. """
+    """ Tìm file Excel trong thư mục project (raw_files và archive). """
     EXCEL_EXTS = {".xlsx", ".xlsb", ".xls"}
-    try:
-        all_entries = os.listdir(BASE_DIR)
-        # Bổ sung quét cả thư mục archive nếu có
-        archive_path = os.path.join(r"d:\Antigravity - Project\KHHH - Antigravity - V3.0", "archive", "data")
-        if os.path.exists(archive_path):
-            archive_entries = [os.path.join(archive_path, f) for f in os.listdir(archive_path)]
-            all_excels = [os.path.join(BASE_DIR, f) for f in all_entries] + archive_entries
-        else:
-            all_excels = [os.path.join(BASE_DIR, f) for f in all_entries]
-        
-        all_excels = [f for f in all_excels if os.path.splitext(f)[1].lower() in EXCEL_EXTS]
-    except Exception as e:
-        raise FileNotFoundError(f"Lỗi khi quét tệp Excel trong {BASE_DIR} hoặc archive: {e}")
+    search_dirs = [RAW_FILES_DIR, ARCHIVE_DATA_DIR]
+
+    all_excels = []
+    for d in search_dirs:
+        if not os.path.exists(d):
+            continue
+        try:
+            all_excels += [os.path.join(d, f) for f in os.listdir(d)
+                           if os.path.splitext(f)[1].lower() in EXCEL_EXTS]
+        except Exception as e:
+            raise FileNotFoundError(f"Lỗi khi quét tệp Excel trong {d}: {e}")
+
     pattern_lower = pattern.lower()
     words = [w for w in pattern_lower.split() if len(w) >= 3]
     for f in all_excels:
@@ -108,42 +107,35 @@ def read_file1() -> pd.DataFrame:
 
 
 def find_all_bf_files() -> list:
-    """ Tìm tất cả các file BF trong nhiều thư mục khác nhau. """
-    # Các đuôi file Excel hỗ trợ
+    """ Tìm tất cả các file BF trong data/raw_files/ (Single Source of Truth). """
     EXCEL_EXTS = [".xlsx", ".xls", ".xlsb"]
-    
-    # Danh sách các thư mục cần quét
-    search_dirs = [
-        BASE_DIR,
-        os.path.join(BASE_DIR, "batch_files"),
-        os.path.join(BASE_DIR, "batch_files", "2025_BACKFILL"),
-        os.path.join(r"D:\Antigravity - Project\KHHH - Antigravity - V3.0\data\raw_files"),
-        os.path.join(r"D:\Antigravity - Project\KHHH - Antigravity - V3.0\backend\data\batch_files"),
-        os.path.join(r"D:\Antigravity - Project\KHHH - Antigravity - V3.0\archive\data")
-    ]
-    
-    # Các mẫu tên file hợp lệ (Dùng chuỗi ngắn để tránh lỗi Unicode)
     STRICT_PATTERN = "BF_SL"
     NEW_PATTERN = "53_THUA THIEN HUE"
-    
+
+    search_dirs = [
+        RAW_FILES_DIR,
+        os.path.join(RAW_FILES_DIR, "backfill"),
+    ]
+
     files = []
     for d in search_dirs:
-        if not os.path.exists(d): continue
+        if not os.path.exists(d):
+            continue
         try:
             for f in os.listdir(d):
-                if os.path.splitext(f)[1].lower() in EXCEL_EXTS:
-                    if f.startswith("~$"): continue # Bỏ qua file tạm của Excel
-                    f_upper = f.upper()
-                    if STRICT_PATTERN in f_upper or NEW_PATTERN in f_upper:
-                        files.append(os.path.join(d, f))
+                if os.path.splitext(f)[1].lower() not in EXCEL_EXTS:
+                    continue
+                if f.startswith("~$"):
+                    continue
+                f_upper = f.upper()
+                if STRICT_PATTERN in f_upper or NEW_PATTERN in f_upper:
+                    files.append(os.path.join(d, f))
         except Exception as e:
             logger.error(f"Lỗi khi quét thư mục {d}: {e}")
-    
-    # Sắp xếp theo số (năm.tháng hoặc ngày tháng) ở đầu tên file
+
     import re
     def get_sort_key(filepath):
         filename = os.path.basename(filepath)
-        # Tìm YYYY.MM hoặc YYYYMMDD
         match = re.search(r"(\d{4})[._](\d{2})", filename)
         if match:
             return (int(match.group(1)), int(match.group(2)))
@@ -151,13 +143,13 @@ def find_all_bf_files() -> list:
         if match_date:
             return (int(match_date.group(1)[:4]), int(match_date.group(1)[4:6]), int(match_date.group(1)[6:]))
         return (0, 0)
-    
+
     files.sort(key=get_sort_key)
-    # Loại bỏ file trùng lặp nếu cùng tên (ví dụ ở cả master và raw)
+
     unique_files = {}
     for f in files:
         unique_files[os.path.basename(f)] = f
-        
+
     final_files = list(unique_files.values())
     logger.info(f"Tìm thấy {len(final_files)} file BF: {[os.path.basename(f) for f in final_files]}")
     return final_files

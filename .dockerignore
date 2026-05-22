@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# Data và database (mount qua volume, không đưa vào image)
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# Build artifacts
+dist/
+build/
+.vite_new/
+
+# Môi trường và secrets
+.env
+*.env.local
+
+# Git
+.git/
+.gitignore
+
+# Logs
+*.log
+logs/
+
+# Temp files
+*.tmp
+~$*
+
+# Claude worktrees
+.claude/worktrees/
+
+# Test files
+test_*.py

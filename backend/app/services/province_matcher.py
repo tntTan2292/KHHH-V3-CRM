@@ -13,8 +13,8 @@ def load_province_mapping():
     if PROVINCE_MAPPING:
         return PROVINCE_MAPPING
         
-    # Đường dẫn tới tệp chuẩn hóa 34 tỉnh thành tại Kho MASTER dùng chung
-    db_path = r"d:\Antigravity - Project\DATA_MASTER\DB_34TTP.xlsx"
+    PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+    db_path = os.path.join(PROJECT_ROOT, "archive", "data", "DB_34TTP.xlsx")
     
     if os.path.exists(db_path):
         try:
