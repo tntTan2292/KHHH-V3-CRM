@@ -76,7 +76,43 @@ Luồng vận hành thực tế thường diễn ra như sau:
 
 ---
 
-## 🚀 3. HƯỚNG DẪN VẬN HÀNH NHANH (QUICK START)
+## 🛠️ 3. AI-READY REFACTOR CONTEXT
+
+### 3.1 Important Files
+- **`src/pages/Dashboard.jsx`**: Trái tim UI của hệ thống, chứa toàn bộ logic hiển thị chỉ số vĩ mô.
+- **`src/pages/Customers.jsx`**: Lưới dữ liệu chi tiết khách hàng và logic Drill-down.
+- **`backend/app/routers/analytics.py`**: API cấp số liệu cho Dashboard (Summary, Trends, Heatmap).
+- **`backend/app/services/lifecycle_engine.py`**: Chứa logic phân loại Vòng đời cốt lõi (Tuyệt đối cẩn trọng khi sửa).
+- **`backend/app/services/summary_service.py`**: Build bảng Summary từ Transactions (Nặng về tính toán).
+- **`backend/app/services/scoping_service.py`**: Xử lý phân quyền 5 cấp (Phải test kỹ nếu chạm vào).
+
+### 3.2 Data Flow Overview
+Luồng dữ liệu tổng quan:
+`Frontend (SWR)` → `API Router` → `Service Layer (Logic)` → `Database (SQLite)` → `Summary Tables` → `Dashboard Render`
+- Dashboard *không* query trực tiếp từ bảng raw `Transactions` mà lấy từ bảng `MonthlyAnalyticsSummary` (đã tổng hợp) để đảm bảo tốc độ Realtime.
+
+### 3.3 Safe Refactor Rules
+- **Tôn trọng Business Logic**: KHÔNG thay đổi các định nghĩa về Lifecycle, KPI nếu không có chỉ thị.
+- **Không phá API Contract**: Tránh đổi cấu trúc response JSON trừ khi đã đồng bộ với Frontend.
+- **Refactor vi phẫu**: Chia nhỏ PR, không đập đi xây lại toàn bộ file `Dashboard.jsx` cùng một lúc.
+- **Ưu tiên Component hóa**: Tách các khối UI lặp lại thành Reusable Components.
+- **Giữ nguyên Scoping**: Không bypass hệ thống phân quyền (Scoping Service).
+
+### 3.4 Technical Debt
+- **Dashboard.jsx phình to**: File quá lớn, trộn lẫn cả fetching data, UI layout và format logic.
+- **Lặp code UI**: Một số thẻ KPI và Widget đang bị duplicate cấu trúc HTML/Tailwind.
+- **Responsive Table**: Các bảng dữ liệu (Heatmap) xử lý overflow-x chưa triệt để trên màn hình nhỏ.
+- **Data Fetching**: Một số luồng gọi API có thể tối ưu hơn thay vì phụ thuộc lẫn nhau.
+
+### 3.5 Future Refactor Direction
+- **Modular Dashboard**: Đập nhỏ Dashboard thành các Sub-components (`ElitePulse.jsx`, `PopulationCard.jsx`...).
+- **Widget-based Structure**: Biến các module thành dạng Widget độc lập.
+- **Lazy Loading**: Áp dụng Lazy/Suspense cho các Chart nặng để giảm TTI (Time to Interactive).
+- **Responsive Optimization**: Chuẩn hóa hệ thống Grid/Flex để hoạt động hoàn hảo trên Tablet/Mobile.
+
+---
+
+## 🚀 4. HƯỚNG DẪN VẬN HÀNH NHANH (QUICK START)
 
 Dành cho AI Assistant và Cộng tác viên muốn khởi chạy hệ thống locally:
 
@@ -93,7 +129,7 @@ Dành cho AI Assistant và Cộng tác viên muốn khởi chạy hệ thống l
 
 ---
 
-## 🧠 4. KIẾN TRÚC & LUỒNG DỮ LIỆU (THE BRAIN)
+## 🧠 5. KIẾN TRÚC & LUỒNG DỮ LIỆU (THE BRAIN)
 
 Hệ thống được vận hành bởi 4 "Động cơ" cốt lõi:
 1.  **[Hierarchy Engine](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/app/services/hierarchy_service.py)**: Quản trị mô hình 5 cấp chức danh (BĐTP -> Trung tâm -> Trưởng đại diện -> Giám đốc Phường/Xã -> Nhân viên).
@@ -103,14 +139,14 @@ Hệ thống được vận hành bởi 4 "Động cơ" cốt lõi:
 
 ---
 
-## 📜 5. HIẾN PHÁP & QUY TẮC PHÁT TRIỂN
+## 📜 6. HIẾN PHÁP & QUY TẮC PHÁT TRIỂN
 Tuyệt đối không vi phạm các nguyên tắc quản trị trong các tài liệu sau:
 - [📖 HIÊN PHÁP CRM 3.0](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/Rules/HIEN_PHAP_CRM_3.0.md) (Quy tắc tối thượng)
 - [📝 NHẬT KÝ PHÁT TRIỂN](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/Rules/NK_PHAT_TRIEN_V3.0.md) (Theo dõi thay đổi)
 
 ---
 
-## 🗺️ 6. BẢN ĐỒ TRA CỨU MÃ NGUỒN (TECHNICAL INDEX)
+## 🗺️ 7. BẢN ĐỒ TRA CỨU MÃ NGUỒN (TECHNICAL INDEX)
 
 Sử dụng các liên kết dưới đây để truy cập trực tiếp vào các module quan trọng:
 
@@ -129,7 +165,7 @@ Sử dụng các liên kết dưới đây để truy cập trực tiếp vào c
 
 ---
 
-## 🛠️ 7. CÔNG CỤ BẢO TRÌ (ADMIN SCRIPTS)
+## 🛠️ 8. CÔNG CỤ BẢO TRÌ (ADMIN SCRIPTS)
 - [rebuild_summary.py](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/scripts/rebuild_summary.py) - Chạy khi cần làm mới toàn bộ Dashboard.
 - [database_optimizer.py](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/scripts/database_optimizer.py) - Tối ưu hiệu năng Database.
 
