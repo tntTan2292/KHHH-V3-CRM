@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useMemo, lazy, Suspense, useCallback } from 'react';
 import api from '../utils/api';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { saveNavigationContext, getNavigationContext, syncUrlWithContext, getContextFromUrl, saveDateContext, getDateContext } from '../utils/navigationMemory';
@@ -133,7 +133,7 @@ function Dashboard() {
   const dashboardRef = useRef();
   const heatmapSectionRef = useRef();
 
-  const handleInsightAction = (action) => {
+  const handleInsightAction = useCallback((action) => {
     if (action === 'SHOW_CHURN_LIST') {
       setShowChurnModal(true);
     } else {
@@ -142,7 +142,7 @@ function Dashboard() {
       const heatmapSection = document.getElementById('heatmap-section');
       if (heatmapSection) heatmapSection.scrollIntoView({ behavior: 'smooth' });
     }
-  };
+  }, []);
 
   // --- SWR DATA FETCHING (Giai đoạn 3: Elite UX) ---
   const queryParams = useMemo(() => ({ 
