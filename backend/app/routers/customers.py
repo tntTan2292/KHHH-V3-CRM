@@ -112,6 +112,12 @@ async def get_customers(
         except Exception:
             suspect_reason = None
             
+        if status_final == 'churned':
+            if suspect_reason and str(suspect_reason).strip() and str(suspect_reason) != "NULL":
+                status_final = 'churn_suspect'
+            else:
+                status_final = 'churn_real'
+                
         result_items.append({
             "id": c.id,
             "ma_crm_cms": c.ma_crm_cms,

@@ -156,23 +156,22 @@ function Dashboard() {
   const { data: coverageData, error: coverageError } = useSWR('/api/analytics/data-coverage', fetcher, {
     revalidateOnFocus: false,
     revalidateIfStale: false,
-    dedupingInterval: 60000,
-    onSuccess: (data) => {
-      // [RF5C] Governance: Only apply latest month as default if user hasn't selected anything
-      if (data && data.latest_month && (!startDate || startDate === "") && (!endDate || endDate === "")) {
-        setStartDate(data.latest_month.start);
-        setEndDate(data.latest_month.end);
-        setSelectedMonth(data.latest_month.value);
-      }
-      // RF5B-HOTFIX: Luôn giải phóng trạng thái chờ ngày mặc định
-      setWaitingForDefaultDate(false);
-      console.log("[DIAGNOSTIC] Dashboard waitingForDefaultDate released via onSuccess");
-    },
-    onError: (err) => {
-      setWaitingForDefaultDate(false);
-      console.error("[DIAGNOSTIC] Dashboard waitingForDefaultDate released via onError", err);
-    }
+    dedupingInterval: 60000
   });
+
+  // FIX REGRESSION: SWR cache does not trigger onSuccess if data is already cached.
+  // Using useEffect guarantees state recovery when navigating back to Dashboard.
+  useEffect(() => {
+    if (coverageData || coverageError) {
+      if (coverageData && coverageData.latest_month && (!startDate || startDate === "") && (!endDate || endDate === "")) {
+        setStartDate(coverageData.latest_month.start);
+        setEndDate(coverageData.latest_month.end);
+        setSelectedMonth(coverageData.latest_month.value);
+      }
+      setWaitingForDefaultDate(false);
+      console.log("[DIAGNOSTIC] Dashboard waitingForDefaultDate released via useEffect cache hook");
+    }
+  }, [coverageData, coverageError]);
 
   // 2. Summary & Stats
   const { data: summaryData, isValidating: loadingStats } = useSWR(

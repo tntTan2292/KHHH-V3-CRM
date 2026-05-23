@@ -138,6 +138,28 @@ const lifecycleConfig = [
     accent: "#64748B",
     bgLight: "bg-slate-50/80",
     borderCol: "border-slate-500"
+  },
+  { 
+    label: "Rời bỏ Thực tế", 
+    value: "churn_real", 
+    icon: UserMinus, 
+    color: "rose",
+    category: "Historical",
+    gradient: "from-rose-600 to-rose-800",
+    accent: "#E11D48",
+    bgLight: "bg-rose-50/80",
+    borderCol: "border-rose-500"
+  },
+  { 
+    label: "Rời bỏ Nghi ngờ", 
+    value: "churn_suspect", 
+    icon: History, 
+    color: "slate",
+    category: "Historical",
+    gradient: "from-slate-500 to-slate-700",
+    accent: "#64748B",
+    bgLight: "bg-slate-50/80",
+    borderCol: "border-slate-500"
   }
 ];
 
@@ -198,6 +220,7 @@ const CustomerRow = React.memo(({ c, handleRowClick, handleHistoryModal, handleO
                c?.status_type === 'at_risk' ? 'bg-amber-50 text-amber-700 border-amber-100' :
                c?.status_type === 'new' || c?.status_type?.includes('new') ? 'bg-indigo-50 text-indigo-700 border-indigo-100' :
                c?.status_type?.includes('recovered') ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+               c?.status_type === 'churn_suspect' ? 'bg-gray-100 text-gray-500 border-gray-200' :
                'bg-rose-50 text-rose-700 border-rose-100'
              }`}>
                <status.icon size={12} />
@@ -206,6 +229,8 @@ const CustomerRow = React.memo(({ c, handleRowClick, handleHistoryModal, handleO
                  if (c?.status_type === 'new' || c?.status_type === 'new_event' || c?.status_type === 'new_pop') return 'Mới';
                  if (c?.status_type === 'recovered' || c?.status_type === 'recovered_event' || c?.status_type === 'recovered_pop') return 'Tái bản';
                  if (c?.status_type === 'at_risk') return 'Nguy cơ';
+                 if (c?.status_type === 'churn_suspect') return 'Nghi ngờ';
+                 if (c?.status_type === 'churn_real') return 'Rời bỏ';
                  if (c?.status_type === 'churned' || c?.status_type === 'churn_event' || c?.status_type === 'churn_pop') return 'Rời bỏ';
                  return c?.status_type;
                })()}
@@ -1303,12 +1328,49 @@ export default function Customers() {
               { label: "Tổng Khách hàng", value: "total_pop", icon: Users, color: "blue" },
               { label: "Hiện hữu (Mature)", value: "active", icon: CheckCircle2, color: "purple" },
               { label: "Nguy cơ", value: "at_risk", icon: AlertCircle, color: "orange" },
-              { label: "Rời bỏ (Lũy kế)", value: "churn_pop", icon: History, color: "slate" }
+              { label: "Rời bỏ (Lũy kế)", value: "churn_pop", icon: History, color: "rose" }
             ].map((item) => {
-              const isActive = filters.lifecycle_status === item.value;
+              const isActive = filters.lifecycle_status === item.value || (item.value === "churn_pop" && (filters.lifecycle_status === "churn_real" || filters.lifecycle_status === "churn_suspect"));
               const countKey = item.value === "total_pop" ? "Tất cả" : item.value;
               const count = lifecycleStats[countKey] || 0;
               const config = lifecycleConfig.find(c => c.value === item.value) || { color: item.color, borderCol: "border-gray-200", bgLight: "bg-white" };
+              
+              if (item.value === "churn_pop") {
+                 return (
+                   <div key={item.label} className={`group relative p-2 pl-3.5 rounded-lg transition-all flex flex-col items-start gap-1 text-left border ${isActive ? `bg-white shadow-md scale-[1.01] z-10 border-rose-500 border-l-4` : `bg-white/60 border-gray-100 hover:bg-white border-l-4 opacity-90`}`}>
+                      <button onClick={() => { setFilters(prev => ({ ...prev, lifecycle_status: item.value })); setPage(1); }} className="w-full flex flex-col text-left outline-none">
+                          <div className="flex items-center justify-between w-full">
+                            <span className={`text-[11px] font-black uppercase tracking-tight truncate ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
+                              {item.label}
+                            </span>
+                            <item.icon size={12} className={isActive ? `text-rose-600` : "text-gray-400"} />
+                          </div>
+                          <div className="flex items-baseline gap-1">
+                            <span className={`text-base font-black tracking-tighter ${isActive ? `text-rose-600` : `text-rose-700`}`}>
+                              {count.toLocaleString()}
+                            </span>
+                            <span className="text-[11px] text-gray-400 font-bold uppercase opacity-50">KH</span>
+                          </div>
+                      </button>
+                      
+                      {/* Sub-labels for Churn */}
+                      <div className="flex items-center gap-2 mt-0.5 pt-1.5 border-t border-gray-100 w-full justify-between">
+                         <button 
+                           onClick={(e) => { e.stopPropagation(); setFilters(prev => ({ ...prev, lifecycle_status: "churn_real" })); setPage(1); }}
+                           className={`text-[10px] font-bold px-1.5 py-0.5 rounded transition-colors ${filters.lifecycle_status === 'churn_real' ? 'bg-rose-100 text-rose-700' : 'text-rose-600 hover:bg-rose-50'}`}
+                         >
+                           Thực tế: {(lifecycleStats["churn_real_pop"] || 0).toLocaleString()}
+                         </button>
+                         <button 
+                           onClick={(e) => { e.stopPropagation(); setFilters(prev => ({ ...prev, lifecycle_status: "churn_suspect" })); setPage(1); }}
+                           className={`text-[10px] font-bold px-1.5 py-0.5 rounded transition-colors ${filters.lifecycle_status === 'churn_suspect' ? 'bg-gray-200 text-gray-700' : 'text-gray-500 hover:bg-gray-100'}`}
+                         >
+                           Nghi ngờ: {(lifecycleStats["churn_suspect_pop"] || 0).toLocaleString()}
+                         </button>
+                      </div>
+                   </div>
+                 );
+              }
               
               return (
                 <button
