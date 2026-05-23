@@ -75,6 +75,14 @@ async def assign_task(
     orig_p_id = None
     orig_s_id = None
     
+    # --- CROSS-CENTER SCOPE LOCK ---
+    from ..services.scoping_service import ScopingService
+    user_scope_ids = ScopingService.get_effective_scope_ids(db, current_user)
+    if user_scope_ids is not None: # Not ADMIN
+        target_staff = db.query(NhanSu).filter(NhanSu.id == payload.staff_id).first()
+        if not target_staff or target_staff.point_id not in user_scope_ids:
+            raise HTTPException(status_code=403, detail="Bạn không có quyền giao việc cho nhân sự thuộc trung tâm/nhánh khác.")
+    
     # Kiểm tra giao trùng khách hàng đang active
     active_task = db.query(ActionTask).filter(
         ActionTask.target_id == payload.target_id,
@@ -389,6 +397,14 @@ async def reassign_task(
     if assign_log and assign_log.changed_by != current_user.id:
         if current_user.role and current_user.role.name not in ["ADMIN", "SYSTEM_ADMIN"]:
             raise HTTPException(status_code=403, detail="Chỉ người giao việc mới được quyền Reassign hoặc Thu hồi.")
+            
+    # --- CROSS-CENTER SCOPE LOCK ---
+    from ..services.scoping_service import ScopingService
+    user_scope_ids = ScopingService.get_effective_scope_ids(db, current_user)
+    if user_scope_ids is not None:
+        target_staff = db.query(NhanSu).filter(NhanSu.id == staff_id).first()
+        if not target_staff or target_staff.point_id not in user_scope_ids:
+            raise HTTPException(status_code=403, detail="Bạn không có quyền điều phối việc cho nhân sự thuộc trung tâm/nhánh khác.")
     
     old_staff_id = task.staff_id
     task.staff_id = staff_id
@@ -627,6 +643,44 @@ async def mark_task_overdue(
     db.commit()
     
     return {"message": "Đã chuyển nhiệm vụ sang trạng thái OVERDUE an toàn"}
+
+@router.get("/{task_id}/timeline")
+async def get_task_timeline(
+    task_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Lấy danh sách sự kiện timeline (TaskStateLog) của một task cụ thể."""
+    task = db.query(ActionTask).filter(ActionTask.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Không tìm thấy nhiệm vụ")
+
+    logs = db.query(TaskStateLog).filter(TaskStateLog.task_id == task_id).order_by(TaskStateLog.created_at.asc()).all()
+    
+    timeline = []
+    for log in logs:
+        evidence = {}
+        if log.evidence_snapshot_json:
+            try:
+                evidence = json.loads(log.evidence_snapshot_json)
+            except:
+                pass
+                
+        # Nếu chưa có JSON, build một fallback evidence dựa trên log
+        if not evidence:
+            evidence = {
+                "event_type": "UNKNOWN",
+                "action_by": "Hệ thống",
+                "previous_status": log.previous_status,
+                "new_status": log.new_status,
+                "created_at": log.created_at.isoformat(),
+                "reason": log.reason or "",
+                "evidence_text": "Bản ghi cũ không có JSON"
+            }
+            
+        timeline.append(evidence)
+        
+    return timeline
 
 @router.get("/history/{target_id}")
 async def get_task_history(

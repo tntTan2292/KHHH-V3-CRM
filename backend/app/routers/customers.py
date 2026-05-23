@@ -185,6 +185,7 @@ async def get_staff_options(
     Trả kèm thông tin vai trò người dùng để Frontend quyết định hiển thị."""
     from ..models import NhanSu, Transaction, HierarchyNode, User, Role
     from ..services.hierarchy_service import HierarchyService
+    from ..services.scoping_service import ScopingService
     
     query = db.query(NhanSu)
     target_point_id = None
@@ -276,6 +277,29 @@ async def get_staff_options(
                 if cluster_descendants:
                     query = query.filter(NhanSu.point_id.in_(cluster_descendants))
                     
+    # --- CROSS-CENTER SCOPE LOCK ---
+    user_scope_ids = ScopingService.get_effective_scope_ids(db, current_user)
+    if user_scope_ids is not None: # Not ADMIN
+        # Filter wards_data and points_data
+        wards_data = [w for w in wards_data if w["id"] in user_scope_ids]
+        points_data = [p for p in points_data if p["id"] in user_scope_ids]
+        
+        # Reset default if out of scope
+        if default_point_id and default_point_id not in user_scope_ids:
+            default_point_id = None
+        if default_ward_id and default_ward_id not in user_scope_ids:
+            default_ward_id = None
+            
+        # Fallback: If suggestions are empty (e.g. cross-center last_tx), return user's whole scope
+        if not points_data:
+            scope_nodes = db.query(HierarchyNode).filter(HierarchyNode.id.in_(user_scope_ids)).all()
+            wards_data = [{"id": n.id, "name": n.name, "code": n.code} for n in scope_nodes if n.type == 'WARD']
+            points_data = [{"id": n.id, "name": n.name, "code": n.code, "ward_id": n.parent_id} for n in scope_nodes if n.type == 'POINT']
+            query = db.query(NhanSu) # Reset query to avoid cluster restriction
+            
+        # Strictly filter staff query by user scope
+        query = query.filter(NhanSu.point_id.in_(user_scope_ids))
+        
     staff = query.all()
     staff_data = [{"id": s.id, "name": s.full_name, "hr_id": s.hr_id, "chuc_vu": s.chuc_vu, "ma_bc": s.ma_bc, "point_id": s.point_id} for s in staff]
     
@@ -284,7 +308,7 @@ async def get_staff_options(
         "wards": wards_data,
         "points": points_data,
         "default_ward_id": default_ward_id,
-        "default_point_id": target_point_id,
+        "default_point_id": default_point_id,
         "user_role": user_role,
         "user_ward_id": user_ward_id
     }
