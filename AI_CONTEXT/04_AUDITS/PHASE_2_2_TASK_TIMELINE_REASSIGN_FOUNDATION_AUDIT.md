@@ -11,8 +11,7 @@ Mỗi tương tác với khách hàng sẽ sinh ra một "Dấu chân" (Event) t
 | Tên Sự Kiện | Ý nghĩa thực tế |
 | :--- | :--- |
 | **TASK_CREATED** | Việc mới được sinh ra |
-| **TASK_ASSIGNED** | Sếp đã giao việc này cho Nhân viên A |
-| **TASK_STARTED** | Nhân viên A đã bấm nhận việc |
+| **TASK_ASSIGNED** | Sếp đã giao việc này cho Nhân viên A (Vào xử lý luôn) |
 | **TASK_REPORTED** | Nhân viên A báo cáo tình hình (VD: Đã gọi khách) |
 | **TASK_COMPLETED**| Nhân viên A đã chốt xong (Thành công/Thất bại) |
 | **TASK_OVERDUE** | Việc bị "Ngâm" quá 7 ngày không ai đụng tới |
@@ -73,11 +72,16 @@ Thay vì thêm cột mới, ta dùng cột JSON để nhét dữ liệu theo m�
 
 | Tên Field | Ý nghĩa cho dân No-code |
 | :--- | :--- |
+| `event_type` | Loại sự kiện (Ví dụ: GIAO_VIEC, BAO_CAO, QUAHAN) |
+| `action_by` | Ai là người bấm nút thực hiện hành động này? |
+| `previous_status` | Trạng thái cũ trước khi đổi là gì? |
+| `new_status` | Trạng thái mới hiện tại là gì? |
 | `from_user_id` | Rút từ tay ai? (Mã nhân viên) |
 | `to_user_id` | Giao cho ai? (Mã nhân viên) |
 | `reason` | Vì sao lại giao lại / Hủy / Overdue? |
 | `evidence_text` | Bằng chứng (Ghi chú của Sếp / Báo cáo của nhân viên) |
 | `lat_long` | Định vị GPS lúc báo cáo (Dùng nếu có đi gặp mặt) |
+| `created_at` | Thời gian tạo lịch sử này (Timestamp) |
 
 ---
 
@@ -89,7 +93,7 @@ Hệ thống sẽ không tước đoạt Khách hàng ngay, mà sẽ chạy theo
 | :--- | :--- | :--- |
 | **Quá 3 ngày** | 🟡 **Đèn Vàng** (Nhắc nhẹ) | Nhảy thông báo đẩy (Noti) trên app của Nhân viên: *"Bạn có việc chưa báo cáo"*. |
 | **Quá 5 ngày** | 🟠 **Đèn Cam** (Cảnh báo) | Nhảy thông báo vào app của Nhân viên VÀ màn hình của Sếp (Leader): *"Cảnh báo ngâm việc lâu"*. |
-| **Quá 7 ngày** | 🔴 **Đèn Đỏ** (OVERDUE) | Khóa vĩnh viễn quyền báo cáo của nhân viên. Tự động đổi trạng thái Task thành **OVERDUE**. Bắn tin khẩn cấp cho Người giao việc (Sếp) để tự ra quyết định. |
+| **Quá 7 ngày** | 🔴 **Đèn Đỏ** (OVERDUE) | Chuyển Task sang trạng thái **OVERDUE** (Quá hạn). Hiện cảnh báo đỏ trên màn hình. Gửi cảnh báo khẩn cấp cho Người giao việc (Sếp) để chờ Leader ra quyết định xử lý tiếp theo: Đôn đốc tiếp, Thu hồi, hoặc Reassign. |
 
 > [!WARNING]
 > Theo đúng luật nghiệp vụ đã chốt: Hệ thống **KHÔNG TỰ ĐỘNG THU HỒI KHÁCH MÀ CHỈ CẢNH BÁO ĐỎ**. Quyền sinh sát (Reassign hoặc Hủy) nằm hoàn toàn trong tay Sếp trực tiếp. Hệ thống chỉ làm nhiệm vụ minh bạch hóa sự thật trên Timeline.
