@@ -6,29 +6,26 @@ Chào mừng đến với hệ thống quản trị khách hàng **CRM 3.0 của
 
 ---
 
-## 🧠 1. AI CONTEXT DOCUMENTS (Deep Dive)
-Hệ thống tài liệu chuyên sâu dành cho AI (Claude Code / Antigravity / ChatGPT) và Developer mới. Đọc các tài liệu này để hiểu toàn bộ Business Logic và Frontend Architecture trước khi code:
+## 🧠 1. REPO STRUCTURE & AI ONBOARDING
 
-- 🎯 [PROJECT_OVERVIEW.md](AI_CONTEXT/PROJECT_OVERVIEW.md) - Mục tiêu và phạm vi hệ thống.
-- 🌊 [USER_FLOW.md](AI_CONTEXT/USER_FLOW.md) - Luồng vận hành thực tế.
-- 📊 [KPI_DEFINITIONS.md](AI_CONTEXT/KPI_DEFINITIONS.md) - Định nghĩa Vòng đời và KPI (SSOT).
-- 🎨 [UI_UX_GOALS.md](AI_CONTEXT/UI_UX_GOALS.md) - Mục tiêu thiết kế giao diện.
-- 🔄 [DATA_FLOW.md](AI_CONTEXT/DATA_FLOW.md) - Luồng dữ liệu Frontend -> Backend.
-- 📁 [IMPORTANT_FILES.md](AI_CONTEXT/IMPORTANT_FILES.md) - Các file quan trọng/nguy hiểm.
-- 🛡️ [SAFE_REFACTOR_RULES.md](AI_CONTEXT/SAFE_REFACTOR_RULES.md) - Nguyên tắc an toàn khi sửa code.
-- ⚠️ [TECHNICAL_DEBT.md](AI_CONTEXT/TECHNICAL_DEBT.md) - Vấn đề kỹ thuật hiện tại cần xử lý.
-- 📸 [SCREENSHOTS.md](AI_CONTEXT/SCREENSHOTS.md) - Hình ảnh giao diện thực tế.
+Hệ thống tài liệu được tổ chức chặt chẽ để đảm bảo AI và Developer mới có thể nắm bắt nhanh chóng ngữ cảnh và kiến trúc hệ thống mà không làm hỏng quy tắc cũ.
 
----
+### 📂 Cấu trúc Repository
+- 🖥️ `/src`: Chứa toàn bộ source code **Frontend** (React + Vite).
+- ⚙️ `/backend`: Chứa toàn bộ source code **Backend** (FastAPI + Python).
+- 📜 `/Rules`: **SOURCE OF TRUTH CỐ ĐỊNH**. Chứa luật lệ gốc của hệ thống (Hiến pháp, Conventions, UX Guidelines). Tuyệt đối **KHÔNG** sửa đổi nếu không có chỉ định.
+- 📁 `/AI_CONTEXT`: Thư mục làm việc hiện tại, chứa các tài liệu audit, tiến độ phase, và tài liệu vận hành workflow.
+  - 📦 `05_ARCHIVE`: Chứa tài liệu lịch sử (các phase và audit cũ) - KHÔNG cần đọc trừ khi tra cứu.
 
-## 📐 2. DEVELOPMENT CONVENTIONS
-Chuẩn mực code và thiết kế bắt buộc dành cho mọi Developer và AI Agent nhằm đảm bảo kiến trúc dài hạn:
+### 🚀 Định hướng hiện tại (Active Direction)
+Hệ thống Dashboard hiện đang chuyển dịch từ một **CRM Dashboard** đơn thuần ➔ **Operational CRM Platform** (Nền tảng điều hành nghiệp vụ toàn diện, tích hợp giao việc và SLA).
 
-- 🛠️ [DEVELOPMENT_CONVENTIONS.md](AI_CONTEXT/DEVELOPMENT_CONVENTIONS.md) - Quy tắc naming, folder, code.
-- 🧩 [COMPONENT_GUIDELINES.md](AI_CONTEXT/COMPONENT_GUIDELINES.md) - Tiêu chuẩn tạo và tách UI Component.
-- 🏗️ [DASHBOARD_ARCHITECTURE.md](AI_CONTEXT/DASHBOARD_ARCHITECTURE.md) - Triết lý layout và tương lai Widget-based.
-- 💅 [UI_STYLE_GUIDE.md](AI_CONTEXT/UI_STYLE_GUIDE.md) - Chuẩn màu sắc, typography và UI enterprise.
-- 🐙 [GIT_WORKFLOW.md](AI_CONTEXT/GIT_WORKFLOW.md) - Quy tắc commit, phân nhánh và refactor an toàn.
+### 🤖 AI Onboarding Flow (Tài liệu bắt buộc đọc)
+Các AI mới join vào dự án vui lòng đọc theo thứ tự sau để lấy đủ context làm việc an toàn:
+1. Tệp `README.md` này (Cổng vào dự án).
+2. 🗺️ [AI_CONTEXT/00_FOUNDATION/README_AI_CONTEXT.md](AI_CONTEXT/00_FOUNDATION/README_AI_CONTEXT.md) - Sơ đồ và hướng dẫn cấu trúc context.
+3. 🎯 [AI_CONTEXT/00_FOUNDATION/PROJECT_OVERVIEW.md](AI_CONTEXT/00_FOUNDATION/PROJECT_OVERVIEW.md) - Mục tiêu cốt lõi của dự án.
+4. 🏃 [AI_CONTEXT/03_PHASES_ACTIVE/PHASE6_STABILIZATION_PLAN.md](AI_CONTEXT/03_PHASES_ACTIVE/PHASE6_STABILIZATION_PLAN.md) (hoặc Active Phase Status tương tự) - Nắm được Phase hiện hành đang làm gì.
 
 ---
 
