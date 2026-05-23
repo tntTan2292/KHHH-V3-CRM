@@ -53,6 +53,18 @@ class CustomerService:
         
         if lifecycle_status:
             status_val = lifecycle_status.lower()
+            
+            # --- PHASE 1 SAFE CHURN CLASSIFICATION ---
+            is_churn_suspect = False
+            is_churn_real = False
+            if status_val == 'churn_suspect':
+                is_churn_suspect = True
+                status_val = 'churn_pop'
+            elif status_val == 'churn_real':
+                is_churn_real = True
+                status_val = 'churn_pop'
+            # -----------------------------------------
+            
             month_str = curr_start.strftime("%Y-%m")
             
             # RF5C-HOTFIX: Temporal Integrity check
@@ -137,6 +149,17 @@ class CustomerService:
                 
                 # Join with snapshot (Using filter for join integrity)
                 filters.append(Customer.ma_crm_cms == snapshot_sub.c.ma_kh)
+                
+            # --- PHASE 1 SAFE CHURN CLASSIFICATION ---
+            if is_churn_suspect or is_churn_real:
+                from ..services.churn_classification_service import ChurnClassificationService
+                suspect_sql = ChurnClassificationService.get_suspect_sql_condition("customers.ma_crm_cms")
+                
+                if is_churn_suspect:
+                    filters.append(text(suspect_sql))
+                else:
+                    filters.append(text(f"NOT {suspect_sql}"))
+            # -----------------------------------------
         else:
             # [RF5F] UNIVERSE LEAK PROTECTION: Even if no status selected, bound by transaction universe
             # for the current selected period.
@@ -224,7 +247,36 @@ class CustomerService:
                 Customer.priority_score.label("priority_score"),
                 Customer.priority_level.label("priority_level"),
                 Customer.assigned_staff_id.label("assigned_staff_id"),
-                Customer.ma_bc_phu_trach.label("point_code")
+                Customer.ma_bc_phu_trach.label("point_code"),
+                text("NULL").label("suspect_reason") # Placeholder to avoid schema error if we don't always add it. Actually, better to always compute it.
+            )
+            
+            # --- PHASE 1 SAFE CHURN CLASSIFICATION ---
+            from ..services.churn_classification_service import ChurnClassificationService
+            suspect_reason_col = text(ChurnClassificationService.get_suspect_reason_sql_column("customers.ma_crm_cms")).label("suspect_reason")
+            
+            final_query = db.query(
+                Customer,
+                func.coalesce(metrics_sub.c.dynamic_revenue, 0).label("dynamic_revenue"),
+                func.coalesce(prev_metrics_sub.c.previous_revenue, 0).label("previous_revenue"),
+                func.coalesce(metrics_sub.c.transaction_count, 0).label("transaction_count"),
+                metrics_sub.c.last_shipped_absolute,
+                NhanSu.full_name.label("assigned_staff_name"),
+                snapshot_sub.c.ma_kh.label("ma_kh"),
+                snapshot_sub.c.point_id.label("point_id"),
+                snapshot_sub.c.lifecycle_state.label("snapshot_stage"),
+                snapshot_sub.c.vip_tier.label("vip_tier"),
+                snapshot_sub.c.rfm_segment.label("rfm_segment"),
+                func.coalesce(snapshot_sub.c.revenue, 0).label("snapshot_revenue"),
+                func.coalesce(snapshot_sub.c.orders, 0).label("snapshot_orders"),
+                Customer.id.label("customer_id"),
+                Customer.ma_crm_cms.label("customer_ma_crm_cms"),
+                Customer.ten_kh.label("customer_name"),
+                Customer.priority_score.label("priority_score"),
+                Customer.priority_level.label("priority_level"),
+                Customer.assigned_staff_id.label("assigned_staff_id"),
+                Customer.ma_bc_phu_trach.label("point_code"),
+                suspect_reason_col
             ).select_from(snapshot_sub)\
              .outerjoin(Customer, Customer.ma_crm_cms == snapshot_sub.c.ma_kh)\
              .outerjoin(metrics_sub, snapshot_sub.c.ma_kh == metrics_sub.c.ma_kh)\
@@ -239,7 +291,8 @@ class CustomerService:
                 func.coalesce(metrics_sub.c.transaction_count, 0).label("transaction_count"),
                 metrics_sub.c.last_shipped_absolute,
                 NhanSu.full_name.label("assigned_staff_name"),
-                Customer.lifecycle_state.label("snapshot_stage")
+                Customer.lifecycle_state.label("snapshot_stage"),
+                text(ChurnClassificationService.get_suspect_reason_sql_column("customers.ma_crm_cms")).label("suspect_reason")
             ).select_from(Customer)\
              .outerjoin(metrics_sub, Customer.ma_crm_cms == metrics_sub.c.ma_kh)\
              .outerjoin(prev_metrics_sub, Customer.ma_crm_cms == prev_metrics_sub.c.ma_kh)\

@@ -107,6 +107,11 @@ async def get_customers(
         # RF5C: Restore dynamic growth calculation
         growth = round(((curr_rev - prev_rev) / prev_rev * 100), 1) if prev_rev > 0 else 0.0
         
+        try:
+            suspect_reason = row._mapping.get("suspect_reason")
+        except Exception:
+            suspect_reason = None
+            
         result_items.append({
             "id": c.id,
             "ma_crm_cms": c.ma_crm_cms,
@@ -125,7 +130,8 @@ async def get_customers(
             "assigned_staff_id": c.assigned_staff_id,
             "assigned_staff_name": row.assigned_staff_name,
             "point_name": point_map.get(c.ma_bc_phu_trach, None),
-            "point_code": c.ma_bc_phu_trach
+            "point_code": c.ma_bc_phu_trach,
+            "suspect_reason": suspect_reason
         })
 
     return {

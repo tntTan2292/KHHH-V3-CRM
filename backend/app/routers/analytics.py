@@ -180,6 +180,40 @@ async def get_dashboard_stats(
     kh_roi_bo = lifecycle_stats.get("churn_event", 0)
     tong_kh = lifecycle_stats.get("total", 0)
 
+    # --- PHASE 1 SAFE CHURN CLASSIFICATION ---
+    churn_suspect_pop = 0
+    churn_pop_total = lifecycle_stats.get("churn_pop", 0)
+    
+    if churn_pop_total > 0:
+        from ..services.churn_classification_service import ChurnClassificationService
+        has_snapshot = db.execute(text("SELECT 1 FROM customer_monthly_snapshots WHERE year_month = :m LIMIT 1"), {"m": month_str}).fetchone()
+        
+        base_table = "customer_monthly_snapshots s"
+        id_col = "s.ma_kh"
+        where_clause = "s.year_month = :month_str AND s.lifecycle_state = 'CHURNED'"
+        
+        if not has_snapshot:
+            base_table = "customers s"
+            id_col = "s.ma_crm_cms"
+            where_clause = "s.lifecycle_state = 'CHURNED'"
+            
+        scope_clause = ""
+        if scope_point_ids:
+            scope_list = ",".join(map(str, scope_point_ids))
+            scope_clause = f" AND s.point_id IN ({scope_list})"
+            
+        suspect_condition = ChurnClassificationService.get_suspect_sql_condition(id_col)
+        
+        suspect_query_str = f"""
+            SELECT COUNT(1) FROM {base_table}
+            WHERE {where_clause} {scope_clause}
+            AND {suspect_condition}
+        """
+        churn_suspect_pop = db.execute(text(suspect_query_str), {"month_str": month_str}).scalar() or 0
+        
+    lifecycle_stats["churn_suspect_pop"] = churn_suspect_pop
+    lifecycle_stats["churn_real_pop"] = max(0, churn_pop_total - churn_suspect_pop)
+
     # 5. KH Tiềm Năng (PotentialService - Count-Only Optimized Phase 2D-P4)
     kh_tiem_nang, potential_ranks = PotentialService.get_potential_summary_counts(
         db=db, current_user=current_user, start_date=governed_start, end_date=governed_end,

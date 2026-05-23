@@ -107,7 +107,16 @@ const PopulationKpiGroup = ({ stats, summaryData, selectedNode, navigate, saveNa
                   </div>
                   <div className="kpi-number text-3xl" style={{ color: 'var(--crm-danger-base)' }}>{(stats?.lifecycle?.["churn_pop"] || 0).toLocaleString()}</div>
                 </div>
-                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-normal mt-2 italic">Dừng giao dịch &gt; 60 ngày</div>
+                <div className="flex flex-col gap-1 mt-2 border-t border-red-100/30 pt-1">
+                  <div className="text-[10px] font-bold text-gray-500 uppercase tracking-normal italic">Dừng giao dịch &gt; 90 ngày</div>
+                  {stats?.lifecycle?.["churn_suspect_pop"] !== undefined && (
+                    <div className="text-[10px] font-bold text-gray-500/80 uppercase tracking-normal flex gap-1.5 items-center">
+                      <span className="text-red-700/80">Thực tế: {(stats?.lifecycle?.["churn_real_pop"] || 0).toLocaleString()}</span>
+                      <span className="opacity-50">|</span>
+                      <span className="opacity-70">Nghi ngờ: {(stats?.lifecycle?.["churn_suspect_pop"] || 0).toLocaleString()}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </>
