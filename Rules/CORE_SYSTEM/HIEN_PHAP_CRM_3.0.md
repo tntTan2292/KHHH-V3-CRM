@@ -10,10 +10,10 @@
 4.  **No fake KPI / No activity-driven scoring**: Không tính điểm dựa trên số lượng hoạt động (Activity) ảo. Mọi điểm số phải được chứng thực bằng hiệu quả kinh doanh thực tế.
 5.  **Triết lý CRM ưu tiên**: **Giữ khách > Ổn định > Tăng trưởng > Mở mới**.
 
-### 🛡️ Ownership Principle
-- Mỗi khách hàng phải có: Đơn vị quản lý, phạm vi quản lý và Ownership rõ ràng.
-- Mọi Task, Escalation, Notification và Action đều phải tuân thủ Hierarchy, Ownership và Scope quản lý.
-- CRM không được phép: Giao việc vượt phạm vi quản trị hoặc chuyển Ownership trái Hierarchy nếu không có Escalation hợp lệ.
+### 🛡️ Ownership & Scoping Principle
+> [!NOTE]
+> Chi tiết về Phạm vi dữ liệu (Scoping), Quyền xem/giao việc và Phân cấp Cây quyền (Hierarchy) đã được chuẩn hóa. 
+> Vui lòng xem chi tiết tại: `[PERMISSION_SCOPING_RULES.md](../CRM_WORKFLOW/PERMISSION_SCOPING_RULES.md)`
 
 ---
 
@@ -119,9 +119,8 @@ CRM V3.0 chuẩn hóa 02 loại khách hàng tiềm năng:
 - **Hybrid Ranking Model**: Sử dụng rolling transaction window, momentum growth và stability scoring. Tuyệt đối không sử dụng các ngưỡng doanh thu cố định (fixed hard-coded thresholds).
 
 ### 3. LEAD OWNERSHIP GOVERNANCE
-- **Transaction Leads**: Ownership mặc định theo **Bưu cục chấp nhận cuối cùng** (Transaction Truth Ownership).
-- **Manual Prospect Leads**: Ownership thuộc về nhân viên được giao xử lý trực tiếp (B1/B2). 
-- **Hierarchy Mapping**: Mọi Lead phải được mapping ownership chính xác theo Hierarchy Tree hiện tại.
+> [!NOTE]
+> Đã được di dời sang phần Ownership Rules. Vui lòng xem chi tiết tại `[PERMISSION_SCOPING_RULES.md](../CRM_WORKFLOW/PERMISSION_SCOPING_RULES.md)`
 
 ### 4. TTKD vs TTVH LAYER
 - **TTVH (Trung tâm Vận hành)**: Quản lý khách hàng hiện hữu, duy trì sản lượng, retention và giám sát vận hành.
@@ -146,8 +145,8 @@ Hệ thống hỗ trợ đa tầng xếp hạng:
 - Mọi ngưỡng thời gian phải được cấu hình linh hoạt, không được hard-code.
 
 ### 8. ESCALATION & PRIMARY OWNER MODEL
-- **Escalation Case**: CRM không tự động xử lý tranh chấp Attribution. Các trường hợp sai lệch Ownership/Hierarchy phải được đẩy lên cấp quản lý (Trưởng đại diện/Giám đốc) để quyết định tỷ lệ phân chia doanh thu hoặc xác định chủ sở hữu cuối cùng.
-- **Primary Owner Model**: Manual Prospect Lead hỗ trợ 01 Primary Owner và nhiều Collaborators nhằm rõ ràng KPI chính nhưng vẫn khuyến khích teamwork.
+> [!NOTE]
+> Đã được chuẩn hóa thành Luật Xin Hỗ trợ (Escalation Rules). Vui lòng xem chi tiết tại `[PERMISSION_SCOPING_RULES.md](../CRM_WORKFLOW/PERMISSION_SCOPING_RULES.md)`
 
 ### 9. ARCHITECTURE & SSOT ALIGNMENT
 - Lead Tier Engine không được phép bypass Transaction Truth hoặc hard-code ownership/hierarchy.
@@ -252,11 +251,9 @@ Quy chuẩn quản trị và thẩm quyền của các chỉ số hiệu năng (
 ---
 
 ## 🏛️ PHỤ LỤC: PHÂN CẤP & PHÂN QUYỀN TRUY CẬP
-1.  **Cấu trúc 5 cấp**: BĐTP -> Trung tâm -> Trưởng đại diện -> Giám đốc Phường/Xã -> Nhân viên.
-2.  **Thẩm quyền Trung tâm Kinh doanh**: Quản lý dải từ Cấp 3 đến Cấp 5.
-3.  **Ngoại lệ Trung tâm Vận hành**: Quản lý trực tiếp Bưu cục 531120 (Cấp 5).
-4.  **Cơ chế "Nhìn xuống"**: Cấp trên thấy dữ liệu tất cả cấp dưới.
-5.  **Cơ chế "Cô lập"**: Cấp dưới không thấy dữ liệu cấp trên hoặc nhánh ngang.
+> [!NOTE]
+> Toàn bộ Phụ lục Phân cấp và Phân quyền đã được tách thành một Hiến pháp chuyên biệt để dễ bảo trì.
+> Vui lòng đọc bắt buộc: `[PERMISSION_SCOPING_RULES.md](../CRM_WORKFLOW/PERMISSION_SCOPING_RULES.md)`
 
 ---
 

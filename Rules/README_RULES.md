@@ -11,6 +11,9 @@ Thư mục này chỉ chứa các **quy định bất biến**, **cấu trúc ch
 ### AI bắt buộc phải đọc file nào trước?
 Khi bạn (AI) nhận yêu cầu code hoặc thay đổi kiến trúc, bạn phải tra cứu thư mục tương ứng trong `/Rules` để đảm bảo code của bạn không vi phạm nguyên tắc của hệ thống.
 
+**Cụ thể:**
+- Đọc `PERMISSION_SCOPING_RULES.md` trước khi sửa bất kỳ logic nào liên quan đến: Action Center, Giao việc, Escalation, Timeline, Reassign, hoặc phân quyền xem dữ liệu.
+
 ---
 
 ## 2. Cấu trúc chuẩn của /Rules
@@ -26,6 +29,7 @@ Chứa các hiến pháp hệ thống cao nhất:
 Chứa quy trình nghiệp vụ:
 - `LIFECYCLE_SSOT_REFERENCE_TABLE.md`: Bảng chuẩn vòng đời khách hàng.
 - `TASK_LIFECYCLE_RULES.md`: Quy trình giao việc, ticket, SLA.
+- `PERMISSION_SCOPING_RULES.md`: [Bắt buộc đọc] Phân quyền, Scope, Lock, Reassign, Escalation cho Action Center.
 
 ### 🎨 UI_UX
 Chứa các quy tắc giao diện:

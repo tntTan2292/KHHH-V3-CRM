@@ -67,33 +67,25 @@ Mỗi "Công việc" (Task tiếp cận) sẽ chạy qua các trạng thái sau:
 
 ## 6. Luật Khóa/Mở Khách Hàng (Locking Rules)
 
-Để tránh tình trạng "xí chỗ" nhưng không chăm sóc:
-
-| Tình huống | Luật Khóa (Lock) |
-| :--- | :--- |
-| Nhân viên được giao Task | Hệ thống **Khóa (Lock)** khách hàng đó cho nhân viên. Người khác không được tương tác trùng. |
-| Nhân viên hoàn thành Task | Hệ thống tự động **Mở khóa (Unlock)** khách hàng. |
-| Task bị Quá hạn (Quá SLA) | Tự động **Mở khóa** và Báo cáo lên Leader (Drop Lock). Khách hàng rớt lại vào rổ chung. |
-| Leader chủ động can thiệp | Leader có quyền **Cưỡng chế Mở khóa (Force Unlock)** bất cứ lúc nào. |
+> [!NOTE]
+> Chi tiết triết lý và cơ chế Khóa (Lock)/Mở khóa (Unlock) đã được chuyển sang tài liệu chuyên biệt.
+> Vui lòng xem: `[PERMISSION_SCOPING_RULES.md](PERMISSION_SCOPING_RULES.md)`
 
 ---
 
 ## 7. Luật Giao lại (Reassign Rules)
 
-- **Ai có quyền Reassign:** Chỉ có Leader, Giám đốc, hoặc Quản trị viên mới được quyền Reassign Task từ người A sang người B.
-- **Nhân viên không được tự Reassign:** Tránh việc đùn đẩy trách nhiệm. Nhân viên chỉ được dùng quyền **Chờ hỗ trợ**.
-- **Khi Reassign:** Toàn bộ lịch sử (Timeline) của người A sẽ được giữ nguyên để người B vào xem lại được bối cảnh. Khóa (Lock) được tự động chuyển từ A sang B.
+> [!NOTE]
+> Phân quyền Reassign (Ai được giao lại, Giữ lịch sử thế nào) đã được quy định chi tiết tại Hiến pháp Phân quyền.
+> Vui lòng xem: `[PERMISSION_SCOPING_RULES.md](PERMISSION_SCOPING_RULES.md)`
 
 ---
 
 ## 8. Luật Xin Hỗ trợ (Escalation Rules)
 
-- Khi gặp khách hàng quá khó (Khách VIP phàn nàn, cần chính sách giá đặc biệt), nhân viên chọn **"Xin hỗ trợ" (Escalate)**.
-- Task sẽ nảy thông báo (Noti) trên màn hình của Leader trực tiếp.
-- Leader có 3 phương án:
-  1. Hướng dẫn nghiệp vụ (Ghi chú vào timeline) và Trả lại cho nhân viên.
-  2. Chuyển cho người giỏi hơn (Reassign).
-  3. Leader tự đi gặp khách và tự đóng Task (Hoàn thành).
+> [!NOTE]
+> Luật leo thang, ai được hỗ trợ ai, và hành động của Leader đã được quy định tại phần Escalation Rules.
+> Vui lòng xem: `[PERMISSION_SCOPING_RULES.md](PERMISSION_SCOPING_RULES.md)`
 
 ---
 
@@ -119,15 +111,9 @@ Mỗi "Công việc" (Task tiếp cận) sẽ chạy qua các trạng thái sau:
 
 ## 11. Ma trận Phân quyền (Permission Matrix)
 
-| Hành động | Nhân viên (Staff) | Quản lý (Leader) | Hệ thống (System) |
-| :--- | :--- | :--- | :--- |
-| Xem Task của mình | ✅ Có | ✅ Có | - |
-| Xem Task của người khác | ❌ Không | ✅ Có (Trong team) | - |
-| Hoàn thành Task | ✅ Có | ✅ Có | ❌ Không |
-| Xin Hỗ trợ (Escalate) | ✅ Có | ❌ Không | - |
-| Hủy Task | ❌ Không | ✅ Có | ❌ Không |
-| Đổi người (Reassign) | ❌ Không | ✅ Có | - |
-| Force Unlock | ❌ Không | ✅ Có | ✅ Tự động khi Overdue |
+> [!NOTE]
+> Ma trận phân quyền thao tác và Xem dữ liệu toàn hệ thống được tổng hợp tại:
+> `[PERMISSION_SCOPING_RULES.md](PERMISSION_SCOPING_RULES.md)`
 
 ---
 
