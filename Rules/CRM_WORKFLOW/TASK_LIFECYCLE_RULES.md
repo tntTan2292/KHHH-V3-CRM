@@ -12,32 +12,32 @@ Hệ thống được thiết kế dựa trên 4 nguyên tắc cốt lõi:
 1. **Ủy quyền thực thi:** Nhân viên được phép tự chủ hoàn thành Task nếu cung cấp đủ thông tin Báo cáo (Feedback) theo yêu cầu.
 2. **Quản lý hỗ trợ (Servant Leadership):** Leader/Quản lý chủ yếu đóng vai trò Giám sát tiến độ, Điều phối (Reassign) khi quá tải và Hỗ trợ (Escalation) khi nhân viên gặp bế tắc.
 3. **Chống "Giam lỏng" Khách hàng (Anti-Orphan Lock):** Không một khách hàng nào bị "khóa" chết ở một nhân viên nếu nhân viên đó không phát sinh tương tác (Quá hạn SLA tự động nhả khóa).
-4. **Phân cực dữ liệu rõ ràng:** Tách biệt hoàn toàn Khách hàng hiện hữu cần chăm sóc (Lifecycle) với Khách hàng tiềm năng cần chốt sale (Funnel). **TUYỆT ĐỐI KHÔNG TRỘN LẪN.**
+4. **Action Center = Customer Lifecycle Management:** Action Center CHỈ phục vụ khách hàng hiện hữu (đã có mã). KHÔNG dùng cho Phễu Sale, KHÔNG dùng cho Lead.
 
 ---
 
-## 2. Phân loại 3 tầng khách hàng (Customer Tiers)
+## 2. Phân tách 3 Domain Dữ Liệu (Customer Domains)
 
-Hệ thống quản lý 3 tệp dữ liệu với bản chất hoàn toàn khác nhau:
+Hệ thống quản lý 3 tệp dữ liệu với bản chất hoàn toàn khác nhau. **Action Center hiện tại CHỈ xử lý Domain số 1.**
 
-| Tầng Khách Hàng | Mô tả nghiệp vụ | Đặc điểm nhận dạng | Mục tiêu chính |
-| :--- | :--- | :--- | :--- |
-| **1. Customer Lifecycle** | Khách hàng ĐÃ có mã KH chính thức và đã/đang đóng góp doanh thu cho Bưu điện. | Có mã CRM, Có doanh thu, Có vòng đời (Mới, Hiện hữu, Nguy cơ, Rời bỏ...). | Giữ chân, chăm sóc VIP, chống rời bỏ, up-sale. |
-| **2. Transaction Lead** | Khách hàng CHƯA có mã chính thức nhưng đã có đơn hàng/giao dịch vãng lai gửi qua Bưu điện. | Không có mã KH chuẩn nhưng có tín hiệu dòng tiền/doanh thu. | Chuyển đổi thành Khách hàng chính thức có mã (Định danh). |
-| **3. Manual Lead** | Khách hàng do nhân viên kinh doanh/thị trường tự đi tìm, tự gõ tay vào hệ thống. | Chưa có mã KH, chưa chắc có giao dịch nào qua Bưu điện. | Khai thác mới, chèo kéo từ đối thủ, mời sử dụng dịch vụ. |
+| Tầng Khách Hàng | Mô tả nghiệp vụ | Nơi xử lý |
+| :--- | :--- | :--- |
+| **1. CUSTOMER LIFECYCLE DOMAIN** | Khách hàng ĐÃ có mã KH chính thức và đã/đang đóng góp doanh thu. Mục tiêu là Giữ chân, cảnh báo rời bỏ, VIP care. | **Sử dụng Action Center hiện tại.** |
+| **2. POTENTIAL LEAD DOMAIN** | Lead chưa có mã nhưng đã phát sinh giao dịch thực tế. Mục tiêu là chuyển đổi thành KH chính thức. | *Sẽ có workflow riêng (Module khác).* |
+| **3. MARKET LEAD DOMAIN** | Lead do nhân viên tự tìm kiếm đi thị trường, import tay. Mục tiêu là sale mới hoàn toàn. | *Sẽ có module Sales CRM riêng.* |
 
 ---
 
-## 3. Workflow riêng cho từng tầng (Tách biệt Phễu)
+## 3. Bản chất của Action Center
 
 > [!WARNING]
-> Customer Lifecycle KHÔNG BAO GIỜ sử dụng Phễu bán hàng (Funnel B1-B5). Việc áp dụng phễu Sale cho khách đang xài dịch vụ là sai lệch nghiệp vụ.
+> Action Center hiện tại là **"Trung tâm điều hành chăm sóc & hành động với Khách hàng hiện hữu"**.
+> TUYỆT ĐỐI KHÔNG mang tư duy "Phễu bán hàng" (Sale Funnel), "Chuyển đổi Lead" (Lead Conversion) hay "Pipeline Sale" vào đây.
 
-| Workflow | Dùng cho Tầng nào? | Cách thức vận hành |
-| :--- | :--- | :--- |
-| **Lifecycle Workflow** | Customer Lifecycle | Giao Task dựa trên **Kịch bản** (Ví dụ: Kịch bản Chống rời bỏ, Kịch bản Chúc mừng sinh nhật VIP). Hành động: Gọi điện / Gặp mặt $\rightarrow$ Báo cáo kết quả $\rightarrow$ Đóng Task. |
-| **Transaction Funnel** | Transaction Lead | Đưa vào Phễu tinh gọn (Rút gọn từ 5 bước xuống 3 bước: **Tiếp cận $\rightarrow$ Đàm phán $\rightarrow$ Chuyển đổi**). Có áp lực chốt sale cao. |
-| **Prospecting Funnel** | Manual Lead | Đưa vào Phễu khai thác truyền thống. Cần nhiều bước nuôi dưỡng hơn. Hành động: Sàng lọc $\rightarrow$ Tiếp cận $\rightarrow$ Báo giá $\rightarrow$ Ký hợp đồng. |
+Cách thức vận hành của Action Center:
+- Giao Task chăm sóc dựa trên **Kịch bản** (Ví dụ: Cảnh báo rời bỏ, Chúc mừng sinh nhật VIP, Xử lý bồi thường).
+- Hành động: Gọi điện / Gặp mặt $\rightarrow$ Báo cáo kết quả $\rightarrow$ Đóng Task.
+- Hoàn toàn vắng bóng các thuật ngữ như "Sàng lọc", "Báo giá", "Chốt Sale", "Win rate".
 
 ---
 
@@ -140,7 +140,6 @@ Phân biệt rõ bản chất của từng loại công việc trong Action Cent
 | **CHURN_WARNING** | Tiếp cận khẩn cấp Khách hàng có nguy cơ rời bỏ. |
 | **VIP_CARE** | Chăm sóc đặc biệt Khách hàng VIP (Sinh nhật, Lễ Tết). |
 | **REACTIVATION** | Kích hoạt lại Khách hàng đã ngủ đông/rời bỏ từ lâu. |
-| **LEAD_APPROACH** | Đi gặp gỡ, tiếp cận Khách hàng Tiềm năng (Lead). |
 | **ESCALATION_SUPPORT** | Nhiệm vụ phát sinh do cấp dưới xin hỗ trợ. |
 | **CROSS_POINT_SUPPORT**| Nhiệm vụ đi chăm sóc hộ khách hàng của bưu cục khác. |
 
@@ -180,5 +179,5 @@ Sở hữu (Ownership) quyết định ai là người chịu trách nhiệm ch�
 | **Unlock (Mở khóa)** | Nhả khách hàng trở về trạng thái tự do (Ai cũng có thể chộp). |
 
 > [!IMPORTANT]
-> - **Ownership khác Pipeline:** Khách hàng có thể bị khóa (Lock) ở bước đàm phán, nhưng Ownership vẫn thuộc về Bưu cục gốc.
+> - **Ownership khác CRM Bán hàng:** Action Center không tính "Win/Loss" hay "Chốt Sale" nên Ownership ở đây mang ý nghĩa là Người chăm sóc (Accountability) chứ không phải Người hưởng hoa hồng chốt Sale.
 > - **Ownership khác Task Status:** Một Task chuyển sang Quá hạn (Overdue) sẽ làm mất Lock, nhưng Ownership không tự động đổi sang người khác trừ khi quản lý Reassign.
