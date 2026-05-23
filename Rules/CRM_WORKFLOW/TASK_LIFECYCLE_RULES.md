@@ -127,3 +127,58 @@ Nếu vi phạm, hệ thống sẽ gặp các rủi ro sau:
 2. **Rác dữ liệu:** Nhân viên không biết dùng bước nào để đóng Phễu, dẫn đến treo dữ liệu ảo.
 3. **Mất điểm chạm:** Chăm sóc khách hiện hữu cần kịch bản tinh tế (Tặng quà, xử lý khiếu nại), không phải là thúc ép chốt Sale như khách hàng mới.
 4. Xuyên tạc báo cáo: Tỉ lệ chốt Sale (Win rate) của toàn chi nhánh sẽ bị sai lệch nghiêm trọng.
+
+---
+
+## 13. TASK TYPE (Phân loại Công việc)
+
+Phân biệt rõ bản chất của từng loại công việc trong Action Center:
+
+| Task Type | Ý nghĩa nghiệp vụ |
+| :--- | :--- |
+| **CUSTOMER_CARE** | Chăm sóc định kỳ Khách hàng hiện hữu. |
+| **CHURN_WARNING** | Tiếp cận khẩn cấp Khách hàng có nguy cơ rời bỏ. |
+| **VIP_CARE** | Chăm sóc đặc biệt Khách hàng VIP (Sinh nhật, Lễ Tết). |
+| **REACTIVATION** | Kích hoạt lại Khách hàng đã ngủ đông/rời bỏ từ lâu. |
+| **LEAD_APPROACH** | Đi gặp gỡ, tiếp cận Khách hàng Tiềm năng (Lead). |
+| **ESCALATION_SUPPORT** | Nhiệm vụ phát sinh do cấp dưới xin hỗ trợ. |
+| **CROSS_POINT_SUPPORT**| Nhiệm vụ đi chăm sóc hộ khách hàng của bưu cục khác. |
+
+> [!TIP]
+> Task Type quyết định **Kịch bản** mà nhân viên phải nói khi gặp khách, giúp nhân viên không bị lúng túng.
+
+---
+
+## 14. TASK OUTCOME (Kết quả xử lý)
+
+Outcome là kết quả cuối cùng của cuộc gặp/gọi điện. **Outcome hoàn toàn khác với Task Status (Trạng thái công việc).**
+
+| Outcome (Kết quả) | Ý nghĩa thực tế |
+| :--- | :--- |
+| **SUCCESS** | Thành công (Khách đồng ý gửi hàng, hài lòng). |
+| **FAILED** | Không thành công (Khách từ chối dứt khoát). |
+| **NO_RESPONSE** | Khách hàng không nghe máy / Không gặp được. |
+| **FOLLOW_UP** | Chăm sóc chưa dứt điểm, cần theo dõi và gặp lại. |
+| **ESCALATED** | Vượt thẩm quyền, đã đẩy lên cho sếp xử lý. |
+| **INVALID_TARGET** | Nhầm người, sai số điện thoại, khách ảo. |
+
+> [!WARNING]
+> Bất kể Outcome là gì (kể cả FAILED), hệ thống vẫn ghi nhận Task Status là **HOÀN THÀNH**. Đừng nhầm lẫn giữa việc "Hoàn thành nhiệm vụ đi gặp khách" và việc "Khách đồng ý mua hàng".
+
+---
+
+## 15. TASK OWNERSHIP (Sở hữu Công việc)
+
+Sở hữu (Ownership) quyết định ai là người chịu trách nhiệm chính về Khách hàng và Công việc đó.
+
+| Khái niệm | Ý nghĩa |
+| :--- | :--- |
+| **Owner chính (Primary)**| Người đang nắm giữ và ăn chia doanh thu chính từ Khách hàng. |
+| **Collaborator** | Người được mời vào hỗ trợ, cùng đi gặp khách. |
+| **Escalation** | Nhờ sếp giúp đỡ. **Không đổi Owner gốc**. |
+| **Reassign** | Cắt hẳn khách hàng giao cho người khác. **Chuyển Owner**. |
+| **Unlock (Mở khóa)** | Nhả khách hàng trở về trạng thái tự do (Ai cũng có thể chộp). |
+
+> [!IMPORTANT]
+> - **Ownership khác Pipeline:** Khách hàng có thể bị khóa (Lock) ở bước đàm phán, nhưng Ownership vẫn thuộc về Bưu cục gốc.
+> - **Ownership khác Task Status:** Một Task chuyển sang Quá hạn (Overdue) sẽ làm mất Lock, nhưng Ownership không tự động đổi sang người khác trừ khi quản lý Reassign.
