@@ -6,7 +6,8 @@ from typing import Optional, List
 from pydantic import BaseModel
 
 from ..database import get_db
-from ..models import ActionTask, ActionTaskTemplate, User, NhanSu, Customer, Transaction, HierarchyNode
+import json
+from ..models import ActionTask, ActionTaskTemplate, User, NhanSu, Customer, Transaction, HierarchyNode, TaskStateLog
 from ..routers.auth import get_current_user
 from ..services.potential_service import PotentialService
 from ..services.scoping_service import ScopingService
@@ -74,6 +75,15 @@ async def assign_task(
     orig_p_id = None
     orig_s_id = None
     
+    # Kiểm tra giao trùng khách hàng đang active
+    active_task = db.query(ActionTask).filter(
+        ActionTask.target_id == payload.target_id,
+        ActionTask.loai_doi_tuong == payload.loai_doi_tuong,
+        ActionTask.trang_thai.notin_(["Hoàn thành", "Thất bại", "Hủy"])
+    ).first()
+    if active_task:
+        raise HTTPException(status_code=400, detail="Khách hàng này đang có nhiệm vụ chưa hoàn thành, không thể giao trùng.")
+
     # Tìm vết cũ của khách hàng này trong hệ thống Task
     old_task = db.query(ActionTask).filter(
         ActionTask.target_id == payload.target_id,
@@ -123,7 +133,31 @@ async def assign_task(
     db.commit()
     db.refresh(new_task)
     
-    # Ghi Log
+    # Timeline Hook
+    evidence = {
+        "event_type": "TASK_ASSIGNED",
+        "action_by": current_user.full_name or "System",
+        "previous_status": None,
+        "new_status": "Mới",
+        "created_at": datetime.now().isoformat(),
+        "reason": "Giao việc mới",
+        "evidence_text": payload.noi_dung,
+        "from_user_id": current_user.id,
+        "to_user_id": payload.staff_id
+    }
+    state_log = TaskStateLog(
+        task_id=new_task.id,
+        previous_status=None,
+        new_status="Mới",
+        changed_by=current_user.id,
+        action_type="ASSIGN",
+        reason="Giao việc mới",
+        evidence_snapshot_json=json.dumps(evidence, ensure_ascii=False)
+    )
+    db.add(state_log)
+    db.commit()
+
+    # Ghi Log Hệ thống
     LogService.log_action(
         db=db,
         user_id=current_user.id,
@@ -261,6 +295,8 @@ async def report_task(
     # STAGE-GATE SLA: Chỉ cập nhật updated_at khi có thay đổi Stage hoặc Status
     is_meaningful = (payload.trang_thai != task.trang_thai) or (payload.pipeline_stage and payload.pipeline_stage != task.pipeline_stage)
     
+    old_status = task.trang_thai
+    
     task.trang_thai = payload.trang_thai
     task.bao_cao_ket_qua = payload.bao_cao_ket_qua
     task.pipeline_stage = payload.pipeline_stage or task.pipeline_stage
@@ -301,7 +337,30 @@ async def report_task(
         
     db.commit()
     
-    # Ghi Log
+    # Timeline Hook
+    event_type = "TASK_COMPLETED" if payload.trang_thai in ["Hoàn thành", "Thất bại"] else "TASK_REPORTED"
+    evidence = {
+        "event_type": event_type,
+        "action_by": current_user.full_name or "System",
+        "previous_status": old_status,
+        "new_status": task.trang_thai,
+        "created_at": datetime.now().isoformat(),
+        "reason": "Báo cáo tiến độ/kết quả",
+        "evidence_text": payload.bao_cao_ket_qua
+    }
+    state_log = TaskStateLog(
+        task_id=task.id,
+        previous_status=old_status,
+        new_status=task.trang_thai,
+        changed_by=current_user.id,
+        action_type="COMPLETE" if payload.trang_thai in ["Hoàn thành", "Thất bại"] else "REPORT",
+        reason="Báo cáo tiến độ",
+        evidence_snapshot_json=json.dumps(evidence, ensure_ascii=False)
+    )
+    db.add(state_log)
+    db.commit()
+
+    # Ghi Log Hệ thống
     LogService.log_action(
         db=db,
         user_id=current_user.id,
@@ -324,8 +383,38 @@ async def reassign_task(
     task = db.query(ActionTask).filter(ActionTask.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Không tìm thấy nhiệm vụ")
-        
+    
+    # Kiem tra quyen: Chi nguoi giao moi duoc reassign (Dua tren log assign)
+    assign_log = db.query(TaskStateLog).filter(TaskStateLog.task_id == task.id, TaskStateLog.action_type == 'ASSIGN').first()
+    if assign_log and assign_log.changed_by != current_user.id:
+        if current_user.role and current_user.role.name not in ["ADMIN", "SYSTEM_ADMIN"]:
+            raise HTTPException(status_code=403, detail="Chỉ người giao việc mới được quyền Reassign hoặc Thu hồi.")
+    
+    old_staff_id = task.staff_id
     task.staff_id = staff_id
+    
+    # Timeline Hook
+    evidence = {
+        "event_type": "TASK_REASSIGNED",
+        "action_by": current_user.full_name or "System",
+        "previous_status": task.trang_thai,
+        "new_status": task.trang_thai,
+        "created_at": datetime.now().isoformat(),
+        "reason": "Điều phối lại nhân sự",
+        "evidence_text": f"Giao lại nhiệm vụ từ nhân sự {old_staff_id} sang nhân sự {staff_id}",
+        "from_user_id": old_staff_id,
+        "to_user_id": staff_id
+    }
+    state_log = TaskStateLog(
+        task_id=task.id,
+        previous_status=task.trang_thai,
+        new_status=task.trang_thai,
+        changed_by=current_user.id,
+        action_type="REASSIGN",
+        reason="Điều phối lại nhân sự",
+        evidence_snapshot_json=json.dumps(evidence, ensure_ascii=False)
+    )
+    db.add(state_log)
     db.commit()
     
     LogService.log_action(
@@ -461,7 +550,29 @@ async def escalate_to_cluster(
     db.commit()
     db.refresh(new_task)
     
-    # Ghi Log
+    # Timeline Hook
+    evidence = {
+        "event_type": "TASK_ESCALATED",
+        "action_by": current_user.full_name or "System",
+        "previous_status": None,
+        "new_status": "Escalation",
+        "created_at": datetime.now().isoformat(),
+        "reason": payload.reason,
+        "evidence_text": escalation_content
+    }
+    state_log = TaskStateLog(
+        task_id=new_task.id,
+        previous_status=None,
+        new_status="Escalation",
+        changed_by=current_user.id,
+        action_type="ESCALATE",
+        reason=payload.reason,
+        evidence_snapshot_json=json.dumps(evidence, ensure_ascii=False)
+    )
+    db.add(state_log)
+    db.commit()
+
+    # Ghi Log Hệ thống
     LogService.log_action(
         db=db,
         user_id=current_user.id,
@@ -475,6 +586,47 @@ async def escalate_to_cluster(
         "message": f"Đã gửi yêu cầu hỗ trợ lên {cluster_leader_name} ({cluster_node.name})",
         "task_id": new_task.id
     }
+
+@router.post("/{task_id}/overdue")
+async def mark_task_overdue(
+    task_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Đánh dấu nhiệm vụ quá hạn (OVERDUE) và gửi cảnh báo đỏ theo luật 7 ngày."""
+    task = db.query(ActionTask).filter(ActionTask.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Không tìm thấy nhiệm vụ")
+    
+    if task.trang_thai in ["Hoàn thành", "Thất bại", "Hủy", "OVERDUE"]:
+        raise HTTPException(status_code=400, detail="Trạng thái hiện tại không thể chuyển sang quá hạn")
+        
+    old_status = task.trang_thai
+    task.trang_thai = "OVERDUE"
+    
+    # Timeline Hook
+    evidence = {
+        "event_type": "TASK_OVERDUE",
+        "action_by": "System Engine",
+        "previous_status": old_status,
+        "new_status": "OVERDUE",
+        "created_at": datetime.now().isoformat(),
+        "reason": "Quá 7 ngày không cập nhật",
+        "evidence_text": "Hệ thống tự động chuyển trạng thái OVERDUE và gửi cảnh báo đỏ cho người giao việc"
+    }
+    state_log = TaskStateLog(
+        task_id=task.id,
+        previous_status=old_status,
+        new_status="OVERDUE",
+        changed_by=None,
+        action_type="OVERDUE",
+        reason="Quá 7 ngày",
+        evidence_snapshot_json=json.dumps(evidence, ensure_ascii=False)
+    )
+    db.add(state_log)
+    db.commit()
+    
+    return {"message": "Đã chuyển nhiệm vụ sang trạng thái OVERDUE an toàn"}
 
 @router.get("/history/{target_id}")
 async def get_task_history(
