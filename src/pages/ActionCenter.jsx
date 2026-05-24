@@ -391,6 +391,7 @@ function LeaderDashboard({ filters }) {
 // STAFF KANBAN BOARD
 // -------------------------------------------------------------
 function StaffKanbanBoard({ filters }) {
+  const { user } = useAuth();
   const [tasks, setTasks] = useState({
     'Mới': [],
     'Đang xử lý': [],
@@ -399,6 +400,11 @@ function StaffKanbanBoard({ filters }) {
   });
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [showForwardModal, setShowForwardModal] = useState(false);
+  const [forwarding, setForwarding] = useState(false);
+  const [forwardStaffId, setForwardStaffId] = useState("");
+  const [forwardReason, setForwardReason] = useState("");
+  const [staffOptions, setStaffOptions] = useState([]);
 
   const fetchTasks = async () => {
     try {
@@ -422,7 +428,50 @@ function StaffKanbanBoard({ filters }) {
 
   useEffect(() => {
     fetchTasks();
+    fetchStaff();
   }, [filters]);
+
+  const fetchStaff = async () => {
+    try {
+      const res = await api.get('/api/users/staff');
+      setStaffOptions(res.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAcceptTask = async () => {
+    try {
+      await api.post(`/api/actions/tasks/${selectedTask.id}/accept`);
+      toast.success('Đã nhận xử lý công việc');
+      setSelectedTask(null);
+      fetchTasks();
+    } catch(err) {
+      toast.error('Lỗi khi nhận việc');
+    }
+  };
+
+  const handleForwardTask = async () => {
+    if (!forwardStaffId) {
+      toast.warning('Vui lòng chọn người nhận');
+      return;
+    }
+    setForwarding(true);
+    try {
+      await api.post(`/api/actions/tasks/${selectedTask.id}/forward`, {
+        staff_id: parseInt(forwardStaffId, 10),
+        noi_dung: forwardReason
+      });
+      toast.success('Đã điều phối công việc thành công');
+      setShowForwardModal(false);
+      setSelectedTask(null);
+      fetchTasks();
+    } catch(err) {
+      toast.error(err.response?.data?.detail || 'Lỗi khi điều phối');
+    } finally {
+      setForwarding(false);
+    }
+  };
 
   const handleUpdateReport = async (taskId, newStatus, reportText) => {
     try {
@@ -494,37 +543,119 @@ function StaffKanbanBoard({ filters }) {
       {/* Task Modal */}
       {selectedTask && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-6 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-               <h3 className="font-black text-gray-800 tracking-tight flex items-center gap-2">
+          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh] md:max-h-[85vh]">
+            <div className="p-6 bg-gray-50 border-b border-gray-100 flex justify-between items-center shrink-0">
+               <h3 className="font-black text-gray-800 tracking-tight flex items-center gap-2 uppercase text-sm">
                  <Target className="text-vnpost-orange" size={20} /> Xử lý Nhiệm vụ
                </h3>
                <button onClick={() => setSelectedTask(null)} className="p-2 hover:bg-gray-200 rounded-full transition-colors"><XCircle size={20} className="text-gray-400"/></button>
             </div>
             
-            <div className="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-6">
-               <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100">
-                  <p className="text-[10px] font-black text-vnpost-blue uppercase tracking-widest mb-1">Mục tiêu tiếp cận</p>
-                  <h4 className="text-lg font-bold text-gray-800 mb-2">{selectedTask.ten_kh_display}</h4>
-                  <div className="flex gap-4 text-xs font-semibold text-gray-500">
-                    <span className="flex items-center gap-1"><Calendar size={14}/> Hạn chót: {selectedTask.deadline || 'Không có'}</span>
-                    <span className="flex items-center gap-1"><Target size={14}/> {selectedTask.tieu_de}</span>
+            <div className="flex flex-col lg:flex-row overflow-hidden flex-1">
+               {/* Left Side: Detail & Report Form */}
+               <div className="flex-1 p-6 overflow-y-auto custom-scrollbar space-y-6 lg:border-r border-gray-100">
+                  <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100">
+                     <p className="text-[10px] font-black text-vnpost-blue uppercase tracking-widest mb-1">Mục tiêu tiếp cận</p>
+                     <h4 className="text-lg font-bold text-gray-800 mb-2">{selectedTask.ten_kh_display}</h4>
+                     <div className="flex gap-4 text-xs font-semibold text-gray-500">
+                       <span className="flex items-center gap-1"><Calendar size={14}/> Hạn chót: {selectedTask.deadline || 'Không có'}</span>
+                       <span className="flex items-center gap-1"><Target size={14}/> {selectedTask.tieu_de}</span>
+                     </div>
                   </div>
+
+                  <div>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Chi tiết việc cần làm (Kịch bản do Sếp giao)</p>
+                    <div className="bg-gray-50 p-4 rounded-xl text-sm text-gray-700 whitespace-pre-wrap leading-relaxed border border-gray-100">
+                       {selectedTask.noi_dung}
+                    </div>
+                  </div>
+
+                  {user?.nhan_su_id === selectedTask?.staff_id && (
+                     <div className="pt-4 border-t border-gray-100 space-y-4">
+                       {selectedTask.trang_thai === 'Mới' && (
+                         <div className="p-4 bg-orange-50 border border-orange-200 rounded-2xl flex flex-col items-center text-center gap-3">
+                           <p className="text-sm font-bold text-orange-800">Bạn vừa nhận được một nhiệm vụ mới. Vui lòng xác nhận để bắt đầu xử lý.</p>
+                           <button onClick={handleAcceptTask} className="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-orange-500/30 transition-all">
+                             <CheckCircle2 size={16} /> Nhận xử lý
+                           </button>
+                         </div>
+                       )}
+
+                       {selectedTask.trang_thai !== 'Mới' && (
+                         <>
+                           <div className="flex gap-2 mb-4">
+                             <button onClick={() => setShowForwardModal(true)} className="flex-1 py-3 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-xl font-black text-xs uppercase tracking-widest transition-all">
+                               Điều phối tiếp
+                             </button>
+                           </div>
+                           <ReportForm 
+                              task={selectedTask} 
+                              onSubmit={handleUpdateReport} 
+                           />
+                         </>
+                       )}
+                     </div>
+                  )}
+
+                  {user?.nhan_su_id !== selectedTask?.staff_id && (
+                     <div className="p-4 bg-gray-50 border border-gray-200 rounded-2xl text-center">
+                       <p className="text-sm font-bold text-gray-500">Bạn đang xem nhiệm vụ của người khác. Chỉ người phụ trách mới được quyền thao tác.</p>
+                     </div>
+                  )}
                </div>
 
-               <div>
-                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Chi tiết việc cần làm (Kịch bản do Sếp giao)</p>
-                 <div className="bg-gray-50 p-4 rounded-xl text-sm text-gray-700 whitespace-pre-wrap leading-relaxed border border-gray-100">
-                    {selectedTask.noi_dung}
-                 </div>
+               {/* Right Side: Timeline UI */}
+               <div className="w-full lg:w-[400px] bg-gray-50/30 overflow-y-auto custom-scrollbar border-t lg:border-t-0 border-gray-100 shrink-0">
+                  <TaskTimeline taskId={selectedTask.id} currentStatus={selectedTask.trang_thai} />
                </div>
-
-               <ReportForm 
-                  task={selectedTask} 
-                  onSubmit={handleUpdateReport} 
-               />
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Minimal Forward Modal */}
+      {showForwardModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6">
+              <h3 className="text-lg font-black text-gray-800 uppercase tracking-widest mb-4">Điều phối tiếp (Forward)</h3>
+              <p className="text-sm text-gray-500 mb-4 font-semibold">
+                Giao nhiệm vụ này xuống cấp dưới hoặc nhân sự khác. Lịch sử luân chuyển sẽ được lưu lại.
+              </p>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Chọn người nhận tiếp theo</label>
+                  <select 
+                    className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-xl outline-none focus:border-vnpost-blue transition-all font-bold text-sm"
+                    value={forwardStaffId}
+                    onChange={(e) => setForwardStaffId(e.target.value)}
+                  >
+                    <option value="">-- Chọn nhân sự --</option>
+                    {staffOptions.map(s => (
+                      <option key={s.id} value={s.id}>{s.full_name} - {s.point_name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Lời nhắn điều phối</label>
+                  <textarea 
+                    className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-xl outline-none focus:border-vnpost-blue transition-all font-medium text-sm"
+                    rows="3"
+                    placeholder="Ghi chú thêm nội dung giao việc..."
+                    value={forwardReason}
+                    onChange={(e) => setForwardReason(e.target.value)}
+                  ></textarea>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button onClick={() => setShowForwardModal(false)} className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold text-sm transition-all">Hủy</button>
+                <button onClick={handleForwardTask} disabled={forwarding} className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm transition-all flex items-center gap-2">
+                  {forwarding && <RefreshCw size={16} className="animate-spin" />}
+                  Xác nhận Điều phối
+                </button>
+              </div>
+           </div>
         </div>
       )}
     </div>
@@ -595,4 +726,102 @@ function FlowBadge({ type }) {
 function SortIcon({ config, field }) {
   if (config.key !== field) return <ChevronDown size={12} className="opacity-20" />;
   return config.direction === 'asc' ? <ChevronUp size={12} className="text-vnpost-blue" /> : <ChevronDown size={12} className="text-vnpost-blue" />;
+}
+
+function TaskTimeline({ taskId, currentStatus }) {
+  const [timeline, setTimeline] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTimeline = async () => {
+      try {
+        setLoading(true);
+        const res = await api.get(`/api/actions/${taskId}/timeline`);
+        setTimeline(res.data || []);
+      } catch (err) {
+        toast.error('Lỗi tải timeline');
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (taskId) fetchTimeline();
+  }, [taskId, currentStatus]); // Reload timeline when task status changes
+
+  if (loading) return <div className="p-6 text-center text-gray-400 text-[10px] font-black uppercase tracking-widest">Đang tải lịch sử sự kiện...</div>;
+
+  return (
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6">
+         <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+           <History size={14} className="text-gray-300" />
+           Dấu chân Timeline
+         </h4>
+         <span className="text-[9px] font-black bg-white px-2 py-1 rounded-lg text-gray-400 shadow-sm border border-gray-100">{timeline.length} Events</span>
+      </div>
+
+      <div className="space-y-0">
+        {timeline.map((event, idx) => {
+          let dotColor = "bg-blue-500";
+          let dotBg = "bg-blue-50 border-white text-blue-500";
+          if (event.event_type === "TASK_OVERDUE") {
+            dotColor = "bg-red-500";
+            dotBg = "bg-red-50 border-white text-red-500";
+          } else if (event.event_type === "TASK_COMPLETED") {
+            dotColor = "bg-emerald-500";
+            dotBg = "bg-emerald-50 border-white text-emerald-500";
+          } else if (event.event_type === "TASK_ESCALATED") {
+            dotColor = "bg-orange-500";
+            dotBg = "bg-orange-50 border-white text-orange-500";
+          }
+
+          return (
+            <div key={idx} className="relative flex gap-4 pb-6 group">
+               {idx !== timeline.length - 1 && <div className="absolute left-3 top-8 bottom-[-8px] w-0.5 bg-gradient-to-b from-gray-200 to-gray-100 group-hover:from-blue-200 transition-colors"></div>}
+               <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 z-10 shadow-sm ${dotBg}`}>
+                  <div className={`w-2 h-2 rounded-full ${dotColor}`}></div>
+               </div>
+               <div className="flex-1 pb-0">
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                     <span className="font-black text-gray-800 text-[11px] uppercase tracking-wider">{event.event_type.replace(/_/g, ' ')}</span>
+                     <span className="text-[9px] text-gray-400 font-bold whitespace-nowrap bg-white px-1.5 py-0.5 rounded shadow-sm border border-gray-50">
+                        {new Date(event.created_at).toLocaleString('vi-VN', {hour: '2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'})}
+                     </span>
+                  </div>
+                  <div className="text-[10px] text-gray-500 mb-1 flex items-center gap-1">
+                     <User size={10} /> 
+                     Thực hiện: <span className="font-bold text-gray-700">{event.action_by}</span>
+                  </div>
+                  
+                  {(event.event_type === "FORWARDED" || event.event_type === "DELEGATED" || event.event_type === "ASSIGN_STAFF" || event.event_type === "REASSIGNED") && (
+                    <div className="text-[10px] text-gray-600 mb-2 mt-1 bg-gray-100/50 p-2 rounded-lg border border-gray-100">
+                      <div className="flex flex-col gap-1">
+                        {event.from_staff_name && <span className="flex items-center gap-1"><span className="text-gray-400 w-6">Từ:</span> <span className="font-bold">{event.from_staff_name}</span></span>}
+                        {event.to_staff_name && <span className="flex items-center gap-1"><span className="text-gray-400 w-6">Đến:</span> <span className="font-bold text-vnpost-blue">{event.to_staff_name}</span></span>}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Status Change Indicator */}
+                  {event.previous_status && event.previous_status !== event.new_status && (
+                    <div className="flex items-center gap-1 mt-2 mb-1">
+                      <span className="text-[9px] text-gray-400 line-through">{event.previous_status}</span>
+                      <span className="text-[9px] text-gray-400">→</span>
+                      <span className="text-[9px] font-black text-gray-700">{event.new_status}</span>
+                    </div>
+                  )}
+
+                  {event.evidence_text && (
+                    <div className="mt-2 text-[11px] text-gray-600 bg-white p-3 rounded-xl border border-gray-100 shadow-sm whitespace-pre-wrap leading-relaxed relative overflow-hidden group-hover:border-blue-100 transition-colors">
+                      <div className="absolute top-0 left-0 w-1 h-full bg-gray-200 group-hover:bg-blue-300 transition-colors"></div>
+                      <span className="pl-1">{event.evidence_text}</span>
+                    </div>
+                  )}
+               </div>
+            </div>
+          );
+        })}
+        {timeline.length === 0 && <div className="text-xs text-gray-400 italic font-bold">Chưa có sự kiện nào được ghi nhận.</div>}
+      </div>
+    </div>
+  );
 }

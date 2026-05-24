@@ -16,6 +16,54 @@ from fastapi import Request
 
 router = APIRouter(prefix="/api/actions", tags=["actions"])
 
+def build_timeline_payload(
+    db: Session,
+    event_type: str,
+    acted_by_user: User,
+    action_source: str,
+    from_staff_id: Optional[int],
+    to_staff_id: Optional[int],
+    previous_status: Optional[str],
+    new_status: str,
+    reason: str,
+    evidence_text: str = ""
+):
+    from_staff_name = ""
+    from_node = ""
+    to_staff_name = ""
+    to_node = ""
+    
+    if from_staff_id:
+        fs = db.query(NhanSu).filter(NhanSu.id == from_staff_id).first()
+        if fs:
+            from_staff_name = f"{fs.full_name} ({fs.chuc_vu or 'Nhân viên'})"
+            if fs.point:
+                from_node = fs.point.name
+                
+    if to_staff_id:
+        ts = db.query(NhanSu).filter(NhanSu.id == to_staff_id).first()
+        if ts:
+            to_staff_name = f"{ts.full_name} ({ts.chuc_vu or 'Nhân viên'})"
+            if ts.point:
+                to_node = ts.point.name
+
+    return {
+        "event_type": event_type,
+        "acted_by_user_id": acted_by_user.id,
+        "action_by": acted_by_user.full_name or "System",
+        "action_source": action_source,
+        "from_staff_id": from_staff_id,
+        "from_staff_name": from_staff_name,
+        "to_staff_id": to_staff_id,
+        "to_staff_name": to_staff_name,
+        "from_node": from_node,
+        "to_node": to_node,
+        "previous_status": previous_status,
+        "new_status": new_status,
+        "reason": reason,
+        "evidence_text": evidence_text,
+        "created_at": datetime.now().isoformat()
+    }
 @router.get("/templates")
 async def get_templates(
     loai_doi_tuong: str = None, 
@@ -46,6 +94,8 @@ class AssignTaskPayload(BaseModel):
     phan_loai_giao_viec: Optional[str] = "Giao Lead"
     pipeline_stage: Optional[str] = "B1" # B1-B5
     task_contact_at: Optional[str] = None # YYYY-MM-DD HH:MM
+    assignment_mode: Optional[str] = "DIRECT"
+    action_source: Optional[str] = "CUSTOMERS"
 
 @router.post("/assign")
 async def assign_task(
@@ -142,24 +192,26 @@ async def assign_task(
     db.refresh(new_task)
     
     # Timeline Hook
-    evidence = {
-        "event_type": "TASK_ASSIGNED",
-        "action_by": current_user.full_name or "System",
-        "previous_status": None,
-        "new_status": "Mới",
-        "created_at": datetime.now().isoformat(),
-        "reason": "Giao việc mới",
-        "evidence_text": payload.noi_dung,
-        "from_user_id": current_user.id,
-        "to_user_id": payload.staff_id
-    }
+    event_type = "DELEGATED" if payload.assignment_mode == "DELEGATION" else "ASSIGN_STAFF"
+    evidence = build_timeline_payload(
+        db=db,
+        event_type=event_type,
+        acted_by_user=current_user,
+        action_source=payload.action_source,
+        from_staff_id=current_user.nhan_su_id,
+        to_staff_id=payload.staff_id,
+        previous_status=None,
+        new_status="Mới",
+        reason=payload.phan_loai_giao_viec,
+        evidence_text=payload.noi_dung
+    )
     state_log = TaskStateLog(
         task_id=new_task.id,
         previous_status=None,
         new_status="Mới",
         changed_by=current_user.id,
-        action_type="ASSIGN",
-        reason="Giao việc mới",
+        action_type=event_type,
+        reason=payload.phan_loai_giao_viec,
         evidence_snapshot_json=json.dumps(evidence, ensure_ascii=False)
     )
     db.add(state_log)
@@ -346,22 +398,25 @@ async def report_task(
     db.commit()
     
     # Timeline Hook
-    event_type = "TASK_COMPLETED" if payload.trang_thai in ["Hoàn thành", "Thất bại"] else "TASK_REPORTED"
-    evidence = {
-        "event_type": event_type,
-        "action_by": current_user.full_name or "System",
-        "previous_status": old_status,
-        "new_status": task.trang_thai,
-        "created_at": datetime.now().isoformat(),
-        "reason": "Báo cáo tiến độ/kết quả",
-        "evidence_text": payload.bao_cao_ket_qua
-    }
+    event_type = "COMPLETED" if payload.trang_thai in ["Hoàn thành", "Thất bại"] else "REPORTED"
+    evidence = build_timeline_payload(
+        db=db,
+        event_type=event_type,
+        acted_by_user=current_user,
+        action_source="ACTION_CENTER",
+        from_staff_id=current_user.nhan_su_id,
+        to_staff_id=current_user.nhan_su_id,
+        previous_status=old_status,
+        new_status=task.trang_thai,
+        reason="Báo cáo tiến độ",
+        evidence_text=payload.bao_cao_ket_qua
+    )
     state_log = TaskStateLog(
         task_id=task.id,
         previous_status=old_status,
         new_status=task.trang_thai,
         changed_by=current_user.id,
-        action_type="COMPLETE" if payload.trang_thai in ["Hoàn thành", "Thất bại"] else "REPORT",
+        action_type=event_type,
         reason="Báo cáo tiến độ",
         evidence_snapshot_json=json.dumps(evidence, ensure_ascii=False)
     )
@@ -379,6 +434,133 @@ async def report_task(
     )
     
     return {"message": "Đã cập nhật báo cáo thành công", "status": task.trang_thai}
+
+@router.post("/tasks/{task_id}/accept")
+async def accept_task(
+    request: Request,
+    task_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    task = db.query(ActionTask).filter(ActionTask.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Không tìm thấy nhiệm vụ")
+    
+    if current_user.nhan_su_id != task.staff_id:
+        raise HTTPException(status_code=403, detail="Chỉ người đang chịu trách nhiệm nhiệm vụ này mới được thao tác.")
+        
+    old_status = task.trang_thai
+    task.trang_thai = "Đang xử lý"
+    task.updated_at = datetime.now()
+    
+    evidence = build_timeline_payload(
+        db=db,
+        event_type="ACCEPTED",
+        acted_by_user=current_user,
+        action_source="ACTION_CENTER",
+        from_staff_id=current_user.nhan_su_id,
+        to_staff_id=current_user.nhan_su_id,
+        previous_status=old_status,
+        new_status="Đang xử lý",
+        reason="Nhận xử lý nhiệm vụ",
+        evidence_text="Xác nhận nhận việc"
+    )
+    
+    state_log = TaskStateLog(
+        task_id=task.id,
+        previous_status=old_status,
+        new_status="Đang xử lý",
+        changed_by=current_user.id,
+        action_type="ACCEPTED",
+        reason="Nhận xử lý",
+        evidence_snapshot_json=json.dumps(evidence, ensure_ascii=False)
+    )
+    db.add(state_log)
+    db.commit()
+    
+    LogService.log_action(
+        db=db,
+        user_id=current_user.id,
+        action="ACCEPT_TASK",
+        resource=task.loai_doi_tuong,
+        details=f"Nhận xử lý Task ID {task_id}",
+        ip_address=request.client.host
+    )
+    
+    return {"message": "Đã nhận xử lý thành công", "status": "Đang xử lý"}
+
+class ForwardTaskPayload(BaseModel):
+    staff_id: int
+    noi_dung: Optional[str] = None
+    
+@router.post("/tasks/{task_id}/forward")
+async def forward_task(
+    request: Request,
+    task_id: int,
+    payload: ForwardTaskPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    task = db.query(ActionTask).filter(ActionTask.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Không tìm thấy nhiệm vụ")
+        
+    if current_user.nhan_su_id != task.staff_id:
+        raise HTTPException(status_code=403, detail="Chỉ người đang chịu trách nhiệm nhiệm vụ này mới được thao tác.")
+        
+    from ..services.scoping_service import ScopingService
+    user_scope_ids = ScopingService.get_effective_scope_ids(db, current_user)
+    if user_scope_ids is not None:
+        target_staff = db.query(NhanSu).filter(NhanSu.id == payload.staff_id).first()
+        if not target_staff or target_staff.point_id not in user_scope_ids:
+            raise HTTPException(status_code=403, detail="Bạn không có quyền điều phối việc cho nhân sự thuộc trung tâm/nhánh khác.")
+            
+    old_staff_id = task.staff_id
+    task.staff_id = payload.staff_id
+    # DO NOT RESET STATUS
+    
+    evidence = build_timeline_payload(
+        db=db,
+        event_type="FORWARDED",
+        acted_by_user=current_user,
+        action_source="ACTION_CENTER",
+        from_staff_id=old_staff_id,
+        to_staff_id=payload.staff_id,
+        previous_status=task.trang_thai,
+        new_status=task.trang_thai,
+        reason="Điều phối tiếp xuống cấp dưới",
+        evidence_text=payload.noi_dung or "Điều phối tiếp"
+    )
+    
+    state_log = TaskStateLog(
+        task_id=task.id,
+        previous_status=task.trang_thai,
+        new_status=task.trang_thai,
+        changed_by=current_user.id,
+        action_type="FORWARDED",
+        reason="Điều phối tiếp",
+        evidence_snapshot_json=json.dumps(evidence, ensure_ascii=False)
+    )
+    db.add(state_log)
+    
+    # Neu la HienHuu -> update thong tin assign trong bang Customer
+    if task.loai_doi_tuong == "HienHuu":
+        customer = db.query(Customer).filter(Customer.ma_crm_cms == task.target_id).first()
+        if customer:
+            customer.assigned_staff_id = payload.staff_id
+            
+    db.commit()
+    
+    LogService.log_action(
+        db=db,
+        user_id=current_user.id,
+        action="FORWARD_TASK",
+        resource=task.loai_doi_tuong,
+        details=f"Điều phối tiếp Task ID {task_id} từ {old_staff_id} sang {payload.staff_id}",
+        ip_address=request.client.host
+    )
+    
+    return {"message": "Đã điều phối tiếp thành công"}
 
 @router.patch("/tasks/{task_id}/reassign")
 async def reassign_task(
@@ -410,23 +592,24 @@ async def reassign_task(
     task.staff_id = staff_id
     
     # Timeline Hook
-    evidence = {
-        "event_type": "TASK_REASSIGNED",
-        "action_by": current_user.full_name or "System",
-        "previous_status": task.trang_thai,
-        "new_status": task.trang_thai,
-        "created_at": datetime.now().isoformat(),
-        "reason": "Điều phối lại nhân sự",
-        "evidence_text": f"Giao lại nhiệm vụ từ nhân sự {old_staff_id} sang nhân sự {staff_id}",
-        "from_user_id": old_staff_id,
-        "to_user_id": staff_id
-    }
+    evidence = build_timeline_payload(
+        db=db,
+        event_type="REASSIGNED",
+        acted_by_user=current_user,
+        action_source="ACTION_CENTER",
+        from_staff_id=old_staff_id,
+        to_staff_id=staff_id,
+        previous_status=task.trang_thai,
+        new_status=task.trang_thai,
+        reason="Điều phối lại nhân sự",
+        evidence_text=f"Giao lại nhiệm vụ từ nhân sự ID {old_staff_id} sang ID {staff_id}"
+    )
     state_log = TaskStateLog(
         task_id=task.id,
         previous_status=task.trang_thai,
         new_status=task.trang_thai,
         changed_by=current_user.id,
-        action_type="REASSIGN",
+        action_type="REASSIGNED",
         reason="Điều phối lại nhân sự",
         evidence_snapshot_json=json.dumps(evidence, ensure_ascii=False)
     )

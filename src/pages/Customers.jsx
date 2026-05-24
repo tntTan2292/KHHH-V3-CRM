@@ -357,6 +357,7 @@ export default function Customers() {
   const [lifecycleStats, setLifecycleStats] = useState({});
   const [staffOptions, setStaffOptions] = useState([]);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assignmentMode, setAssignmentMode] = useState("DIRECT"); // DIRECT or DELEGATION
   const [assignTarget, setAssignTarget] = useState(null); // { ma_kh, ten_kh, nhom_kh }
   const [selectedStaffId, setSelectedStaffId] = useState("");
   const [assigning, setAssigning] = useState(false);
@@ -912,7 +913,9 @@ export default function Customers() {
         noi_dung: assignContent,
         deadline: assignDeadline ? new Date(assignDeadline).toISOString() : null,
         template_id: selectedTemplateId || null,
-        phan_loai_giao_viec: flowInfo.type
+        phan_loai_giao_viec: flowInfo.type,
+        assignment_mode: assignmentMode,
+        action_source: "CUSTOMERS"
       });
       toast.success(`Đã giao việc cho nhân sự thành công!`);
       
@@ -963,6 +966,21 @@ export default function Customers() {
                 </div>
 
                 <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1">
+                  {/* Chế độ Giao việc */}
+                  <div className="flex gap-2 p-1 bg-gray-100 rounded-xl">
+                     <button
+                       onClick={() => setAssignmentMode("DIRECT")}
+                       className={`flex-1 py-2 px-3 text-xs font-black uppercase tracking-widest rounded-lg transition-all ${assignmentMode === "DIRECT" ? "bg-white text-vnpost-blue shadow-sm" : "text-gray-400 hover:text-gray-600"}`}
+                     >
+                       Giao Cá nhân
+                     </button>
+                     <button
+                       onClick={() => setAssignmentMode("DELEGATION")}
+                       className={`flex-1 py-2 px-3 text-xs font-black uppercase tracking-widest rounded-lg transition-all ${assignmentMode === "DELEGATION" ? "bg-white text-emerald-600 shadow-sm" : "text-gray-400 hover:text-gray-600"}`}
+                     >
+                       Điều phối Tổ chức
+                     </button>
+                  </div>
                   <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex justify-between items-center">
                     <div>
                       <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Đang thực hiện cho:</p>
@@ -1153,10 +1171,10 @@ export default function Customers() {
                     <button 
                       onClick={handleAssignSubmit}
                       disabled={assigning}
-                      className="flex-1 py-4 bg-vnpost-blue text-white rounded-2xl font-black shadow-xl shadow-vnpost-blue/20 hover:bg-[#003E7E] transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-xs disabled:opacity-50"
+                      className={`flex-1 py-4 text-white rounded-2xl font-black shadow-xl transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-xs disabled:opacity-50 ${assignmentMode === 'DELEGATION' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20' : 'bg-vnpost-blue hover:bg-[#003E7E] shadow-vnpost-blue/20'}`}
                     >
                       {assigning ? <RefreshCw className="animate-spin" size={18} /> : <Save size={18} />}
-                      Xác nhận giao
+                      {assignmentMode === 'DELEGATION' ? 'Xác nhận điều phối' : 'Xác nhận giao'}
                     </button>
                   </div>
                 </div>
