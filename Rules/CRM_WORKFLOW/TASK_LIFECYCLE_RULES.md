@@ -11,7 +11,7 @@ Hệ thống được thiết kế dựa trên 4 nguyên tắc cốt lõi:
 
 1. **Ủy quyền thực thi:** Nhân viên được phép tự chủ hoàn thành Task nếu cung cấp đủ thông tin Báo cáo (Feedback) theo yêu cầu.
 2. **Quản lý hỗ trợ (Servant Leadership):** Leader/Quản lý chủ yếu đóng vai trò Giám sát tiến độ, Điều phối (Reassign) khi quá tải và Hỗ trợ (Escalation) khi nhân viên gặp bế tắc.
-3. **Chống "Giam lỏng" Khách hàng (Anti-Orphan Lock):** Không một khách hàng nào bị "khóa" chết ở một nhân viên nếu nhân viên đó không phát sinh tương tác (Quá hạn SLA tự động nhả khóa).
+3. **Chống "Giam lỏng" Khách hàng (Anti-Orphan Lock):** Không một khách hàng nào bị "khóa" chết ở một nhân viên. Tuy nhiên, khi Quá hạn SLA, hệ thống CHỈ cảnh báo đỏ và trừ KPI. Quyền thu hồi (Reassign) phụ thuộc hoàn toàn vào Quyết định của Leader.
 4. **Action Center = Customer Lifecycle Management:** Action Center CHỈ phục vụ khách hàng hiện hữu (đã có mã). KHÔNG dùng cho Phễu Sale, KHÔNG dùng cho Lead.
 
 ---
@@ -49,9 +49,9 @@ Mỗi "Công việc" (Task tiếp cận) sẽ chạy qua các trạng thái sau:
 | :--- | :--- | :--- |
 | **MỚI NHẬN** (New) | Quản lý vừa giao việc, hoặc hệ thống tự động giao. Nhân viên chưa xem. | Nhân viên |
 | **ĐANG XỬ LÝ** (In Progress) | Nhân viên đã ấn "Nhận việc" và đang trong quá trình tiếp cận/liên hệ KH. | Nhân viên |
-| **CHỜ HỖ TRỢ** (Escalated) | Nhân viên gặp khó, không thể tự chốt, đẩy lên nhờ Leader can thiệp. | Leader / Quản lý |
+| **CHỜ HỖ TRỢ / CHỜ CHỈ ĐẠO** (Escalated) | Nhân viên gặp khó, báo cáo lên Leader xin hướng xử lý. (Task vẫn của nhân viên, không đẻ task mới cho sếp) | Leader chỉ đạo / Nhân viên |
 | **HOÀN THÀNH** (Completed) | Đã xong. Đã lưu Báo cáo kết quả (Thành công hoặc Thất bại đều là Hoàn thành task). | Hệ thống đóng |
-| **QUÁ HẠN** (Overdue) | Đã lố hạn SLA quy định nhưng chưa có kết quả. | Nhân viên / Leader |
+| **QUÁ HẠN** (Overdue) | Đã lố hạn SLA quy định. (Chỉ Cảnh báo đỏ, KHÔNG tự động thu hồi/unlock khách hàng) | Leader quyết định |
 | **ĐÃ HỦY** (Canceled) | Task bị hủy do giao sai, khách hàng không tồn tại, hoặc trùng lặp. | Leader / Quản lý |
 
 ---
@@ -59,9 +59,9 @@ Mỗi "Công việc" (Task tiếp cận) sẽ chạy qua các trạng thái sau:
 ## 5. Luật chuyển trạng thái (State Transition Rules)
 
 - **MỚI NHẬN** $\rightarrow$ Chỉ có thể chuyển sang **ĐANG XỬ LÝ** (Khi nhân viên click Nhận).
-- **ĐANG XỬ LÝ** $\rightarrow$ Có thể chuyển sang **HOÀN THÀNH** (Kèm nội dung báo cáo), hoặc **CHỜ HỖ TRỢ** (Kèm lý do xin hỗ trợ).
-- **CHỜ HỖ TRỢ** $\rightarrow$ Leader sau khi xử lý sẽ chuyển ngược về **ĐANG XỬ LÝ** để trả lại cho nhân viên, hoặc Leader tự **HOÀN THÀNH**.
-- Mọi Task khi bị lố giờ tự động bị gắn cờ **QUÁ HẠN** mà không cần sự can thiệp của con người.
+- **ĐANG XỬ LÝ** $\rightarrow$ Có thể chuyển sang **HOÀN THÀNH** (Kèm nội dung báo cáo), hoặc **CHỜ HỖ TRỢ** (Kèm lý do xin chỉ đạo).
+- **CHỜ HỖ TRỢ** $\rightarrow$ Leader chỉ đạo hướng xử lý và chuyển ngược về **ĐANG XỬ LÝ** để trả lại cho nhân viên, hoặc Leader quyết định **REASSIGN** cho người khác. Tuyệt đối KHÔNG đẻ thêm task mới cho Leader.
+- Mọi Task khi bị lố giờ tự động bị gắn cờ **QUÁ HẠN** để cảnh báo. Việc quá hạn KHÔNG tự động nhả khóa khách hàng, KHÔNG tự mất ownership, KHÔNG tự reassign.
 
 ---
 
@@ -94,7 +94,7 @@ Mỗi "Công việc" (Task tiếp cận) sẽ chạy qua các trạng thái sau:
 - **SLA Khởi tạo:** Mọi task khi sinh ra ĐỀU PHẢI CÓ thời hạn (Deadline). Không có task vô thời hạn.
 - **Hệ thống đếm giờ:** Tính theo giờ hành chính (Tùy chọn) hoặc Real-time.
 - **Cảnh báo vàng:** Trước khi hết hạn 24h, hệ thống báo nhắc nhở nhẹ.
-- **Cảnh báo đỏ (Overdue):** Quá hạn $\rightarrow$ Trừ điểm KPI của nhân viên $\rightarrow$ Tự động nhả khóa Khách hàng.
+- **Cảnh báo đỏ (Overdue):** Quá hạn $\rightarrow$ Trừ điểm KPI của nhân viên $\rightarrow$ Báo cáo lên Leader Dashboard. Tuyệt đối KHÔNG tự động nhả khóa Khách hàng hay đổi người phụ trách. Chỉ Leader mới có quyền định đoạt (Reassign).
 
 ---
 
@@ -168,16 +168,35 @@ Outcome là kết quả cuối cùng của cuộc gặp/gọi điện. **Outcome
 
 ## 15. TASK OWNERSHIP (Sở hữu Công việc)
 
-Sở hữu (Ownership) quyết định ai là người chịu trách nhiệm chính về Khách hàng và Công việc đó.
+Sở hữu (Ownership) quyết định ai là người chịu trách nhiệm chính về Khách hàng và Công việc đó. Quyền này luôn cố định cho tới khi LEADER can thiệp.
 
 | Khái niệm | Ý nghĩa |
 | :--- | :--- |
-| **Owner chính (Primary)**| Người đang nắm giữ và ăn chia doanh thu chính từ Khách hàng. |
-| **Collaborator** | Người được mời vào hỗ trợ, cùng đi gặp khách. |
-| **Escalation** | Nhờ sếp giúp đỡ. **Không đổi Owner gốc**. |
-| **Reassign** | Cắt hẳn khách hàng giao cho người khác. **Chuyển Owner**. |
-| **Unlock (Mở khóa)** | Nhả khách hàng trở về trạng thái tự do (Ai cũng có thể chộp). |
+| **Owner chính (Primary)**| Người đang nắm giữ và chịu trách nhiệm chính. |
+| **Reassign (Điều chuyển)** | Cắt hẳn khách hàng giao cho người khác. **Hành động DUY NHẤT được phép thay đổi Owner**. Chỉ Leader mới có quyền này. |
+| **Escalation (Xin hỗ trợ)** | Báo cáo Leader xin hướng xử lý. **Không đổi Owner, Task vẫn của nhân viên, Không tạo task mới cho sếp**. |
+| **Forward (Điều phối tiếp)** | 🚫 **BỊ CẤM (DEPRECATED)**. Nhân viên tuyệt đối KHÔNG được tự ý chuyển khách cho nhau để tránh đá bóng trách nhiệm. |
+| **Các Action KHÔNG đổi Owner** | ACCEPT, OVERDUE, REPORT, COMPLETED. Tất cả hành động này **không** làm thay đổi người chịu trách nhiệm. |
 
-> [!IMPORTANT]
-> - **Ownership khác CRM Bán hàng:** Action Center không tính "Win/Loss" hay "Chốt Sale" nên Ownership ở đây mang ý nghĩa là Người chăm sóc (Accountability) chứ không phải Người hưởng hoa hồng chốt Sale.
-> - **Ownership khác Task Status:** Một Task chuyển sang Quá hạn (Overdue) sẽ làm mất Lock, nhưng Ownership không tự động đổi sang người khác trừ khi quản lý Reassign.
+> [!CAUTION]
+> **PHÂN BIỆT RÕ "OWNERSHIP" vs "LOCK":**
+> - **Ownership:** Người chịu trách nhiệm chính (Accountability).
+> - **Lock:** Cơ chế chống nhiều người cùng chăm sóc một khách.
+> - *(Technical Limitation):* Hiện tại hệ thống đang dùng chung 1 field (`Customer.assigned_staff_id`) cho cả 2 khái niệm này. 
+> - **AI SAFETY WARNING:** Tuyệt đối KHÔNG được để AI tự suy diễn 2 khái niệm này là một, không được phép viết code tự động gán `assigned_staff_id = None` khi Overdue.
+
+---
+
+## 16. AI SAFETY RULE (Khóa Semantic)
+
+> [!CAUTION]
+> Để bảo vệ sự toàn vẹn của Hiến pháp, cấm tuyệt đối mọi sự suy diễn từ AI/Coder.
+>
+> **AI/Coder KHÔNG ĐƯỢC PHÉP:**
+> - Tự đẻ semantic mới (Ví dụ: tự nghĩ ra quy trình "Forward").
+> - Tự suy diễn workflow mới ngoài các rule đã chốt.
+> - Tự thêm automation/cronjob ngoài Constitution (Ví dụ: tự viết logic unlock khách hàng khi overdue).
+>
+> **Mọi semantic mới / tính năng mới:**
+> - PHẢI được báo cáo và ghi vào Constitution/Rules trước.
+> - Chờ Phê duyệt rồi mới được phép implement vào Code.

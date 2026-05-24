@@ -389,11 +389,8 @@ async def report_task(
     if payload.trang_thai in ["Hoàn thành", "Thất bại"]:
         task.ngay_hoan_thanh = datetime.now()
         
-    # MỞ KHÓA (Unlock): Nếu task Thất bại hoặc Hủy -> Giải phóng khách hàng
-    if payload.trang_thai in ["Thất bại", "Hủy"] and task.loai_doi_tuong == "KhachHang":
-        customer = db.query(Customer).filter(Customer.ma_crm_cms == task.target_id).first()
-        if customer:
-            customer.assigned_staff_id = None
+    # SEMANTIC PATCH: KHÔNG AUTO UNLOCK KHÁCH HÀNG KỂ CẢ KHI THẤT BẠI
+    # Quyền thu hồi (Reassign) phụ thuộc vào Leader.
         
     db.commit()
     
@@ -501,66 +498,8 @@ async def forward_task(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    task = db.query(ActionTask).filter(ActionTask.id == task_id).first()
-    if not task:
-        raise HTTPException(status_code=404, detail="Không tìm thấy nhiệm vụ")
-        
-    if current_user.nhan_su_id != task.staff_id:
-        raise HTTPException(status_code=403, detail="Chỉ người đang chịu trách nhiệm nhiệm vụ này mới được thao tác.")
-        
-    from ..services.scoping_service import ScopingService
-    user_scope_ids = ScopingService.get_effective_scope_ids(db, current_user)
-    if user_scope_ids is not None:
-        target_staff = db.query(NhanSu).filter(NhanSu.id == payload.staff_id).first()
-        if not target_staff or target_staff.point_id not in user_scope_ids:
-            raise HTTPException(status_code=403, detail="Bạn không có quyền điều phối việc cho nhân sự thuộc trung tâm/nhánh khác.")
-            
-    old_staff_id = task.staff_id
-    task.staff_id = payload.staff_id
-    # DO NOT RESET STATUS
-    
-    evidence = build_timeline_payload(
-        db=db,
-        event_type="FORWARDED",
-        acted_by_user=current_user,
-        action_source="ACTION_CENTER",
-        from_staff_id=old_staff_id,
-        to_staff_id=payload.staff_id,
-        previous_status=task.trang_thai,
-        new_status=task.trang_thai,
-        reason="Điều phối tiếp xuống cấp dưới",
-        evidence_text=payload.noi_dung or "Điều phối tiếp"
-    )
-    
-    state_log = TaskStateLog(
-        task_id=task.id,
-        previous_status=task.trang_thai,
-        new_status=task.trang_thai,
-        changed_by=current_user.id,
-        action_type="FORWARDED",
-        reason="Điều phối tiếp",
-        evidence_snapshot_json=json.dumps(evidence, ensure_ascii=False)
-    )
-    db.add(state_log)
-    
-    # Neu la HienHuu -> update thong tin assign trong bang Customer
-    if task.loai_doi_tuong == "HienHuu":
-        customer = db.query(Customer).filter(Customer.ma_crm_cms == task.target_id).first()
-        if customer:
-            customer.assigned_staff_id = payload.staff_id
-            
-    db.commit()
-    
-    LogService.log_action(
-        db=db,
-        user_id=current_user.id,
-        action="FORWARD_TASK",
-        resource=task.loai_doi_tuong,
-        details=f"Điều phối tiếp Task ID {task_id} từ {old_staff_id} sang {payload.staff_id}",
-        ip_address=request.client.host
-    )
-    
-    return {"message": "Đã điều phối tiếp thành công"}
+    # [SEMANTIC PATCH] FORWARD API ĐÃ BỊ XÓA BỎ HOÀN TOÀN
+    raise HTTPException(status_code=410, detail="Tính năng Điều phối tiếp (Forward) đã bị xóa bỏ theo Hiến pháp. Chỉ Leader mới được phép Reassign.")
 
 @router.patch("/tasks/{task_id}/reassign")
 async def reassign_task(
@@ -590,6 +529,12 @@ async def reassign_task(
     
     old_staff_id = task.staff_id
     task.staff_id = staff_id
+    
+    # [SEMANTIC PATCH] REASSIGN là hành động DUY NHẤT đổi Owner Khách hàng
+    if task.loai_doi_tuong == "HienHuu":
+        customer = db.query(Customer).filter(Customer.ma_crm_cms == task.target_id).first()
+        if customer:
+            customer.assigned_staff_id = staff_id
     
     # Timeline Hook
     evidence = build_timeline_payload(
@@ -679,90 +624,39 @@ async def escalate_to_cluster(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """GĐ Bưu điện P/X trả KH về Cụm — tạo thêm task hỗ trợ cho Trưởng Cụm."""
-    from ..models import HierarchyNode, Role
-    
-    # Kiểm tra quyền: chỉ UNIT_HEAD mới được escalate
-    role_name = current_user.role.name if current_user.role else ""
-    if role_name != "UNIT_HEAD":
-        raise HTTPException(status_code=403, detail="Chỉ GĐ Bưu điện P/X mới có quyền trả KH về Cụm")
-    
-    # Tìm WARD hiện tại của user
-    user_point_id = None
-    if current_user.nhan_su_id:
-        ns = db.query(NhanSu).filter(NhanSu.id == current_user.nhan_su_id).first()
-        if ns:
-            user_point_id = ns.point_id
-    
-    if not user_point_id:
-        raise HTTPException(status_code=400, detail="Không xác định được điểm giao dịch của bạn")
-    
-    # Leo cây: Point → WARD → CLUSTER
-    curr = db.query(HierarchyNode).filter(HierarchyNode.id == user_point_id).first()
-    cluster_node = None
-    ward_name = ""
-    while curr:
-        if curr.type == 'WARD':
-            ward_name = curr.name
-        if curr.type == 'CLUSTER':
-            cluster_node = curr
-            break
-        if curr.parent_id:
-            curr = db.query(HierarchyNode).filter(HierarchyNode.id == curr.parent_id).first()
-        else:
-            break
-    
-    if not cluster_node:
-        raise HTTPException(status_code=400, detail="Không tìm thấy Cụm quản lý")
-    
-    # Tìm Trưởng Cụm: user có scope_node_id = cluster_node.id hoặc role = REP_LEADER
-    cluster_leader_user = db.query(User).filter(
-        User.scope_node_id == cluster_node.id
+    """Báo cáo Leader xin hướng xử lý - KHÔNG tạo task mới, giữ nguyên Owner."""
+    # Tìm task hiện tại của nhân viên
+    task = db.query(ActionTask).filter(
+        ActionTask.target_id == payload.target_id,
+        ActionTask.loai_doi_tuong == payload.loai_doi_tuong,
+        ActionTask.staff_id == current_user.nhan_su_id,
+        ActionTask.trang_thai.in_(["Mới", "Đang xử lý", "OVERDUE"])
     ).first()
     
-    cluster_leader_ns_id = None
-    cluster_leader_name = "Trưởng Cụm"
-    if cluster_leader_user and cluster_leader_user.nhan_su_id:
-        cluster_leader_ns_id = cluster_leader_user.nhan_su_id
-        leader_ns = db.query(NhanSu).filter(NhanSu.id == cluster_leader_user.nhan_su_id).first()
-        if leader_ns:
-            cluster_leader_name = leader_ns.full_name
+    if not task:
+        raise HTTPException(status_code=404, detail="Không tìm thấy nhiệm vụ hiện tại để xin chỉ đạo")
+        
+    old_status = task.trang_thai
+    task.trang_thai = "CHỜ CHỈ ĐẠO"
+    task.updated_at = datetime.now()
     
-    # Nội dung task escalation
-    escalation_content = (
-        f"🚨 YÊU CẦU HỖ TRỢ TỪ {ward_name}\n\n"
-        f"Người yêu cầu: {current_user.full_name}\n"
-        f"Đối tượng: {payload.target_id} ({payload.loai_doi_tuong})\n"
-        f"Lý do: {payload.reason}\n\n"
-        f"Vui lòng điều phối giao KH này cho Bưu điện P/X khác trong Cụm."
-    )
-    
-    # Tạo task escalation (task cũ giữ nguyên)
-    new_task = ActionTask(
-        target_id=payload.target_id,
-        loai_doi_tuong=payload.loai_doi_tuong,
-        staff_id=cluster_leader_ns_id,
-        noi_dung=escalation_content,
-        trang_thai="Escalation"
-    )
-    db.add(new_task)
-    db.commit()
-    db.refresh(new_task)
+    # Nội dung xin chỉ đạo
+    escalation_content = f"🚨 YÊU CẦU CHỈ ĐẠO: {payload.reason}"
     
     # Timeline Hook
     evidence = {
         "event_type": "TASK_ESCALATED",
         "action_by": current_user.full_name or "System",
-        "previous_status": None,
-        "new_status": "Escalation",
+        "previous_status": old_status,
+        "new_status": "CHỜ CHỈ ĐẠO",
         "created_at": datetime.now().isoformat(),
         "reason": payload.reason,
         "evidence_text": escalation_content
     }
     state_log = TaskStateLog(
-        task_id=new_task.id,
-        previous_status=None,
-        new_status="Escalation",
+        task_id=task.id,
+        previous_status=old_status,
+        new_status="CHỜ CHỈ ĐẠO",
         changed_by=current_user.id,
         action_type="ESCALATE",
         reason=payload.reason,
@@ -777,13 +671,13 @@ async def escalate_to_cluster(
         user_id=current_user.id,
         action="ESCALATE_TASK",
         resource=payload.loai_doi_tuong,
-        details=f"Yêu cầu hỗ trợ lên Cụm cho khách hàng {payload.target_id}. Lý do: {payload.reason[:100]}...",
+        details=f"Yêu cầu chỉ đạo cho Task ID {task.id}. Lý do: {payload.reason[:100]}...",
         ip_address=request.client.host
     )
     
     return {
-        "message": f"Đã gửi yêu cầu hỗ trợ lên {cluster_leader_name} ({cluster_node.name})",
-        "task_id": new_task.id
+        "message": "Đã gửi yêu cầu xin chỉ đạo lên Leader",
+        "task_id": task.id
     }
 
 @router.post("/{task_id}/overdue")

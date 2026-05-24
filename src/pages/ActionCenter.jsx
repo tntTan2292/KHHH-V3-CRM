@@ -400,10 +400,6 @@ function StaffKanbanBoard({ filters }) {
   });
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState(null);
-  const [showForwardModal, setShowForwardModal] = useState(false);
-  const [forwarding, setForwarding] = useState(false);
-  const [forwardStaffId, setForwardStaffId] = useState("");
-  const [forwardReason, setForwardReason] = useState("");
   const [staffOptions, setStaffOptions] = useState([]);
 
   const fetchTasks = async () => {
@@ -448,28 +444,6 @@ function StaffKanbanBoard({ filters }) {
       fetchTasks();
     } catch(err) {
       toast.error('Lỗi khi nhận việc');
-    }
-  };
-
-  const handleForwardTask = async () => {
-    if (!forwardStaffId) {
-      toast.warning('Vui lòng chọn người nhận');
-      return;
-    }
-    setForwarding(true);
-    try {
-      await api.post(`/api/actions/tasks/${selectedTask.id}/forward`, {
-        staff_id: parseInt(forwardStaffId, 10),
-        noi_dung: forwardReason
-      });
-      toast.success('Đã điều phối công việc thành công');
-      setShowForwardModal(false);
-      setSelectedTask(null);
-      fetchTasks();
-    } catch(err) {
-      toast.error(err.response?.data?.detail || 'Lỗi khi điều phối');
-    } finally {
-      setForwarding(false);
     }
   };
 
@@ -583,11 +557,6 @@ function StaffKanbanBoard({ filters }) {
 
                        {selectedTask.trang_thai !== 'Mới' && (
                          <>
-                           <div className="flex gap-2 mb-4">
-                             <button onClick={() => setShowForwardModal(true)} className="flex-1 py-3 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-xl font-black text-xs uppercase tracking-widest transition-all">
-                               Điều phối tiếp
-                             </button>
-                           </div>
                            <ReportForm 
                               task={selectedTask} 
                               onSubmit={handleUpdateReport} 
@@ -613,51 +582,6 @@ function StaffKanbanBoard({ filters }) {
         </div>
       )}
 
-      {/* Minimal Forward Modal */}
-      {showForwardModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6">
-              <h3 className="text-lg font-black text-gray-800 uppercase tracking-widest mb-4">Điều phối tiếp (Forward)</h3>
-              <p className="text-sm text-gray-500 mb-4 font-semibold">
-                Giao nhiệm vụ này xuống cấp dưới hoặc nhân sự khác. Lịch sử luân chuyển sẽ được lưu lại.
-              </p>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Chọn người nhận tiếp theo</label>
-                  <select 
-                    className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-xl outline-none focus:border-vnpost-blue transition-all font-bold text-sm"
-                    value={forwardStaffId}
-                    onChange={(e) => setForwardStaffId(e.target.value)}
-                  >
-                    <option value="">-- Chọn nhân sự --</option>
-                    {staffOptions.map(s => (
-                      <option key={s.id} value={s.id}>{s.full_name} - {s.point_name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Lời nhắn điều phối</label>
-                  <textarea 
-                    className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-xl outline-none focus:border-vnpost-blue transition-all font-medium text-sm"
-                    rows="3"
-                    placeholder="Ghi chú thêm nội dung giao việc..."
-                    value={forwardReason}
-                    onChange={(e) => setForwardReason(e.target.value)}
-                  ></textarea>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 mt-6">
-                <button onClick={() => setShowForwardModal(false)} className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold text-sm transition-all">Hủy</button>
-                <button onClick={handleForwardTask} disabled={forwarding} className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm transition-all flex items-center gap-2">
-                  {forwarding && <RefreshCw size={16} className="animate-spin" />}
-                  Xác nhận Điều phối
-                </button>
-              </div>
-           </div>
-        </div>
-      )}
     </div>
   );
 }

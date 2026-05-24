@@ -263,6 +263,7 @@ Quy chuẩn quản trị và thẩm quyền của các chỉ số hiệu năng (
 3.  **PHẢN BIỆN ĐỘC LẬP**: Không áp dụng ngay các đề xuất từ bên ngoài (ChatGPT, v.v.) mà phải đối chiếu với Hiến pháp này.
 4.  **BẢO TỒN NGỮ CẢNH**: Cập nhật diễn biến cuối phiên để giữ mạch công việc.
 5.  **SSOT COMPLIANCE**: AI phải bảo vệ SSOT, không được để logic code làm sai lệch các nguyên tắc trong Hiến pháp.
+6.  **AI SEMANTIC SAFETY**: ⚠️ AI/Coder KHÔNG được tự đẻ semantic mới (ví dụ: bịa ra luồng "Forward"), tự suy diễn workflow mới, tự thêm automation ngoài Constitution. Mọi semantic/tính năng mới BẮT BUỘC phải được update vào Constitution/Rules trước rồi mới được phép implement.
 
 ---
 *Cập nhật lần cuối: 08/05/2026 - Tích hợp LEAD TIER ENGINE và Chuẩn hóa 12 Section.*

@@ -96,16 +96,14 @@ class TaskVerifierService:
         
         unlocked_count = 0
         for task in stale_tasks:
-            # Giải phóng khách hàng
-            customer = db.query(Customer).filter(Customer.ma_crm_cms == task.target_id).first()
-            if customer:
-                customer.assigned_staff_id = None
+            # [SEMANTIC PATCH] KHÔNG TỰ ĐỘNG GIẢI PHÓNG KHÁCH HÀNG
+            # Chỉ cảnh báo quá hạn, quyền Reassign thuộc về Leader
                 
             # Cập nhật trạng thái task
-            task.trang_thai = "Quá hạn - Giải phóng"
+            task.trang_thai = "OVERDUE"
             task.updated_at = datetime.now()
             unlocked_count += 1
-            logger.info(f"🔓 Task {task.id} stale: Released customer {task.target_id}")
+            logger.info(f"🚨 Task {task.id} stale: Marked OVERDUE for customer {task.target_id} (No Unlock)")
             
         db.commit()
         return unlocked_count
