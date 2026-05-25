@@ -217,6 +217,7 @@ class ActionTask(Base):
     # Chi tiết công việc
     noi_dung = Column(Text)
     deadline = Column(DateTime, nullable=True)
+    overdue_at = Column(DateTime, nullable=True)
     
     trang_thai = Column(String(100), default="Mới") # Mới, Đang xử lý, CHỜ CHỈ ĐẠO, Hoàn thành, Thất bại, Hủy, OVERDUE, PENDING_VERIFY
     

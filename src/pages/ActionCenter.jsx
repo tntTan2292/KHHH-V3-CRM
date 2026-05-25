@@ -408,9 +408,16 @@ function StaffKanbanBoard({ filters }) {
       const res = await api.get('/api/actions/tasks', { params: filters });
       const allTasks = res.data.items || [];
       
+      // Sort tasks: overdue_at first
+      allTasks.sort((a, b) => {
+        if (a.overdue_at && !b.overdue_at) return -1;
+        if (!a.overdue_at && b.overdue_at) return 1;
+        return 0;
+      });
+      
       const grouped = {
         'Mới': allTasks.filter(t => t.trang_thai === 'Mới' || t.trang_thai === 'Hủy'),
-        'Đang xử lý': allTasks.filter(t => t.trang_thai === 'Đang xử lý'),
+        'Đang xử lý': allTasks.filter(t => t.trang_thai === 'Đang xử lý' || t.trang_thai === 'CHỜ CHỈ ĐẠO'),
         'Hoàn thành': allTasks.filter(t => t.trang_thai === 'Hoàn thành'),
         'Thất bại': allTasks.filter(t => t.trang_thai === 'Thất bại')
       };
@@ -487,10 +494,13 @@ function StaffKanbanBoard({ filters }) {
                 <div 
                   key={task.id} 
                   onClick={() => setSelectedTask(task)}
-                  className="bg-white p-5 rounded-3xl shadow-lg shadow-gray-200/40 border border-gray-100 hover:border-vnpost-blue/30 cursor-pointer transition-all hover:-translate-y-1 group"
+                  className={`bg-white p-5 rounded-3xl shadow-lg shadow-gray-200/40 border ${task.overdue_at ? 'border-red-400' : 'border-gray-100'} hover:border-vnpost-blue/30 cursor-pointer transition-all hover:-translate-y-1 group`}
                 >
                   <div className="flex justify-between items-start mb-3">
-                    <FlowBadge type={task.phan_loai_giao_viec} />
+                    <div className="flex gap-2 flex-wrap items-center">
+                      <FlowBadge type={task.phan_loai_giao_viec} />
+                      {task.overdue_at && <span className="bg-red-50 text-red-600 text-[10px] font-black px-2 py-0.5 rounded border border-red-200 uppercase tracking-widest shadow-sm">⚠️ QUÁ HẠN</span>}
+                    </div>
                     {task.deadline && (
                       <span className="text-[10px] font-bold text-gray-400 flex items-center gap-1"><Clock size={12}/> {task.deadline.substring(0, 10)}</span>
                     )}

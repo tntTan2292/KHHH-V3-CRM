@@ -78,35 +78,27 @@ class TaskVerifierService:
         return {"verified": verified_count, "conflicts": conflict_count}
 
     @staticmethod
-    def auto_unlock_stale_tasks(db: Session, overdue_days: int = 3):
+    def scan_and_mark_overdue(db: Session):
         """
-        Giải phóng (Unlock) khách hàng nếu Task quá hạn mà không có cập nhật.
-        Áp dụng cho Khách hiện hữu (Hard Lock).
+        [SAFE SLA PHASE 1.1] Lightweight overdue checker.
+        Chỉ đánh cờ overdue_at, KHÔNG đổi workflow status, KHÔNG đổi owner.
         """
-        from datetime import timedelta
-        cutoff_date = datetime.now() - timedelta(days=overdue_days)
-        
-        # Tìm các Task Khách hiện hữu quá hạn deadline và không cập nhật lâu hơn cutoff_date
+        # Tìm các Task đang mở (chưa hoàn thành/thất bại/hủy) và đã lố deadline
         stale_tasks = db.query(ActionTask).filter(
-            ActionTask.loai_doi_tuong == "KhachHang",
-            ActionTask.trang_thai.in_(["Mới", "Đang xử lý"]),
+            ActionTask.trang_thai.in_(["Mới", "Đang xử lý", "CHỜ CHỈ ĐẠO"]),
             ActionTask.deadline < datetime.now(),
-            ActionTask.updated_at < cutoff_date
+            ActionTask.overdue_at.is_(None)
         ).all()
         
-        unlocked_count = 0
+        marked_count = 0
         for task in stale_tasks:
-            # [SEMANTIC PATCH] KHÔNG TỰ ĐỘNG GIẢI PHÓNG KHÁCH HÀNG
-            # Chỉ cảnh báo quá hạn, quyền Reassign thuộc về Leader
-                
-            # Cập nhật trạng thái task
-            task.trang_thai = "OVERDUE"
-            task.updated_at = datetime.now()
-            unlocked_count += 1
-            logger.info(f"🚨 Task {task.id} stale: Marked OVERDUE for customer {task.target_id} (No Unlock)")
+            # TUYỆT ĐỐI KHÔNG ĐỔI TRẠNG THÁI (trang_thai) HAY OWNER (staff_id)
+            task.overdue_at = datetime.now()
+            marked_count += 1
+            logger.info(f"🚨 Task {task.id} SLA breached: Marked overdue_at")
             
         db.commit()
-        return unlocked_count
+        return marked_count
 
     @staticmethod
     def auto_promote_stages(db: Session):

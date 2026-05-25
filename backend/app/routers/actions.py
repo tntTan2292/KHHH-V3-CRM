@@ -295,6 +295,7 @@ async def get_tasks(
             "tieu_de": t.template.tieu_de if t.template else "Giao việc thủ công",
             "noi_dung": t.noi_dung,
             "deadline": t.deadline.strftime("%Y-%m-%d %H:%M") if t.deadline else None,
+            "overdue_at": t.overdue_at.strftime("%Y-%m-%d %H:%M") if t.overdue_at else None,
             "trang_thai": t.trang_thai,
             "verified": t.verified,
             "converted_ma_kh": t.converted_ma_kh,
@@ -609,6 +610,8 @@ async def get_action_summary(
         "completed": sum(1 for t in tasks if t.trang_thai == "Hoàn thành"),
         "failed": sum(1 for t in tasks if t.trang_thai == "Thất bại"),
         "cancelled": sum(1 for t in tasks if t.trang_thai == "Hủy"),
+        "overdue_count": sum(1 for t in tasks if t.overdue_at is not None),
+        "overdue_rate": round(sum(1 for t in tasks if t.overdue_at is not None) / len(tasks) * 100, 2) if tasks else 0
     }
     return stats
 
