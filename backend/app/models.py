@@ -218,7 +218,7 @@ class ActionTask(Base):
     noi_dung = Column(Text)
     deadline = Column(DateTime, nullable=True)
     
-    trang_thai = Column(String(100), default="Mới") # Mới, Đang xử lý, Hoàn thành, Thất bại, Hủy, Escalation, PENDING_VERIFY
+    trang_thai = Column(String(100), default="Mới") # Mới, Đang xử lý, CHỜ CHỈ ĐẠO, Hoàn thành, Thất bại, Hủy, OVERDUE, PENDING_VERIFY
     
     # 5B Pipeline & Verification
     pipeline_stage = Column(String(50), nullable=True) # B1, B2, B3, B4, B5

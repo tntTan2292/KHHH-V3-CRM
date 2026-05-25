@@ -716,7 +716,7 @@ function TaskTimeline({ taskId, currentStatus }) {
                      Thực hiện: <span className="font-bold text-gray-700">{event.action_by}</span>
                   </div>
                   
-                  {(event.event_type === "FORWARDED" || event.event_type === "DELEGATED" || event.event_type === "ASSIGN_STAFF" || event.event_type === "REASSIGNED") && (
+                  {(event.event_type === "DELEGATED" || event.event_type === "ASSIGN_STAFF" || event.event_type === "REASSIGNED") && (
                     <div className="text-[10px] text-gray-600 mb-2 mt-1 bg-gray-100/50 p-2 rounded-lg border border-gray-100">
                       <div className="flex flex-col gap-1">
                         {event.from_staff_name && <span className="flex items-center gap-1"><span className="text-gray-400 w-6">Từ:</span> <span className="font-bold">{event.from_staff_name}</span></span>}

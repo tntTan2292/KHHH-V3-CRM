@@ -10,12 +10,13 @@ logger = logging.getLogger(__name__)
 class TaskService:
     # GOVERNANCE: Strict Task Lifecycle State Machine
     ALLOWED_TRANSITIONS = {
-        'Mới': ['Đã giao', 'Hủy'],
-        'Đã giao': ['Đang xử lý', 'Hủy', 'Escalation'], # NEW -> ASSIGNED -> IN_PROGRESS
-        'Đang xử lý': ['Hoàn thành', 'Thất bại', 'Hủy', 'Escalation'],
+        'Mới': ['Đã giao', 'Hủy', 'OVERDUE'],
+        'Đã giao': ['Đang xử lý', 'Hủy', 'CHỜ CHỈ ĐẠO', 'OVERDUE'], # NEW -> ASSIGNED -> IN_PROGRESS
+        'Đang xử lý': ['Hoàn thành', 'Thất bại', 'Hủy', 'CHỜ CHỈ ĐẠO', 'OVERDUE'],
         'Hoàn thành': ['Đóng'], # COMPLETED -> CLOSED
         'Thất bại': ['Đóng'],
-        'Escalation': ['Đã giao', 'Hủy'],
+        'CHỜ CHỈ ĐẠO': ['Đang xử lý', 'Hủy'],
+        'OVERDUE': ['Đang xử lý', 'Hoàn thành', 'Thất bại', 'Hủy', 'CHỜ CHỈ ĐẠO'],
         'Hủy': [],
         'Đóng': []
     }
