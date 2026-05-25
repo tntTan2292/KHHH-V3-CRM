@@ -468,42 +468,50 @@ export default function Customers() {
   const [selectedWardId, setSelectedWardId] = useState("");
   const [hierarchyTree, setHierarchyTree] = useState([]);
   const [assignSelectedNode, setAssignSelectedNode] = useState(null);
+  const [fetchingAssignData, setFetchingAssignData] = useState(false);
   
   // Auto-select node when opening assign modal
   useEffect(() => {
-    if (showAssignModal && staffOptions.length > 0 && hierarchyTree.length > 0 && !assignSelectedNode && assignTarget) {
+    if (showAssignModal && !fetchingAssignData && hierarchyTree.length > 0 && !assignSelectedNode && assignTarget) {
        let targetNode = null;
+
+       const findNodeById = (nodes, id) => {
+          for (const n of nodes) {
+             if (n.id === parseInt(id)) return n;
+             if (n.children) {
+                const found = findNodeById(n.children, id);
+                if (found) return found;
+             }
+          }
+          return null;
+       };
+
+       const findNodeByCode = (nodes, code) => {
+          for (const n of nodes) {
+             if (n.code === code) return n;
+             if (n.children) {
+                const found = findNodeByCode(n.children, code);
+                if (found) return found;
+             }
+          }
+          return null;
+       };
 
        // 1. Resolve by assigned staff
        if (selectedStaffId) {
           const staff = staffOptions.find(s => s.id === parseInt(selectedStaffId) || s.id === selectedStaffId);
           if (staff && staff.point_id) {
-             const findNode = (nodes, id) => {
-                for (const n of nodes) {
-                   if (n.id === id) return n;
-                   if (n.children) {
-                      const found = findNode(n.children, id);
-                      if (found) return found;
-                   }
-                }
-                return null;
-             };
-             targetNode = findNode(hierarchyTree, staff.point_id);
+             targetNode = findNodeById(hierarchyTree, staff.point_id);
           }
        }
 
-       // 2. Resolve by customer's point code if no staff is assigned yet
+       // 2. Resolve by backend default_point_id (derived from last_tx or scope)
+       if (!targetNode && selectedPointId) {
+          targetNode = findNodeById(hierarchyTree, selectedPointId);
+       }
+
+       // 3. Resolve by customer's literal point code
        if (!targetNode && assignTarget.point_code) {
-          const findNodeByCode = (nodes, code) => {
-             for (const n of nodes) {
-                if (n.code === code) return n;
-                if (n.children) {
-                   const found = findNodeByCode(n.children, code);
-                   if (found) return found;
-                }
-             }
-             return null;
-          };
           targetNode = findNodeByCode(hierarchyTree, assignTarget.point_code);
        }
 
@@ -511,7 +519,7 @@ export default function Customers() {
           setAssignSelectedNode(targetNode);
        }
     }
-  }, [showAssignModal, staffOptions, hierarchyTree, selectedStaffId, assignSelectedNode, assignTarget]);
+  }, [showAssignModal, fetchingAssignData, hierarchyTree, assignSelectedNode, assignTarget, selectedStaffId, selectedPointId, staffOptions]);
 
   
   // RF5B: Modal Scroll Hardening
@@ -610,6 +618,7 @@ export default function Customers() {
 
   useEffect(() => {
     if (showAssignModal && assignTarget) {
+      setFetchingAssignData(true);
       const fetchTmpl = async () => {
          try {
             const res = await api.get('/api/actions/templates', { 
@@ -638,7 +647,6 @@ export default function Customers() {
                const defaultWardId = data.default_ward_id || "";
                const defaultPointId = data.default_point_id || "";
                
-               // GĐ BĐ P/X: khoá WARD về ward của họ
                if (data.user_role === 'UNIT_HEAD' && data.user_ward_id) {
                   setSelectedWardId(data.user_ward_id);
                } else {
@@ -649,7 +657,7 @@ export default function Customers() {
                if (defaultPointId) {
                   const pIdInt = parseInt(defaultPointId, 10);
                   const staffInPoint = (data.staff || []).filter(s => s.point_id === pIdInt);
-                  if (staffInPoint.length === 1) {
+                  if (staffInPoint.length === 1 && !selectedStaffId) {
                      setSelectedStaffId(staffInPoint[0].id);
                   }
                }
@@ -662,9 +670,9 @@ export default function Customers() {
            setHierarchyTree(res.data || []);
          } catch(e) {}
        };
-       fetchTmpl();
-       fetchStaff();
-       fetchHierarchy();
+       Promise.all([fetchTmpl(), fetchStaff(), fetchHierarchy()]).then(() => {
+           setFetchingAssignData(false);
+       });
     } else {
       setTemplates([]);
       setSelectedTemplateId("");
@@ -682,6 +690,7 @@ export default function Customers() {
       setShowEscalateForm(false);
       setEscalateReason("");
       setShowZaloDispatch(false);
+      setFetchingAssignData(false);
     }
   }, [showAssignModal, assignTarget]);
 
