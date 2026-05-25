@@ -8,6 +8,17 @@ import { toast } from 'react-toastify';
 import TreeExplorer from '../components/TreeExplorer';
 import CustomerHistoryModal from '../components/CustomerHistoryModal';
 
+const getDescendantIds = (node) => {
+  if (!node) return [];
+  let ids = [node.id];
+  if (node.children && node.children.length > 0) {
+    node.children.forEach(child => {
+      ids = [...ids, ...getDescendantIds(child)];
+    });
+  }
+  return ids;
+};
+
 export default function ActionCenter() {
   const { user } = useAuth();
   const isLeader = user?.role !== 'STAFF';
@@ -447,40 +458,55 @@ function LeaderDashboard({ filters }) {
               </div>
               
               <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
-                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">
-                   {selectedNode ? `Nhân sự tại: ${selectedNode.name}` : 'Tất cả nhân sự trong quyền:'}
-                 </p>
+                 <div className="mb-4">
+                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Đang xem:</p>
+                   {selectedNode ? (
+                     <div className="inline-block bg-blue-50 border border-blue-100 rounded-lg px-3 py-1.5">
+                       <p className="text-xs font-bold text-vnpost-blue uppercase tracking-wider">
+                         {selectedNode.title || selectedNode.name} {selectedNode.key ? `(${selectedNode.key})` : ''}
+                       </p>
+                     </div>
+                   ) : (
+                     <p className="text-xs font-bold text-gray-500 italic">Tất cả nhân sự trong quyền</p>
+                   )}
+                 </div>
                  
                  <div className="space-y-2">
-                    {staffList
-                      .filter(s => !selectedNode || s.point_id === selectedNode.id)
-                      .map(s => (
-                      <button 
-                        key={s.id}
-                        onClick={() => handleQuickAssign(s.id)}
-                        className="w-full flex items-center justify-between p-4 rounded-2xl hover:bg-blue-50 border border-gray-50 hover:border-blue-100 transition-all text-left group shadow-sm hover:shadow-md"
-                      >
-                        <div className="flex items-center gap-3">
-                           <div className="w-10 h-10 rounded-xl bg-gray-50 text-gray-400 flex items-center justify-center font-black group-hover:bg-vnpost-blue group-hover:text-white transition-colors border border-gray-100 group-hover:border-vnpost-blue">
-                             {s.full_name?.charAt(0) || 'U'}
-                           </div>
-                           <div>
-                              <p className="text-sm font-black text-gray-800">{s.full_name}</p>
-                              <div className="flex gap-2 items-center mt-1">
-                                <span className="text-[9px] text-gray-400 font-bold uppercase bg-gray-100 px-1.5 py-0.5 rounded">{s.chuc_vu || 'Nhân viên'}</span>
-                                <span className="text-[9px] text-vnpost-blue font-bold uppercase truncate max-w-[120px]">{s.point_name}</span>
-                              </div>
-                           </div>
-                        </div>
-                        <Send size={16} className="text-gray-300 group-hover:text-vnpost-blue" />
-                      </button>
-                    ))}
-                    {staffList.filter(s => !selectedNode || s.point_id === selectedNode.id).length === 0 && (
-                      <div className="text-center py-10">
-                        <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3"><User size={20} className="text-gray-300"/></div>
-                        <p className="text-gray-400 text-xs italic font-bold">Không có nhân sự nào trong đơn vị này</p>
-                      </div>
-                    )}
+                    {(() => {
+                      const validIds = selectedNode ? getDescendantIds(selectedNode) : [];
+                      const filteredStaff = staffList.filter(s => !selectedNode || validIds.includes(s.point_id));
+                      
+                      if (filteredStaff.length === 0) {
+                        return (
+                          <div className="text-center py-10">
+                            <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3"><User size={20} className="text-gray-300"/></div>
+                            <p className="text-gray-400 text-xs italic font-bold">Không có nhân sự nào trong đơn vị này</p>
+                          </div>
+                        );
+                      }
+                      
+                      return filteredStaff.map(s => (
+                        <button 
+                          key={s.id}
+                          onClick={() => handleQuickAssign(s.id)}
+                          className="w-full flex items-center justify-between p-4 rounded-2xl hover:bg-blue-50 border border-gray-50 hover:border-blue-100 transition-all text-left group shadow-sm hover:shadow-md"
+                        >
+                          <div className="flex items-center gap-3">
+                             <div className="w-10 h-10 rounded-xl bg-gray-50 text-gray-400 flex items-center justify-center font-black group-hover:bg-vnpost-blue group-hover:text-white transition-colors border border-gray-100 group-hover:border-vnpost-blue">
+                               {s.full_name?.charAt(0) || 'U'}
+                             </div>
+                             <div>
+                                <p className="text-sm font-black text-gray-800">{s.full_name}</p>
+                                <div className="flex gap-2 items-center mt-1">
+                                  <span className="text-[9px] text-gray-400 font-bold uppercase bg-gray-100 px-1.5 py-0.5 rounded">{s.chuc_vu || 'Nhân viên'}</span>
+                                  <span className="text-[9px] text-vnpost-blue font-bold uppercase truncate max-w-[120px]">{s.point_name}</span>
+                                </div>
+                             </div>
+                          </div>
+                          <Send size={16} className="text-gray-300 group-hover:text-vnpost-blue" />
+                        </button>
+                      ));
+                    })()}
                  </div>
               </div>
             </div>
@@ -890,7 +916,7 @@ function HierarchyNodeItem({ node, depth = 0, selectedNode, onSelect }) {
              {config.icon}
           </div>
           <div className="flex flex-col min-w-0">
-             <span className={`text-sm font-bold truncate ${isSelected ? 'text-vnpost-blue' : 'text-gray-700'}`}>{node.name}</span>
+             <span className={`text-sm font-bold truncate ${isSelected ? 'text-vnpost-blue' : 'text-gray-700'}`}>{node.title || node.name}</span>
              <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider truncate">{config.label}</span>
           </div>
         </div>

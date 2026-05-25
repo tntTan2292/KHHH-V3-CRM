@@ -319,6 +319,17 @@ const CustomerRow = React.memo(({ c, handleRowClick, handleHistoryModal, handleO
   );
 });
 
+const getDescendantIds = (node) => {
+  if (!node) return [];
+  let ids = [node.id];
+  if (node.children && node.children.length > 0) {
+    node.children.forEach(child => {
+      ids = [...ids, ...getDescendantIds(child)];
+    });
+  }
+  return ids;
+};
+
 // -------------------------------------------------------------
 // Hierarchy Tree Components
 // -------------------------------------------------------------
@@ -361,7 +372,7 @@ function HierarchyNodeItem({ node, depth = 0, selectedNode, onSelect }) {
              {config.icon}
           </div>
           <div className="flex flex-col min-w-0">
-             <span className={`text-sm font-bold truncate ${isSelected ? 'text-vnpost-blue' : 'text-gray-700'}`}>{node.name}</span>
+             <span className={`text-sm font-bold truncate ${isSelected ? 'text-vnpost-blue' : 'text-gray-700'}`}>{node.title || node.name}</span>
              <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider truncate">{config.label}</span>
           </div>
         </div>
@@ -1092,38 +1103,58 @@ export default function Customers() {
                          <Users size={14} className="text-vnpost-blue" />
                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Chọn Nhân sự Phụ trách</p>
                        </div>
+                       
                        <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
+                         <div className="mb-3 px-1">
+                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Đang xem:</p>
+                           {assignSelectedNode ? (
+                             <div className="inline-block bg-blue-50 border border-blue-100 rounded-lg px-2 py-1">
+                               <p className="text-xs font-bold text-vnpost-blue uppercase tracking-wider">
+                                 {assignSelectedNode.title || assignSelectedNode.name} {assignSelectedNode.key ? `(${assignSelectedNode.key})` : ''}
+                               </p>
+                             </div>
+                           ) : (
+                             <p className="text-xs font-bold text-gray-500 italic">Tất cả nhân sự</p>
+                           )}
+                         </div>
+                         
                          <div className="space-y-2">
-                            {staffOptions
-                              .filter(s => !assignSelectedNode || s.point_id === assignSelectedNode.id)
-                              .map(s => (
-                              <button 
-                                key={s.id}
-                                onClick={() => setSelectedStaffId(s.id)}
-                                className={`w-full flex items-center justify-between p-3 rounded-xl transition-all text-left group border ${selectedStaffId === s.id ? 'bg-blue-50 border-blue-200 shadow-sm' : 'hover:bg-gray-50 border-transparent hover:border-gray-200'}`}
-                              >
-                                <div className="flex items-center gap-3">
-                                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black transition-colors ${selectedStaffId === s.id ? 'bg-vnpost-blue text-white' : 'bg-gray-100 text-gray-400'}`}>
-                                     {s.name?.charAt(0) || s.full_name?.charAt(0) || 'U'}
+                            {(() => {
+                               const validIds = assignSelectedNode ? getDescendantIds(assignSelectedNode) : [];
+                               const filteredStaff = staffOptions.filter(s => !assignSelectedNode || validIds.includes(s.point_id));
+                               
+                               if (filteredStaff.length === 0) {
+                                 return (
+                                   <div className="text-center py-6">
+                                     <p className="text-gray-400 text-xs italic font-bold">Không có nhân sự nào trong đơn vị này</p>
                                    </div>
-                                   <div>
-                                      <p className={`text-sm font-black ${selectedStaffId === s.id ? 'text-vnpost-blue' : 'text-gray-800'}`}>{s.name || s.full_name}</p>
-                                      <div className="flex gap-2 items-center mt-0.5">
-                                        <span className="text-[9px] text-gray-400 font-bold uppercase bg-gray-100 px-1 py-0.5 rounded">{s.chuc_vu || 'Nhân viên'}</span>
-                                        <span className="text-[9px] text-vnpost-blue font-bold uppercase truncate max-w-[120px]">{s.point_name}</span>
-                                      </div>
-                                   </div>
-                                </div>
-                                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedStaffId === s.id ? 'border-vnpost-blue bg-vnpost-blue' : 'border-gray-300'}`}>
-                                  {selectedStaffId === s.id && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
-                                </div>
-                              </button>
-                            ))}
-                            {staffOptions.filter(s => !assignSelectedNode || s.point_id === assignSelectedNode.id).length === 0 && (
-                              <div className="text-center py-6">
-                                <p className="text-gray-400 text-xs italic font-bold">Không có nhân sự nào trong đơn vị này</p>
-                              </div>
-                            )}
+                                 );
+                               }
+                               
+                               return filteredStaff.map(s => (
+                                <button 
+                                  key={s.id}
+                                  onClick={() => setSelectedStaffId(s.id)}
+                                  className={`w-full flex items-center justify-between p-3 rounded-xl transition-all text-left group border ${selectedStaffId === s.id ? 'bg-blue-50 border-blue-200 shadow-sm' : 'hover:bg-gray-50 border-transparent hover:border-gray-200'}`}
+                                >
+                                  <div className="flex items-center gap-3">
+                                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black transition-colors ${selectedStaffId === s.id ? 'bg-vnpost-blue text-white' : 'bg-gray-100 text-gray-400'}`}>
+                                       {s.name?.charAt(0) || s.full_name?.charAt(0) || 'U'}
+                                     </div>
+                                     <div>
+                                        <p className={`text-sm font-black ${selectedStaffId === s.id ? 'text-vnpost-blue' : 'text-gray-800'}`}>{s.name || s.full_name}</p>
+                                        <div className="flex gap-2 items-center mt-0.5">
+                                          <span className="text-[9px] text-gray-400 font-bold uppercase bg-gray-100 px-1 py-0.5 rounded">{s.chuc_vu || 'Nhân viên'}</span>
+                                          <span className="text-[9px] text-vnpost-blue font-bold uppercase truncate max-w-[120px]">{s.point_name}</span>
+                                        </div>
+                                     </div>
+                                  </div>
+                                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedStaffId === s.id ? 'border-vnpost-blue bg-vnpost-blue' : 'border-gray-300'}`}>
+                                    {selectedStaffId === s.id && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
+                                  </div>
+                                </button>
+                               ));
+                            })()}
                          </div>
                        </div>
                      </div>
