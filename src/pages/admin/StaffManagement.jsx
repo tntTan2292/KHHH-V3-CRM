@@ -26,6 +26,7 @@ export default function StaffManagement() {
     full_name: '',
     username_app: '',
     point_id: '',
+    scope_node_id: '',
     chuc_vu: '',
     email: '',
     phone: ''
@@ -98,6 +99,7 @@ export default function StaffManagement() {
         full_name: item.full_name,
         username_app: item.username_app || '',
         point_id: item.point_id || '',
+        scope_node_id: item.scope_node_id || '',
         chuc_vu: item.chuc_vu || '',
         email: item.email || '',
         phone: item.phone || ''
@@ -109,6 +111,7 @@ export default function StaffManagement() {
         full_name: '',
         username_app: '',
         point_id: '',
+        scope_node_id: '',
         chuc_vu: '',
         email: '',
         phone: ''
@@ -513,11 +516,19 @@ export default function StaffManagement() {
                   />
                 </div>
                 <div>
-                  <label className="block text-gray-700 text-xs font-bold mb-1">ĐƠN VỊ / VỊ TRÍ</label>
+                  <label className="block text-gray-700 text-xs font-bold mb-1">ĐƠN VỊ TỔ CHỨC (Nơi làm việc)</label>
                   <TreeSelect 
                     value={formData.point_id}
                     onChange={(val) => setFormData({...formData, point_id: val})}
                     placeholder="-- Chọn Đơn Vị --"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 text-xs font-bold mb-1">PHẠM VI QUẢN TRỊ (Dữ liệu được xem)</label>
+                  <TreeSelect 
+                    value={formData.scope_node_id}
+                    onChange={(val) => setFormData({...formData, scope_node_id: val})}
+                    placeholder="-- Trống: Mặc định theo Nơi làm việc --"
                   />
                 </div>
                 <div className="space-y-1.5">

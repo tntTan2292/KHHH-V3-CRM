@@ -23,6 +23,7 @@ class NhanSuCreate(BaseModel):
     full_name: str
     username_app: Optional[str] = None
     point_id: Optional[int] = None
+    scope_node_id: Optional[int] = None
     chuc_vu: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
@@ -31,6 +32,7 @@ class NhanSuUpdate(BaseModel):
     full_name: Optional[str] = None
     username_app: Optional[str] = None
     point_id: Optional[int] = None
+    scope_node_id: Optional[int] = None
     chuc_vu: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
@@ -200,9 +202,10 @@ async def create_staff(
     db.add(new_staff)
     db.flush()
     
-    # Automated Role & Scope Mapping (same logic as Excel import)
+    # Automated Role Mapping (same logic as Excel import)
     role_id = 5 # Default STAFF
-    scope_id = staff_in.point_id
+    # Default scope_node_id to point_id ONLY IF not explicitly provided
+    scope_id = staff_in.scope_node_id if staff_in.scope_node_id is not None else staff_in.point_id
     chuc_vu_upper = str(staff_in.chuc_vu or "").upper()
     
     if any(k in chuc_vu_upper for k in ["LÃNH ĐẠO", "GIÁM ĐỐC", "PHÓ GIÁM ĐỐC", "TRƯỞNG CỤM", "TRƯỞNG ĐẠI DIỆN", "QUẢN LÝ"]):
@@ -212,14 +215,6 @@ async def create_staff(
             role_id = 2
     elif any(k in chuc_vu_upper for k in ["TRƯỞNG BƯU CỤC", "TRƯỞNG CỤC"]):
         role_id = 4
-        
-    if role_id == 2:
-        if "BĐTP" in chuc_vu_upper or "TỈNH" in chuc_vu_upper:
-            scope_id = 1
-        elif "TTKD" in chuc_vu_upper or "KINH DOANH" in chuc_vu_upper:
-            scope_id = 3
-        elif "TTVH" in chuc_vu_upper or "VẬN HÀNH" in chuc_vu_upper:
-            scope_id = 2
             
     # Auto create User account if not exists
     user = db.query(User).filter(User.username == staff_in.hr_id).first()
@@ -252,9 +247,17 @@ async def update_staff(
         raise HTTPException(status_code=404, detail="Không tìm thấy nhân viên")
     
     update_data = staff_in.dict(exclude_unset=True)
+    scope_node_id = update_data.pop("scope_node_id", None)
+    
     for key, value in update_data.items():
         setattr(staff, key, value)
         
+    # Also update User scope_node_id if provided
+    if scope_node_id is not None:
+        user = db.query(User).filter(User.nhan_su_id == staff.id).first()
+        if user:
+            user.scope_node_id = scope_node_id
+
     db.commit()
     db.refresh(staff)
     return staff
@@ -397,10 +400,10 @@ async def import_staff_excel(
                 db.flush()
                 created += 1
             
-            # 3. Automated Role & Scope Mapping (Elite RBAC 3.0)
+            # 3. Automated Role Mapping (Elite RBAC 3.0)
             # Cơ chế Priority Mapping: Ưu tiên gán quyền cao nhất nếu kiêm nhiệm nhiều chức danh
             role_id = 5 # Mặc định là STAFF
-            scope_id = p_id # Mặc định theo mã đơn vị của nhân sự
+            scope_id = p_id # Mặc định theo mã đơn vị của nhân sự (Admin tự sửa sau nếu muốn cấp quyền xem rộng hơn)
             chuc_vu_upper = str(chuc_vu).upper()
             
             # --- Tầng 1: Xác định ROLE (Quyền chức năng) ---
@@ -413,16 +416,6 @@ async def import_staff_excel(
                     role_id = 2 # Cấp Quản lý/Lãnh đạo
             elif any(k in chuc_vu_upper for k in ["TRƯỞNG BƯU CỤC", "TRƯỞNG CỤC"]):
                 role_id = 4 # UNIT_HEAD
-            
-            # --- Tầng 2: Xác định SCOPE (Phạm vi dữ liệu) ---
-            # Đặc cách cho Lãnh đạo cấp cao để "Khóa bộ lọc" theo trục
-            if role_id == 2:
-                if "BĐTP" in chuc_vu_upper or "TỈNH" in chuc_vu_upper:
-                    scope_id = 1 # Toàn tỉnh (ROOT)
-                elif "TTKD" in chuc_vu_upper or "KINH DOANH" in chuc_vu_upper:
-                    scope_id = 3 # Trục TTKD
-                elif "TTVH" in chuc_vu_upper or "VẬN HÀNH" in chuc_vu_upper:
-                    scope_id = 2 # Trục TTVH
             
             # Sync User
             user = db.query(User).filter(User.username == ma_ns).first()
