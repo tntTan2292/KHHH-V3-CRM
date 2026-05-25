@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { saveNavigationContext, getNavigationContext, syncUrlWithContext, getContextFromUrl, getDateContext, saveDateContext } from '../utils/navigationMemory';
 import api from '../utils/api';
-import { Search, Filter, Download, Download as DownloadX, TableProperties, AlertCircle, X, ChevronRight, ChevronLeft, Calendar, TrendingUp, ArrowUpDown, ChevronUp, ChevronDown, RefreshCw, CloudDownload, CheckCircle2, History, Star, Users, Briefcase, Zap, LogOut, UserPlus, UserMinus, Award, Activity, MapPin, ArrowUpRight, Save, AlertTriangle, Phone, FileText, Edit, Check, UploadCloud, Send, Settings, MessageCircle, Sparkles, Info } from 'lucide-react';
+import { Search, Filter, Download, Download as DownloadX, TableProperties, AlertCircle, X, ChevronRight, ChevronLeft, Calendar, TrendingUp, ArrowUpDown, ChevronUp, ChevronDown, RefreshCw, CloudDownload, CheckCircle2, History, Star, Users, Briefcase, Zap, LogOut, UserPlus, UserMinus, Award, Activity, MapPin, ArrowUpRight, Save, AlertTriangle, Phone, FileText, Edit, Check, UploadCloud, Send, Settings, MessageCircle, Sparkles, Info, Network } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import TreeExplorer from '../components/TreeExplorer';
 import CustomerHistoryModal from '../components/CustomerHistoryModal';
@@ -319,6 +319,42 @@ const CustomerRow = React.memo(({ c, handleRowClick, handleHistoryModal, handleO
   );
 });
 
+// -------------------------------------------------------------
+// Hierarchy Tree Components
+// -------------------------------------------------------------
+function HierarchyNodeItem({ node, depth = 0, selectedNode, onSelect }) {
+  const [expanded, setExpanded] = useState(depth < 1);
+  const hasChildren = node.children && node.children.length > 0;
+  const isSelected = selectedNode?.id === node.id;
+
+  return (
+    <div className="w-full">
+      <div 
+        className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-all ${isSelected ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'hover:bg-gray-100 text-gray-700 border border-transparent'}`}
+        style={{ paddingLeft: `${depth * 16 + 8}px` }}
+      >
+        <div 
+          onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+          className="w-4 h-4 flex items-center justify-center hover:bg-gray-200 rounded transition-colors"
+        >
+          {hasChildren ? (expanded ? <ChevronDown size={12}/> : <ChevronRight size={12}/>) : <span className="w-3.5" />}
+        </div>
+        <div className="flex-1 flex items-center gap-1.5" onClick={() => onSelect(node)}>
+          <span className="text-xs font-bold truncate">{node.name}</span>
+          <span className="text-[8px] px-1 bg-white rounded border border-gray-200 text-gray-400 uppercase font-black">{node.type}</span>
+        </div>
+      </div>
+      {expanded && hasChildren && (
+        <div className="mt-0.5 space-y-0.5">
+          {node.children.map(child => (
+            <HierarchyNodeItem key={child.id} node={child} depth={depth + 1} selectedNode={selectedNode} onSelect={onSelect} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Customers() {
   const [customers, setCustomers] = useState([]);
   const [total, setTotal] = useState(0);
@@ -372,6 +408,8 @@ export default function Customers() {
   const [selectedPointId, setSelectedPointId] = useState("");
   const [wardOptions, setWardOptions] = useState([]);
   const [selectedWardId, setSelectedWardId] = useState("");
+  const [hierarchyTree, setHierarchyTree] = useState([]);
+  const [assignSelectedNode, setAssignSelectedNode] = useState(null);
   
   // RF5B: Modal Scroll Hardening
   useEffect(() => {
@@ -515,8 +553,15 @@ export default function Customers() {
             }
          } catch(e) {}
       };
-      fetchTmpl();
-      fetchStaff();
+      const fetchHierarchy = async () => {
+         try {
+           const res = await api.get('/api/nodes/tree');
+           setHierarchyTree(res.data || []);
+         } catch(e) {}
+       };
+       fetchTmpl();
+       fetchStaff();
+       fetchHierarchy();
     } else {
       setTemplates([]);
       setSelectedTemplateId("");
@@ -527,6 +572,8 @@ export default function Customers() {
       setSelectedPointId("");
       setWardOptions([]);
       setSelectedWardId("");
+      setHierarchyTree([]);
+      setAssignSelectedNode(null);
       setApiUserRole("");
       setApiUserWardId(null);
       setShowEscalateForm(false);
@@ -949,7 +996,7 @@ export default function Customers() {
       {/* Assign Staff Modal */}
       {showAssignModal && (
         <div className="fixed inset-0 bg-[#003E7E]/40 backdrop-blur-sm z-[100] flex items-center justify-center p-2">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[95vh] animate-scale-up border-4 border-white">
+          <div className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[95vh] animate-scale-up border-4 border-white">
             {!showZaloDispatch ? (
               <>
                 <div className={`bg-gradient-to-r ${getTaskFlow(assignTarget).color} p-6 text-white flex justify-between items-center rounded-t-2xl flex-shrink-0 transition-colors duration-500`}>
@@ -994,81 +1041,70 @@ export default function Customers() {
                     )}
                   </div>
 
-                  {wardOptions.length > 0 && (
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Bưu điện Phường/Xã</label>
-                      <select 
-                        className="w-full px-4 py-4 rounded-xl border-2 border-gray-100 focus:border-vnpost-blue outline-none transition-all text-sm font-bold bg-white"
-                        value={selectedWardId}
-                        disabled={apiUserRole === 'UNIT_HEAD'}
-                        onChange={(e) => {
-                          const wId = e.target.value;
-                          setSelectedWardId(wId);
-                          setSelectedPointId("");
-                          setSelectedStaffId("");
-                        }}
-                      >
-                        <option value="">-- Tất cả BĐ P/X trong Cụm --</option>
-                        {wardOptions.map(w => (
-                          <option key={w.id} value={w.id}>{w.name} ({w.code})</option>
-                        ))}
-                      </select>
-                      {apiUserRole === 'UNIT_HEAD' && (
-                        <p className="text-[9px] text-amber-600 font-bold ml-1">🔒 Khoá theo phạm vi quản lý của bạn</p>
-                      )}
-                    </div>
-                  )}
+                  {/* Flexible Assignment: Hierarchy & Staff */}
+                  <div className="flex flex-col md:flex-row gap-4 h-[350px]">
+                     {/* Hierarchy Tree */}
+                     <div className="w-full md:w-1/2 bg-white border-2 border-gray-100 rounded-2xl flex flex-col overflow-hidden">
+                       <div className="p-3 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
+                         <Network size={14} className="text-vnpost-blue" />
+                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Cây Điều Phối</p>
+                       </div>
+                       <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
+                         <div className="space-y-1">
+                            <button 
+                               onClick={() => setAssignSelectedNode(null)}
+                               className={`w-full text-left px-3 py-2 rounded-xl font-bold text-xs transition-colors ${!assignSelectedNode ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50 text-gray-600'}`}
+                            >
+                              Tất cả nhân sự
+                            </button>
+                            {hierarchyTree.map(node => (
+                               <HierarchyNodeItem key={node.id} node={node} selectedNode={assignSelectedNode} onSelect={setAssignSelectedNode} />
+                            ))}
+                         </div>
+                       </div>
+                     </div>
 
-                  {pointOptions.length > 0 && (
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Chọn Bưu cục</label>
-                      <select 
-                        className="w-full px-4 py-4 rounded-xl border-2 border-gray-100 focus:border-vnpost-blue outline-none transition-all text-sm font-bold bg-white"
-                        value={selectedPointId}
-                        onChange={(e) => {
-                          const pId = e.target.value;
-                          setSelectedPointId(pId);
-                          setSelectedStaffId("");
-                          if (pId) {
-                            const pIdInt = parseInt(pId, 10);
-                            const staffInPoint = staffOptions.filter(s => s.point_id === pIdInt);
-                            if (staffInPoint.length === 1) {
-                              setSelectedStaffId(staffInPoint[0].id);
-                            }
-                          }
-                        }}
-                      >
-                        <option value="">-- Tất cả Bưu cục --</option>
-                        {pointOptions
-                          .filter(p => !selectedWardId || p.ward_id === parseInt(selectedWardId, 10))
-                          .map(p => (
-                          <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Chọn nhân sự phụ trách</label>
-                    <select 
-                      className="w-full px-4 py-4 rounded-xl border-2 border-gray-100 focus:border-vnpost-blue outline-none transition-all text-sm font-bold bg-white"
-                      value={selectedStaffId}
-                      onChange={(e) => setSelectedStaffId(e.target.value)}
-                    >
-                      <option value="">-- Chọn nhân viên --</option>
-                      {staffOptions
-                        .filter(s => {
-                          if (selectedPointId) return s.point_id === parseInt(selectedPointId, 10);
-                          if (selectedWardId) {
-                            const wardPointIds = pointOptions.filter(p => p.ward_id === parseInt(selectedWardId, 10)).map(p => p.id);
-                            return wardPointIds.includes(s.point_id);
-                          }
-                          return true;
-                        })
-                        .map(s => (
-                        <option key={s.id} value={s.id}>{s.name} ({s.hr_id})</option>
-                      ))}
-                    </select>
+                     {/* Staff List */}
+                     <div className="w-full md:w-1/2 bg-white border-2 border-gray-100 rounded-2xl flex flex-col overflow-hidden">
+                       <div className="p-3 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
+                         <Users size={14} className="text-vnpost-blue" />
+                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Chọn Nhân sự Phụ trách</p>
+                       </div>
+                       <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
+                         <div className="space-y-2">
+                            {staffOptions
+                              .filter(s => !assignSelectedNode || s.point_id === assignSelectedNode.id)
+                              .map(s => (
+                              <button 
+                                key={s.id}
+                                onClick={() => setSelectedStaffId(s.id)}
+                                className={`w-full flex items-center justify-between p-3 rounded-xl transition-all text-left group border ${selectedStaffId === s.id ? 'bg-blue-50 border-blue-200 shadow-sm' : 'hover:bg-gray-50 border-transparent hover:border-gray-200'}`}
+                              >
+                                <div className="flex items-center gap-3">
+                                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black transition-colors ${selectedStaffId === s.id ? 'bg-vnpost-blue text-white' : 'bg-gray-100 text-gray-400'}`}>
+                                     {s.name?.charAt(0) || s.full_name?.charAt(0) || 'U'}
+                                   </div>
+                                   <div>
+                                      <p className={`text-sm font-black ${selectedStaffId === s.id ? 'text-vnpost-blue' : 'text-gray-800'}`}>{s.name || s.full_name}</p>
+                                      <div className="flex gap-2 items-center mt-0.5">
+                                        <span className="text-[9px] text-gray-400 font-bold uppercase bg-gray-100 px-1 py-0.5 rounded">{s.chuc_vu || 'Nhân viên'}</span>
+                                        <span className="text-[9px] text-vnpost-blue font-bold uppercase truncate max-w-[120px]">{s.point_name}</span>
+                                      </div>
+                                   </div>
+                                </div>
+                                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedStaffId === s.id ? 'border-vnpost-blue bg-vnpost-blue' : 'border-gray-300'}`}>
+                                  {selectedStaffId === s.id && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
+                                </div>
+                              </button>
+                            ))}
+                            {staffOptions.filter(s => !assignSelectedNode || s.point_id === assignSelectedNode.id).length === 0 && (
+                              <div className="text-center py-6">
+                                <p className="text-gray-400 text-xs italic font-bold">Không có nhân sự nào trong đơn vị này</p>
+                              </div>
+                            )}
+                         </div>
+                       </div>
+                     </div>
                   </div>
                   
                   <div className="space-y-2">
