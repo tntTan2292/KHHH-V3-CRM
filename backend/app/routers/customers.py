@@ -272,10 +272,9 @@ async def get_staff_options(
                     if dp.id not in [p["id"] for p in points_data]:
                         points_data.append({"id": dp.id, "name": dp.name, "code": dp.code, "ward_id": None})
                 
-                # Lọc staff theo cluster
+                # Lọc staff theo cluster (Đã loại bỏ để đồng bộ hoàn toàn với Tree Scope)
                 cluster_descendants = HierarchyService.get_descendant_ids_by_id(db, cluster_node.id)
-                if cluster_descendants:
-                    query = query.filter(NhanSu.point_id.in_(cluster_descendants))
+                # Chú ý: Không filter `query` ở đây nữa, giữ nguyên toàn bộ staff để Tree có thể hoạt động.
                     
     # --- CROSS-CENTER SCOPE LOCK ---
     user_scope_ids = ScopingService.get_effective_scope_ids(db, current_user)
@@ -295,9 +294,8 @@ async def get_staff_options(
             scope_nodes = db.query(HierarchyNode).filter(HierarchyNode.id.in_(user_scope_ids)).all()
             wards_data = [{"id": n.id, "name": n.name, "code": n.code} for n in scope_nodes if n.type == 'WARD']
             points_data = [{"id": n.id, "name": n.name, "code": n.code, "ward_id": n.parent_id} for n in scope_nodes if n.type == 'POINT']
-            query = db.query(NhanSu) # Reset query to avoid cluster restriction
             
-        # Strictly filter staff query by user scope
+        # Strictly filter staff query by user scope (THIS IS THE SINGLE SOURCE OF TRUTH)
         query = query.filter(NhanSu.point_id.in_(user_scope_ids))
         
     staff = query.all()
