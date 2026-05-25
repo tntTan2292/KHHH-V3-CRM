@@ -329,8 +329,8 @@ function HierarchyNodeItem({ node, depth = 0, selectedNode, onSelect }) {
 
   const getTypeConfig = (type) => {
     switch (type) {
-      case 'ROOT': return { icon: <Globe size={14} className="text-blue-600" />, label: 'TỔNG CÔNG TY' };
-      case 'BRANCH': return { icon: <Map size={14} className="text-indigo-600" />, label: 'BĐ TỈNH/TP' };
+      case 'ROOT': return { icon: <Globe size={14} className="text-blue-600" />, label: 'BĐ THÀNH PHỐ' };
+      case 'BRANCH': return { icon: <Map size={14} className="text-indigo-600" />, label: 'CHI NHÁNH' };
       case 'CENTER': return { icon: <Building2 size={14} className="text-violet-600" />, label: 'TRUNG TÂM' };
       case 'CLUSTER': return { icon: <Boxes size={14} className="text-orange-600" />, label: 'CỤM/KHU VỰC' };
       case 'UNIT': return { icon: <Building size={14} className="text-teal-600" />, label: 'BĐ HUYỆN/PHƯỜNG' };
