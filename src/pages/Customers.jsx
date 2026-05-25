@@ -327,25 +327,47 @@ function HierarchyNodeItem({ node, depth = 0, selectedNode, onSelect }) {
   const hasChildren = node.children && node.children.length > 0;
   const isSelected = selectedNode?.id === node.id;
 
+  const getTypeConfig = (type) => {
+    switch (type) {
+      case 'ROOT': return { icon: <Globe size={14} className="text-blue-600" />, label: 'TỔNG CÔNG TY' };
+      case 'BRANCH': return { icon: <Map size={14} className="text-indigo-600" />, label: 'BĐ TỈNH/TP' };
+      case 'CENTER': return { icon: <Building2 size={14} className="text-violet-600" />, label: 'TRUNG TÂM' };
+      case 'CLUSTER': return { icon: <Boxes size={14} className="text-orange-600" />, label: 'CỤM/KHU VỰC' };
+      case 'UNIT': return { icon: <Building size={14} className="text-teal-600" />, label: 'BĐ HUYỆN/PHƯỜNG' };
+      case 'POINT': return { icon: <Store size={14} className="text-emerald-600" />, label: 'BƯU CỤC' };
+      default: return { icon: <Network size={14} className="text-gray-400" />, label: 'ĐƠN VỊ' };
+    }
+  };
+
+  const config = getTypeConfig(node.type);
+
   return (
-    <div className="w-full">
+    <div className="w-full relative">
+      {depth > 0 && (
+        <div className="absolute top-0 bottom-0 border-l-2 border-gray-100 z-0" style={{ left: `${(depth - 1) * 24 + 19}px` }}></div>
+      )}
       <div 
-        className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-all ${isSelected ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'hover:bg-gray-100 text-gray-700 border border-transparent'}`}
-        style={{ paddingLeft: `${depth * 16 + 8}px` }}
+        className={`flex items-center gap-2 px-2 py-2 rounded-xl cursor-pointer transition-all relative z-10 ${isSelected ? 'bg-blue-50 border border-blue-200 shadow-sm' : 'hover:bg-gray-50 border border-transparent'}`}
+        style={{ paddingLeft: `${depth * 24 + 8}px` }}
       >
         <div 
           onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
-          className="w-4 h-4 flex items-center justify-center hover:bg-gray-200 rounded transition-colors"
+          className="w-6 h-6 flex items-center justify-center hover:bg-gray-200 rounded-md transition-colors shrink-0"
         >
-          {hasChildren ? (expanded ? <ChevronDown size={12}/> : <ChevronRight size={12}/>) : <span className="w-3.5" />}
+          {hasChildren ? (expanded ? <ChevronDown size={14} className="text-gray-500"/> : <ChevronRight size={14} className="text-gray-400"/>) : <span className="w-3.5" />}
         </div>
-        <div className="flex-1 flex items-center gap-1.5" onClick={() => onSelect(node)}>
-          <span className="text-xs font-bold truncate">{node.name}</span>
-          <span className="text-[8px] px-1 bg-white rounded border border-gray-200 text-gray-400 uppercase font-black">{node.type}</span>
+        <div className="flex-1 flex items-center gap-2.5 overflow-hidden" onClick={() => onSelect(node)}>
+          <div className="p-1.5 bg-white rounded-lg shadow-sm border border-gray-100 flex items-center justify-center shrink-0">
+             {config.icon}
+          </div>
+          <div className="flex flex-col min-w-0">
+             <span className={`text-sm font-bold truncate ${isSelected ? 'text-vnpost-blue' : 'text-gray-700'}`}>{node.name}</span>
+             <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider truncate">{config.label}</span>
+          </div>
         </div>
       </div>
       {expanded && hasChildren && (
-        <div className="mt-0.5 space-y-0.5">
+        <div className="mt-0.5 space-y-0.5 relative z-0">
           {node.children.map(child => (
             <HierarchyNodeItem key={child.id} node={child} depth={depth + 1} selectedNode={selectedNode} onSelect={onSelect} />
           ))}
