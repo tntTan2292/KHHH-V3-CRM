@@ -245,6 +245,58 @@ function LeaderDashboard({ filters }) {
            </div>
         </div>
       </div>
+      
+      {/* SLA Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+         {/* Overdue Staff Table */}
+         <div className="card p-6 bg-white border border-gray-100 shadow-xl shadow-gray-200/40 rounded-3xl">
+            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Top Nhân sự Quá Hạn</h3>
+            {summary?.staff_stats?.length > 0 ? (
+               <table className="w-full text-left text-sm">
+                 <thead>
+                   <tr className="text-[10px] text-gray-400 uppercase border-b border-gray-50">
+                     <th className="pb-2">Nhân sự</th>
+                     <th className="pb-2">Đang giữ</th>
+                     <th className="pb-2">Quá hạn</th>
+                     <th className="pb-2">Tỷ lệ</th>
+                   </tr>
+                 </thead>
+                 <tbody className="divide-y divide-gray-50">
+                   {summary.staff_stats.map(s => (
+                     <tr key={s.staff_name}>
+                       <td className="py-2 font-bold text-gray-700">{s.staff_name}</td>
+                       <td className="py-2">{s.pending}</td>
+                       <td className="py-2 text-red-500 font-bold">{s.overdue}</td>
+                       <td className="py-2 font-semibold">{s.rate}%</td>
+                     </tr>
+                   ))}
+                 </tbody>
+               </table>
+            ) : (
+               <div className="text-center text-gray-400 text-xs italic py-4">Tất cả nhân sự đều đúng tiến độ</div>
+            )}
+         </div>
+
+         <div className="flex flex-col gap-4">
+           <div className="card p-6 bg-red-50/50 border border-red-100 shadow-xl shadow-red-200/20 rounded-3xl flex items-center gap-4">
+              <div className="p-3 bg-red-100 text-red-600 rounded-xl"><AlertCircle size={24} /></div>
+              <div>
+                <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">Tổng Task Quá Hạn</p>
+                <h3 className="text-2xl font-black text-red-600">{summary?.overdue_count || 0}</h3>
+              </div>
+           </div>
+           <div className="flex gap-4 h-full">
+             <div className="card p-6 flex-1 bg-orange-50/50 border border-orange-100 rounded-3xl flex flex-col justify-center gap-2">
+                <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest">Sắp Quá Hạn (&lt; 24h)</p>
+                <h3 className="text-xl font-black text-orange-600 flex items-center gap-2"><Clock size={16}/> {summary?.upcoming_overdue_count || 0}</h3>
+             </div>
+             <div className="card p-6 flex-1 bg-yellow-50/50 border border-yellow-100 rounded-3xl flex flex-col justify-center gap-2">
+                <p className="text-[10px] font-black text-yellow-500 uppercase tracking-widest">Task Treo Lâu (&gt; 2 ngày)</p>
+                <h3 className="text-xl font-black text-yellow-600 flex items-center gap-2"><History size={16}/> {summary?.stale_task_count || 0}</h3>
+             </div>
+           </div>
+         </div>
+      </div>
 
       {/* List of reports */}
       <div className="card p-6 bg-white border border-gray-100 shadow-2xl shadow-gray-200/50 rounded-3xl">
@@ -315,7 +367,12 @@ function LeaderDashboard({ filters }) {
                     <div className="text-[9px] text-gray-400 mt-1 max-w-[200px] truncate" title={task.noi_dung}>{task.noi_dung}</div>
                   </td>
                   <td className="p-4">
-                    <StatusBadge status={task.trang_thai} />
+                    <div className="flex flex-col gap-2 items-start">
+                      <StatusBadge status={task.trang_thai} />
+                      {task.overdue_at && <span className="bg-red-50 text-red-600 text-[9px] font-black uppercase px-2 py-0.5 rounded shadow-sm border border-red-200 tracking-wider">⚠️ QUÁ HẠN</span>}
+                      {task.upcoming_sla && !task.overdue_at && <span className="bg-orange-50 text-orange-600 text-[9px] font-black uppercase px-2 py-0.5 rounded shadow-sm border border-orange-200 tracking-wider">SẮP QUÁ HẠN</span>}
+                      {task.stale_days >= 2 && <span className="bg-yellow-50 text-yellow-600 text-[9px] font-black uppercase px-2 py-0.5 rounded shadow-sm border border-yellow-200 tracking-wider">TREO {task.stale_days} NGÀY</span>}
+                    </div>
                   </td>
                   <td className="p-4 max-w-[250px]">
                     {task.bao_cao_ket_qua ? (

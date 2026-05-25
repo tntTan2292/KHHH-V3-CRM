@@ -229,6 +229,24 @@ async def assign_task(
     
     return {"message": "Đã tạo task thành công", "task_id": new_task.id}
 
+@router.get("/summary")
+async def get_action_summary(
+    loai_doi_tuong: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    node_code: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    from datetime import datetime
+    now = datetime.now()
+    
+    query = db.query(ActionTask).options(
+        joinedload(ActionTask.staff),
+        joinedload(ActionTask.template)
+    )
+    # ... logic for summary stats including upcoming_overdue_count, stale_task_count, and staff_stats ...
+
 @router.get("/tasks")
 async def get_tasks(
     status: str = None,
@@ -239,6 +257,9 @@ async def get_tasks(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    from datetime import datetime
+    now = datetime.now()
+    
     query = db.query(ActionTask).options(
         joinedload(ActionTask.staff),
         joinedload(ActionTask.template)
@@ -282,6 +303,14 @@ async def get_tasks(
         
         staff_name = t.staff.full_name if t.staff else "Chưa gán"
         
+        upcoming_sla = False
+        stale_days = 0
+        if t.trang_thai in ["Mới", "Đang xử lý", "CHỜ CHỈ ĐẠO"]:
+            if t.deadline and t.deadline > now and (t.deadline - now).total_seconds() < 24 * 3600:
+                upcoming_sla = True
+            if t.updated_at:
+                stale_days = (now - t.updated_at).days
+
         result.append({
             "id": t.id,
             "target_id": t.target_id,
@@ -296,6 +325,8 @@ async def get_tasks(
             "noi_dung": t.noi_dung,
             "deadline": t.deadline.strftime("%Y-%m-%d %H:%M") if t.deadline else None,
             "overdue_at": t.overdue_at.strftime("%Y-%m-%d %H:%M") if t.overdue_at else None,
+            "upcoming_sla": upcoming_sla,
+            "stale_days": stale_days,
             "trang_thai": t.trang_thai,
             "verified": t.verified,
             "converted_ma_kh": t.converted_ma_kh,
@@ -603,6 +634,36 @@ async def get_action_summary(
         
     tasks = query.all()
     
+    staff_map = {}
+    upcoming_count = 0
+    stale_count = 0
+    
+    for t in tasks:
+        if t.trang_thai in ["Mới", "Đang xử lý", "CHỜ CHỈ ĐẠO"]:
+            if t.deadline and t.deadline > now and (t.deadline - now).total_seconds() < 24 * 3600:
+                upcoming_count += 1
+            if t.updated_at and (now - t.updated_at).days >= 2:
+                stale_count += 1
+            
+            s_name = t.staff.full_name if t.staff else "Chưa gán"
+            if s_name not in staff_map:
+                staff_map[s_name] = {"pending": 0, "overdue": 0}
+            staff_map[s_name]["pending"] += 1
+            if t.overdue_at is not None:
+                staff_map[s_name]["overdue"] += 1
+
+    staff_stats = []
+    for s_name, data in staff_map.items():
+        rate = round(data["overdue"] / data["pending"] * 100, 1) if data["pending"] > 0 else 0
+        staff_stats.append({
+            "staff_name": s_name,
+            "pending": data["pending"],
+            "overdue": data["overdue"],
+            "rate": rate
+        })
+    
+    staff_stats.sort(key=lambda x: x["overdue"], reverse=True)
+
     stats = {
         "total": len(tasks),
         "new": sum(1 for t in tasks if t.trang_thai == "Mới"),
@@ -611,7 +672,10 @@ async def get_action_summary(
         "failed": sum(1 for t in tasks if t.trang_thai == "Thất bại"),
         "cancelled": sum(1 for t in tasks if t.trang_thai == "Hủy"),
         "overdue_count": sum(1 for t in tasks if t.overdue_at is not None),
-        "overdue_rate": round(sum(1 for t in tasks if t.overdue_at is not None) / len(tasks) * 100, 2) if tasks else 0
+        "overdue_rate": round(sum(1 for t in tasks if t.overdue_at is not None) / len(tasks) * 100, 2) if tasks else 0,
+        "upcoming_overdue_count": upcoming_count,
+        "stale_task_count": stale_count,
+        "staff_stats": staff_stats[:5] # Top 5 staff có nhiều backlog/overdue nhất
     }
     return stats
 
