@@ -16,6 +16,38 @@ class SLAService:
         'CANCELLED': []
     }
 
+    # GOVERNANCE: SLA Task Semantics
+    ACTIVE_TASK_STATUSES = ["Mới", "Đang xử lý", "CHỜ CHỈ ĐẠO"]
+
+    @staticmethod
+    def is_task_active(task) -> bool:
+        return task.trang_thai in SLAService.ACTIVE_TASK_STATUSES
+
+    @staticmethod
+    def is_overdue(task, now: datetime = None) -> bool:
+        if not SLAService.is_task_active(task):
+            return False
+        if task.overdue_at is not None:
+            return True
+        now = now or datetime.now()
+        return task.deadline is not None and task.deadline < now
+
+    @staticmethod
+    def is_upcoming_sla(task, hours: int = 24, now: datetime = None) -> bool:
+        if not SLAService.is_task_active(task) or task.overdue_at is not None:
+            return False
+        now = now or datetime.now()
+        if not task.deadline or task.deadline <= now:
+            return False
+        return (task.deadline - now).total_seconds() < hours * 3600
+
+    @staticmethod
+    def calculate_stale_days(task, now: datetime = None) -> int:
+        if not SLAService.is_task_active(task) or not task.updated_at:
+            return 0
+        now = now or datetime.now()
+        return (now - task.updated_at).days
+
     @staticmethod
     def validate_transition(current_status, new_status):
         """

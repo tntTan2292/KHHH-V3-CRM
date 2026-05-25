@@ -12,6 +12,7 @@ from ..routers.auth import get_current_user
 from ..services.potential_service import PotentialService
 from ..services.scoping_service import ScopingService
 from ..services.log_service import LogService
+from ..services.sla_service import SLAService
 from fastapi import Request
 
 router = APIRouter(prefix="/api/actions", tags=["actions"])
@@ -303,13 +304,8 @@ async def get_tasks(
         
         staff_name = t.staff.full_name if t.staff else "Chưa gán"
         
-        upcoming_sla = False
-        stale_days = 0
-        if t.trang_thai in ["Mới", "Đang xử lý", "CHỜ CHỈ ĐẠO"]:
-            if t.deadline and t.deadline > now and (t.deadline - now).total_seconds() < 24 * 3600:
-                upcoming_sla = True
-            if t.updated_at:
-                stale_days = (now - t.updated_at).days
+        upcoming_sla = SLAService.is_upcoming_sla(t, hours=24, now=now)
+        stale_days = SLAService.calculate_stale_days(t, now=now)
 
         result.append({
             "id": t.id,
@@ -639,17 +635,19 @@ async def get_action_summary(
     stale_count = 0
     
     for t in tasks:
-        if t.trang_thai in ["Mới", "Đang xử lý", "CHỜ CHỈ ĐẠO"]:
-            if t.deadline and t.deadline > now and (t.deadline - now).total_seconds() < 24 * 3600:
+        if SLAService.is_task_active(t):
+            if SLAService.is_upcoming_sla(t, hours=24, now=now):
                 upcoming_count += 1
-            if t.updated_at and (now - t.updated_at).days >= 2:
+            if SLAService.calculate_stale_days(t, now=now) >= 2:
                 stale_count += 1
             
             s_name = t.staff.full_name if t.staff else "Chưa gán"
             if s_name not in staff_map:
                 staff_map[s_name] = {"pending": 0, "overdue": 0}
             staff_map[s_name]["pending"] += 1
-            if t.overdue_at is not None:
+            
+            # Use SLAService to check overdue instead of just checking overdue_at
+            if SLAService.is_overdue(t, now=now):
                 staff_map[s_name]["overdue"] += 1
 
     staff_stats = []

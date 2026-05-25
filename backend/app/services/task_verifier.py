@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_, func
 from datetime import datetime
 from ..models import ActionTask, Transaction, Customer
+from .sla_service import SLAService
 import logging
 
 logger = logging.getLogger(__name__)
@@ -85,7 +86,7 @@ class TaskVerifierService:
         """
         # Tìm các Task đang mở (chưa hoàn thành/thất bại/hủy) và đã lố deadline
         stale_tasks = db.query(ActionTask).filter(
-            ActionTask.trang_thai.in_(["Mới", "Đang xử lý", "CHỜ CHỈ ĐẠO"]),
+            ActionTask.trang_thai.in_(SLAService.ACTIVE_TASK_STATUSES),
             ActionTask.deadline < datetime.now(),
             ActionTask.overdue_at.is_(None)
         ).all()
