@@ -96,7 +96,7 @@ async def get_users_staff(
     current_user: User = Depends(get_current_user)
 ):
     """Lấy danh sách nhân sự trong phạm vi (Dùng cho giao việc, không cần quyền quản lý)"""
-    query = db.query(NhanSu)
+    query = db.query(NhanSu).options(joinedload(NhanSu.point))
     query = ScopingService.apply_scope_filter(query, NhanSu, db, current_user)
     staff = query.all()
     
@@ -105,7 +105,9 @@ async def get_users_staff(
         "hr_id": s.hr_id,
         "full_name": s.full_name,
         "chuc_vu": s.chuc_vu,
-        "username_app": s.username_app
+        "username_app": s.username_app,
+        "point_id": s.point_id,
+        "point_name": s.point.name if s.point else "Chưa gán"
     } for s in staff]
 
 @users_router.get("/by-node", response_model=List[dict])

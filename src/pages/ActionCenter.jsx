@@ -135,10 +135,23 @@ function LeaderDashboard({ filters }) {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [historyTarget, setHistoryTarget] = useState(null);
 
+  const [hierarchyTree, setHierarchyTree] = useState([]);
+  const [selectedNode, setSelectedNode] = useState(null);
+
   useEffect(() => {
     fetchData();
     fetchStaff();
+    fetchHierarchy();
   }, [filters]);
+
+  const fetchHierarchy = async () => {
+    try {
+      const res = await api.get('/api/nodes/tree');
+      setHierarchyTree(res.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const fetchStaff = async () => {
     try {
@@ -390,44 +403,86 @@ function LeaderDashboard({ filters }) {
         </div>
       </div>
 
-      {/* Quick Assign Modal */}
+      {/* Quick Assign Modal - Flexible Assignment UI */}
       {assigningTask && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-               <h3 className="font-black text-gray-800 flex items-center gap-2 uppercase tracking-widest text-xs">
-                 <User size={16} className="text-vnpost-blue" /> Điều phối nhân sự
-               </h3>
-               <button onClick={() => setAssigningTask(null)} className="p-2 hover:bg-gray-200 rounded-full"><X size={20}/></button>
-            </div>
-            <div className="p-6">
-               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Chọn nhân viên để giao khách hàng:</p>
-               <div className="font-bold text-vnpost-blue mb-4 text-sm bg-blue-50 p-3 rounded-xl border border-blue-100">
-                  {assigningTask.ten_kh_display}
+          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-4xl overflow-hidden animate-in zoom-in-95 flex flex-col md:flex-row h-[80vh]">
+            
+            {/* Hierarchy Tree Panel */}
+            <div className="w-full md:w-1/2 bg-gray-50 border-r border-gray-100 flex flex-col">
+               <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
+                 <h3 className="font-black text-gray-800 flex items-center gap-2 uppercase tracking-widest text-xs">
+                   <Network size={16} className="text-vnpost-blue" /> Cây Điều Phối
+                 </h3>
                </div>
-               
-               <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                  {staffList.length === 0 ? (
-                    <p className="text-center py-10 text-gray-400 text-xs italic font-bold">Không tìm thấy danh sách nhân viên</p>
-                  ) : staffList.map(s => (
+               <div className="p-4 overflow-y-auto custom-scrollbar flex-1">
+                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Lọc theo Đơn vị:</p>
+                 
+                 <div className="space-y-1">
                     <button 
-                      key={s.id}
-                      onClick={() => handleQuickAssign(s.id)}
-                      className="w-full flex items-center justify-between p-4 rounded-2xl hover:bg-blue-50 border border-transparent hover:border-blue-100 transition-all text-left group"
+                       onClick={() => setSelectedNode(null)}
+                       className={`w-full text-left px-4 py-3 rounded-xl font-bold text-sm transition-colors ${!selectedNode ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600'}`}
                     >
-                      <div className="flex items-center gap-3">
-                         <div className="w-8 h-8 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center font-black group-hover:bg-vnpost-blue group-hover:text-white transition-colors">
-                           {s.full_name?.charAt(0) || 'U'}
-                         </div>
-                         <div>
-                            <p className="text-sm font-black text-gray-800">{s.full_name}</p>
-                            <p className="text-[10px] text-gray-400 font-bold uppercase">{s.point_name}</p>
-                         </div>
-                      </div>
-                      <Send size={16} className="text-gray-300 group-hover:text-vnpost-blue" />
+                      Tất cả nhân sự
                     </button>
-                  ))}
+                    {hierarchyTree.map(node => (
+                       <HierarchyNodeItem key={node.id} node={node} selectedNode={selectedNode} onSelect={setSelectedNode} />
+                    ))}
+                 </div>
                </div>
+            </div>
+
+            {/* Staff List Panel */}
+            <div className="w-full md:w-1/2 flex flex-col bg-white">
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                 <div>
+                   <h3 className="font-black text-gray-800 flex items-center gap-2 uppercase tracking-widest text-xs mb-1">
+                     <User size={16} className="text-vnpost-blue" /> Chọn Nhân sự
+                   </h3>
+                   <div className="text-[10px] text-gray-400 font-bold uppercase truncate max-w-[200px]" title={assigningTask.ten_kh_display}>
+                     Giao: {assigningTask.ten_kh_display}
+                   </div>
+                 </div>
+                 <button onClick={() => { setAssigningTask(null); setSelectedNode(null); }} className="p-2 hover:bg-gray-100 rounded-full"><X size={20}/></button>
+              </div>
+              
+              <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
+                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">
+                   {selectedNode ? `Nhân sự tại: ${selectedNode.name}` : 'Tất cả nhân sự trong quyền:'}
+                 </p>
+                 
+                 <div className="space-y-2">
+                    {staffList
+                      .filter(s => !selectedNode || s.point_id === selectedNode.id)
+                      .map(s => (
+                      <button 
+                        key={s.id}
+                        onClick={() => handleQuickAssign(s.id)}
+                        className="w-full flex items-center justify-between p-4 rounded-2xl hover:bg-blue-50 border border-gray-50 hover:border-blue-100 transition-all text-left group shadow-sm hover:shadow-md"
+                      >
+                        <div className="flex items-center gap-3">
+                           <div className="w-10 h-10 rounded-xl bg-gray-50 text-gray-400 flex items-center justify-center font-black group-hover:bg-vnpost-blue group-hover:text-white transition-colors border border-gray-100 group-hover:border-vnpost-blue">
+                             {s.full_name?.charAt(0) || 'U'}
+                           </div>
+                           <div>
+                              <p className="text-sm font-black text-gray-800">{s.full_name}</p>
+                              <div className="flex gap-2 items-center mt-1">
+                                <span className="text-[9px] text-gray-400 font-bold uppercase bg-gray-100 px-1.5 py-0.5 rounded">{s.chuc_vu || 'Nhân viên'}</span>
+                                <span className="text-[9px] text-vnpost-blue font-bold uppercase truncate max-w-[120px]">{s.point_name}</span>
+                              </div>
+                           </div>
+                        </div>
+                        <Send size={16} className="text-gray-300 group-hover:text-vnpost-blue" />
+                      </button>
+                    ))}
+                    {staffList.filter(s => !selectedNode || s.point_id === selectedNode.id).length === 0 && (
+                      <div className="text-center py-10">
+                        <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3"><User size={20} className="text-gray-300"/></div>
+                        <p className="text-gray-400 text-xs italic font-bold">Không có nhân sự nào trong đơn vị này</p>
+                      </div>
+                    )}
+                 </div>
+              </div>
             </div>
           </div>
         </div>
@@ -748,30 +803,6 @@ function TaskTimeline({ taskId, currentStatus }) {
            Dấu chân Timeline
          </h4>
          <span className="text-[9px] font-black bg-white px-2 py-1 rounded-lg text-gray-400 shadow-sm border border-gray-100">{timeline.length} Events</span>
-      </div>
-
-      <div className="space-y-0">
-        {timeline.map((event, idx) => {
-          let dotColor = "bg-blue-500";
-          let dotBg = "bg-blue-50 border-white text-blue-500";
-          if (event.event_type === "TASK_OVERDUE") {
-            dotColor = "bg-red-500";
-            dotBg = "bg-red-50 border-white text-red-500";
-          } else if (event.event_type === "TASK_COMPLETED") {
-            dotColor = "bg-emerald-500";
-            dotBg = "bg-emerald-50 border-white text-emerald-500";
-          } else if (event.event_type === "TASK_ESCALATED") {
-            dotColor = "bg-orange-500";
-            dotBg = "bg-orange-50 border-white text-orange-500";
-          }
-
-          return (
-            <div key={idx} className="relative flex gap-4 pb-6 group">
-               {idx !== timeline.length - 1 && <div className="absolute left-3 top-8 bottom-[-8px] w-0.5 bg-gradient-to-b from-gray-200 to-gray-100 group-hover:from-blue-200 transition-colors"></div>}
-               <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 z-10 shadow-sm ${dotBg}`}>
-                  <div className={`w-2 h-2 rounded-full ${dotColor}`}></div>
-               </div>
-               <div className="flex-1 pb-0">
                   <div className="flex items-start justify-between gap-2 mb-1">
                      <span className="font-black text-gray-800 text-[11px] uppercase tracking-wider">{event.event_type.replace(/_/g, ' ')}</span>
                      <span className="text-[9px] text-gray-400 font-bold whitespace-nowrap bg-white px-1.5 py-0.5 rounded shadow-sm border border-gray-50">
