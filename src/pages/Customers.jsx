@@ -330,6 +330,20 @@ const getDescendantIds = (node) => {
   return ids;
 };
 
+const getDescendantKeys = (node) => {
+  if (!node) return [];
+  let keys = [];
+  if (node.key || node.code) {
+    keys.push(String(node.key || node.code).trim());
+  }
+  if (node.children && node.children.length > 0) {
+    node.children.forEach(child => {
+      keys = [...keys, ...getDescendantKeys(child)];
+    });
+  }
+  return keys;
+};
+
 // -------------------------------------------------------------
 // Hierarchy Tree Components
 // -------------------------------------------------------------
@@ -1207,7 +1221,13 @@ export default function Customers() {
                          <div className="space-y-2">
                             {(() => {
                                const validIds = assignSelectedNode ? getDescendantIds(assignSelectedNode) : [];
-                               const filteredStaff = staffOptions.filter(s => !assignSelectedNode || validIds.includes(s.point_id));
+                               const validKeys = assignSelectedNode ? getDescendantKeys(assignSelectedNode) : [];
+                               const filteredStaff = staffOptions.filter(s => {
+                                  if (!assignSelectedNode) return true;
+                                  const matchById = validIds.includes(s.point_id);
+                                  const matchByCode = s.ma_bc && validKeys.includes(String(s.ma_bc).trim());
+                                  return matchById || matchByCode;
+                               });
                                
                                if (filteredStaff.length === 0) {
                                  return (

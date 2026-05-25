@@ -107,7 +107,8 @@ async def get_users_staff(
         "chuc_vu": s.chuc_vu,
         "username_app": s.username_app,
         "point_id": s.point_id,
-        "point_name": s.point.name if s.point else "Chưa gán"
+        "point_name": s.point.name if s.point else "Chưa gán",
+        "ma_bc": s.ma_bc
     } for s in staff]
 
 @users_router.get("/by-node", response_model=List[dict])

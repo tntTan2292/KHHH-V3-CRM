@@ -19,6 +19,20 @@ const getDescendantIds = (node) => {
   return ids;
 };
 
+const getDescendantKeys = (node) => {
+  if (!node) return [];
+  let keys = [];
+  if (node.key || node.code) {
+    keys.push(String(node.key || node.code).trim());
+  }
+  if (node.children && node.children.length > 0) {
+    node.children.forEach(child => {
+      keys = [...keys, ...getDescendantKeys(child)];
+    });
+  }
+  return keys;
+};
+
 export default function ActionCenter() {
   const { user } = useAuth();
   const isLeader = user?.role !== 'STAFF';
@@ -501,7 +515,13 @@ function LeaderDashboard({ filters }) {
                  <div className="space-y-2">
                     {(() => {
                       const validIds = selectedNode ? getDescendantIds(selectedNode) : [];
-                      const filteredStaff = staffList.filter(s => !selectedNode || validIds.includes(s.point_id));
+                      const validKeys = selectedNode ? getDescendantKeys(selectedNode) : [];
+                      const filteredStaff = staffList.filter(s => {
+                         if (!selectedNode) return true;
+                         const matchById = validIds.includes(s.point_id);
+                         const matchByCode = s.ma_bc && validKeys.includes(String(s.ma_bc).trim());
+                         return matchById || matchByCode;
+                      });
                       
                       if (filteredStaff.length === 0) {
                         return (
