@@ -472,6 +472,9 @@ export default function Customers() {
   // Auto-select node when opening assign modal
   useEffect(() => {
     if (showAssignModal && staffOptions.length > 0 && hierarchyTree.length > 0 && !assignSelectedNode && assignTarget) {
+       let targetNode = null;
+
+       // 1. Resolve by assigned staff
        if (selectedStaffId) {
           const staff = staffOptions.find(s => s.id === parseInt(selectedStaffId) || s.id === selectedStaffId);
           if (staff && staff.point_id) {
@@ -485,11 +488,27 @@ export default function Customers() {
                 }
                 return null;
              };
-             const targetNode = findNode(hierarchyTree, staff.point_id);
-             if (targetNode) {
-                setAssignSelectedNode(targetNode);
-             }
+             targetNode = findNode(hierarchyTree, staff.point_id);
           }
+       }
+
+       // 2. Resolve by customer's point code if no staff is assigned yet
+       if (!targetNode && assignTarget.point_code) {
+          const findNodeByCode = (nodes, code) => {
+             for (const n of nodes) {
+                if (n.code === code) return n;
+                if (n.children) {
+                   const found = findNodeByCode(n.children, code);
+                   if (found) return found;
+                }
+             }
+             return null;
+          };
+          targetNode = findNodeByCode(hierarchyTree, assignTarget.point_code);
+       }
+
+       if (targetNode) {
+          setAssignSelectedNode(targetNode);
        }
     }
   }, [showAssignModal, staffOptions, hierarchyTree, selectedStaffId, assignSelectedNode, assignTarget]);
@@ -962,8 +981,15 @@ export default function Customers() {
   };
 
   const handleOpenAssignModal = (c) => {
-    setAssignTarget({ ma_kh: c.ma_crm_cms, ten_kh: c.ten_kh, nhom_kh: c.status_type, rfm_segment: c.rfm_segment });
+    setAssignTarget({ 
+      ma_kh: c.ma_crm_cms, 
+      ten_kh: c.ten_kh, 
+      nhom_kh: c.status_type, 
+      rfm_segment: c.rfm_segment,
+      point_code: c.point_code
+    });
     setSelectedStaffId(c.assigned_staff_id || "");
+    setAssignSelectedNode(null);
     setShowAssignModal(true);
   };
 
