@@ -140,8 +140,35 @@ function LeaderDashboard({ filters }) {
   const [loading, setLoading] = useState(true);
   const [staffList, setStaffList] = useState([]);
   const [assigningTask, setAssigningTask] = useState(null);
+  const [selectedNode, setSelectedNode] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
   
+  // Auto-select node when assigning a task
+  useEffect(() => {
+    if (assigningTask && staffList.length > 0 && treeData.length > 0 && !selectedNode) {
+       const staffId = assigningTask.staff_id || assigningTask.assigned_staff_id;
+       if (staffId) {
+          const staff = staffList.find(s => s.id === parseInt(staffId) || s.id === staffId);
+          if (staff && staff.point_id) {
+             const findNode = (nodes, id) => {
+                for (const n of nodes) {
+                   if (n.id === id) return n;
+                   if (n.children) {
+                      const found = findNode(n.children, id);
+                      if (found) return found;
+                   }
+                }
+                return null;
+             };
+             const targetNode = findNode(treeData, staff.point_id);
+             if (targetNode) {
+                setSelectedNode(targetNode);
+             }
+          }
+       }
+    }
+  }, [assigningTask, staffList, treeData, selectedNode]);
+
   // History Tracker
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [historyTarget, setHistoryTarget] = useState(null);
@@ -881,23 +908,49 @@ function HierarchyNodeItem({ node, depth = 0, selectedNode, onSelect }) {
   const [expanded, setExpanded] = useState(depth < 1);
   const hasChildren = node.children && node.children.length > 0;
   const isSelected = selectedNode?.id === node.id;
+  
+  const nodeRef = useRef(null);
+
+  // Auto expand if selectedNode is a descendant
+  useEffect(() => {
+    if (selectedNode) {
+      const hasSelectedChild = (n, targetId) => {
+         if (!n.children) return false;
+         for (const child of n.children) {
+            if (child.id === targetId) return true;
+            if (hasSelectedChild(child, targetId)) return true;
+         }
+         return false;
+      };
+      if (hasSelectedChild(node, selectedNode.id)) {
+         setExpanded(true);
+      }
+    }
+  }, [selectedNode, node]);
+
+  // Auto scroll into view if selected
+  useEffect(() => {
+    if (isSelected && nodeRef.current) {
+      nodeRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [isSelected]);
 
   const getTypeConfig = (type) => {
     switch (type) {
-      case 'ROOT': return { icon: <Globe size={14} className="text-blue-600" />, label: 'BĐ THÀNH PHỐ' };
-      case 'BRANCH': return { icon: <Map size={14} className="text-indigo-600" />, label: 'CHI NHÁNH' };
-      case 'CENTER': return { icon: <Building2 size={14} className="text-violet-600" />, label: 'TRUNG TÂM' };
-      case 'CLUSTER': return { icon: <Boxes size={14} className="text-orange-600" />, label: 'CỤM/KHU VỰC' };
-      case 'UNIT': return { icon: <Building size={14} className="text-teal-600" />, label: 'BĐ HUYỆN/PHƯỜNG' };
-      case 'POINT': return { icon: <Store size={14} className="text-emerald-600" />, label: 'BƯU CỤC' };
-      default: return { icon: <Network size={14} className="text-gray-400" />, label: 'ĐƠN VỊ' };
+      case 'ROOT': return { icon: <Globe size={14} className="text-blue-600" /> };
+      case 'BRANCH': return { icon: <Map size={14} className="text-indigo-600" /> };
+      case 'CENTER': return { icon: <Building2 size={14} className="text-violet-600" /> };
+      case 'CLUSTER': return { icon: <Boxes size={14} className="text-orange-600" /> };
+      case 'UNIT': return { icon: <Building size={14} className="text-teal-600" /> };
+      case 'POINT': return { icon: <Store size={14} className="text-emerald-600" /> };
+      default: return { icon: <Network size={14} className="text-gray-400" /> };
     }
   };
 
   const config = getTypeConfig(node.type);
 
   return (
-    <div className="w-full relative">
+    <div className="w-full relative" ref={nodeRef}>
       {depth > 0 && (
         <div className="absolute top-0 bottom-0 border-l-2 border-gray-100 z-0" style={{ left: `${(depth - 1) * 24 + 19}px` }}></div>
       )}
@@ -917,7 +970,6 @@ function HierarchyNodeItem({ node, depth = 0, selectedNode, onSelect }) {
           </div>
           <div className="flex flex-col min-w-0">
              <span className={`text-sm font-bold truncate ${isSelected ? 'text-vnpost-blue' : 'text-gray-700'}`}>{node.title || node.name}</span>
-             <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider truncate">{config.label}</span>
           </div>
         </div>
       </div>
