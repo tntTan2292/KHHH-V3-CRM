@@ -136,17 +136,24 @@ export default function StaffManagement() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Clean up empty strings for optional integers to avoid FastAPI 422 validation error
+      const payload = { ...formData };
+      if (payload.point_id === '') payload.point_id = null;
+      if (payload.scope_node_id === '') payload.scope_node_id = null;
+
       if (editingStaff) {
-        await api.patch(`/api/admin/personnel/staff/${editingStaff.id}`, formData);
+        await api.patch(`/api/admin/personnel/staff/${editingStaff.id}`, payload);
         toast.success("Cập nhật thành công");
       } else {
-        await api.post(`/api/admin/personnel/staff`, formData);
+        await api.post(`/api/admin/personnel/staff`, payload);
         toast.success("Thêm nhân sự mới thành công");
       }
       setShowModal(false);
       fetchData();
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Đã có lỗi xảy ra");
+      const detail = err.response?.data?.detail;
+      const errorMsg = Array.isArray(detail) ? detail.map(d => d.msg).join(', ') : detail;
+      toast.error(errorMsg || "Đã có lỗi xảy ra");
     }
   };
 

@@ -259,8 +259,8 @@ async def update_staff(
     has_scope_update = "scope_node_id" in update_data
     scope_node_id = update_data.pop("scope_node_id", None)
     
-    for key, value in update_data.items():
-        setattr(staff, key, value)
+    if update_data:
+        db.query(NhanSu).filter(NhanSu.id == staff_id).update(update_data)
         
     # Also update User scope_node_id if provided
     if has_scope_update:
