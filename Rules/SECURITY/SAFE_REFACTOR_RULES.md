@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> **System Protection Rules (Not Permission Security Rules)**
+
 # 🛡️ Safe Refactor Rules
 
 Để đảm bảo hệ thống vận hành ổn định, AI và Developer phải tuân thủ các quy tắc sau khi refactor:
