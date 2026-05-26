@@ -432,7 +432,9 @@ const PotentialCustomers_V3 = () => {
                     .filter(s => {
                       if (selectedPointId) return s.point_id === parseInt(selectedPointId, 10);
                       if (selectedWardId) {
-                        return s.point_id === parseInt(selectedWardId, 10);
+                        const wardIdInt = parseInt(selectedWardId, 10);
+                        const validIds = [wardIdInt, ...pointOptions.filter(p => p.ward_id === wardIdInt).map(p => p.id)];
+                        return validIds.includes(s.point_id);
                       }
                       return false; // Prevent fallback bypass
                     })

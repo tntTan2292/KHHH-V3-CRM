@@ -514,7 +514,14 @@ function LeaderDashboard({ filters }) {
                  
                  <div className="space-y-2">
                     {(() => {
-                      const validIds = selectedNode ? [selectedNode.id] : [];
+                      let validIds = [];
+                      if (selectedNode) {
+                        if (selectedNode.type === 'BRANCH' || selectedNode.type === 'POINT') {
+                          validIds = [selectedNode.id];
+                        } else {
+                          validIds = getDescendantIds(selectedNode);
+                        }
+                      }
                       const validKeys = selectedNode?.key ? [String(selectedNode.key).trim()] : [];
                       const filteredStaff = staffList.filter(s => {
                          if (!selectedNode) return false; // Prevent fallback bypass

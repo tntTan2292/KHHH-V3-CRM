@@ -1220,7 +1220,14 @@ export default function Customers() {
                          
                          <div className="space-y-2">
                             {(() => {
-                               const validIds = assignSelectedNode ? [assignSelectedNode.id] : [];
+                               let validIds = [];
+                               if (assignSelectedNode) {
+                                 if (assignSelectedNode.type === 'BRANCH' || assignSelectedNode.type === 'POINT') {
+                                   validIds = [assignSelectedNode.id];
+                                 } else {
+                                   validIds = getDescendantIds(assignSelectedNode);
+                                 }
+                               }
                                const validKeys = assignSelectedNode?.key ? [String(assignSelectedNode.key).trim()] : [];
                                const filteredStaff = staffOptions.filter(s => {
                                   if (!assignSelectedNode) return false; // Prevent fallback bypass
