@@ -430,11 +430,21 @@ const PotentialCustomers_V3 = () => {
                   <option value="">-- Chọn nhân viên --</option>
                   {staffOptions
                     .filter(s => {
-                      if (selectedPointId) return s.point_id === parseInt(selectedPointId, 10);
+                      if (selectedPointId) {
+                         const pointIdInt = parseInt(selectedPointId, 10);
+                         const matchById = s.point_id === pointIdInt;
+                         const selectedPointCode = pointOptions.find(p => p.id === pointIdInt)?.code;
+                         const matchByCode = selectedPointCode && s.ma_bc && String(s.ma_bc).trim() === String(selectedPointCode).trim();
+                         return matchById || matchByCode;
+                      }
                       if (selectedWardId) {
                         const wardIdInt = parseInt(selectedWardId, 10);
-                        const validIds = [wardIdInt, ...pointOptions.filter(p => p.ward_id === wardIdInt).map(p => p.id)];
-                        return validIds.includes(s.point_id);
+                        const descendantPoints = pointOptions.filter(p => p.ward_id === wardIdInt);
+                        const validIds = [wardIdInt, ...descendantPoints.map(p => p.id)];
+                        const validCodes = descendantPoints.map(p => String(p.code).trim());
+                        const matchById = validIds.includes(s.point_id);
+                        const matchByCode = s.ma_bc && validCodes.includes(String(s.ma_bc).trim());
+                        return matchById || matchByCode;
                       }
                       return false; // Prevent fallback bypass
                     })
