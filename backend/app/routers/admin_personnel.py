@@ -27,6 +27,7 @@ class NhanSuCreate(BaseModel):
     chuc_vu: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
+    status: Optional[str] = "ACTIVE"
 
 class NhanSuUpdate(BaseModel):
     full_name: Optional[str] = None
@@ -36,6 +37,7 @@ class NhanSuUpdate(BaseModel):
     chuc_vu: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
+    status: Optional[str] = None
 
 def serialize_staff_row(db: Session, staff: NhanSu):
     user = db.query(User).filter(User.nhan_su_id == staff.id).first()
@@ -54,6 +56,7 @@ def serialize_staff_row(db: Session, staff: NhanSu):
         "scope_node_name": scope_node.name if scope_node else "Mặc định (Toàn quyền hoặc theo Đơn vị)",
         "email": staff.email,
         "phone": staff.phone,
+        "status": staff.status,
         "is_active": user.is_active if user else False,
         "has_account": True if user else False,
         "user_id": user.id if user else None
@@ -102,7 +105,7 @@ async def get_users_staff(
     current_user: User = Depends(get_current_user)
 ):
     """Lấy danh sách nhân sự trong phạm vi (Dùng cho giao việc, không cần quyền quản lý)"""
-    query = db.query(NhanSu).options(joinedload(NhanSu.point))
+    query = db.query(NhanSu).filter(NhanSu.status == 'ACTIVE').options(joinedload(NhanSu.point))
     query = ScopingService.apply_scope_filter(query, NhanSu, db, current_user)
     staff = query.all()
     
@@ -157,6 +160,7 @@ async def get_users_by_node(
             "point_name": s.point.name if s.point else "Chưa gán",
             "email": s.email,
             "phone": s.phone,
+            "status": s.status,
             "is_active": u.is_active if u else False,
             "has_account": True if u else False,
             "username": u.username if u else None,
@@ -201,7 +205,8 @@ async def create_staff(
         point_id=staff_in.point_id,
         chuc_vu=staff_in.chuc_vu,
         email=staff_in.email,
-        phone=staff_in.phone
+        phone=staff_in.phone,
+        status=staff_in.status
     )
     db.add(new_staff)
     db.flush()
@@ -338,7 +343,8 @@ async def export_staff_excel(
                 "Ma_BC": s.ma_bc or "",
                 "Ma_Hierarchy": node.code if node else "",
                 "Ten_Don_Vi": node.name if node else "Chưa gán",
-                "Trang_Thai": 1 if is_active else 0
+                "Trang_Thai": 1 if is_active else 0,
+                "Staff_Status": s.status
             })
         
         df = pd.DataFrame(data)
@@ -392,6 +398,7 @@ async def import_staff_excel(
                 staff.chuc_vu = chuc_vu
                 staff.username_app = username_app
                 staff.point_id = p_id
+                staff.status = "ACTIVE" if bool(trang_thai) else "INACTIVE"
                 updated += 1
             else:
                 staff = NhanSu(
@@ -399,7 +406,8 @@ async def import_staff_excel(
                     full_name=ho_ten,
                     chuc_vu=chuc_vu,
                     username_app=username_app,
-                    point_id=p_id
+                    point_id=p_id,
+                    status="ACTIVE" if bool(trang_thai) else "INACTIVE"
                 )
                 db.add(staff)
                 db.flush()

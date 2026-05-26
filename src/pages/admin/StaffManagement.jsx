@@ -29,7 +29,8 @@ export default function StaffManagement() {
     scope_node_id: '',
     chuc_vu: '',
     email: '',
-    phone: ''
+    phone: '',
+    status: 'ACTIVE'
   });
 
   useEffect(() => {
@@ -102,7 +103,8 @@ export default function StaffManagement() {
         scope_node_id: item.scope_node_id || '',
         chuc_vu: item.chuc_vu || '',
         email: item.email || '',
-        phone: item.phone || ''
+        phone: item.phone || '',
+        status: item.status || 'ACTIVE'
       });
     } else {
       setEditingStaff(null);
@@ -114,7 +116,8 @@ export default function StaffManagement() {
         scope_node_id: '',
         chuc_vu: '',
         email: '',
-        phone: ''
+        phone: '',
+        status: 'ACTIVE'
       });
     }
     
@@ -394,7 +397,19 @@ export default function StaffManagement() {
                         </div>
                         <div className="flex flex-col">
                           <span className="font-bold text-gray-800">{s.full_name}</span>
-                          <span className="text-[10px] font-black text-vnpost-blue uppercase tracking-tighter shadow-sm w-fit">{s.hr_id}</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] font-black text-vnpost-blue uppercase tracking-tighter shadow-sm w-fit">{s.hr_id}</span>
+                            {s.status === 'INACTIVE' && (
+                              <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded text-[9px] font-bold uppercase tracking-wider border border-gray-200">
+                                Đã nghỉ / Ẩn
+                              </span>
+                            )}
+                            {s.status === 'ACTIVE' && (
+                              <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-600 rounded text-[9px] font-bold uppercase tracking-wider border border-emerald-100">
+                                Đang làm việc
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -557,7 +572,7 @@ export default function StaffManagement() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Chức vụ</label>
                   <input 
@@ -585,6 +600,17 @@ export default function StaffManagement() {
                     type="tel" 
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-4 focus:ring-vnpost-blue/5 outline-none transition-all text-sm font-bold"
                   />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Trạng thái nhân sự</label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({...formData, status: e.target.value})}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-4 focus:ring-vnpost-blue/5 outline-none transition-all text-sm font-bold bg-white"
+                  >
+                    <option value="ACTIVE">Đang làm việc (ACTIVE)</option>
+                    <option value="INACTIVE">Đã nghỉ / Ẩn (INACTIVE)</option>
+                  </select>
                 </div>
               </div>
 

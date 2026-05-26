@@ -82,6 +82,7 @@ class NhanSu(Base):
     chuc_vu = Column(String(100))
     email = Column(String(200))
     phone = Column(String(20))
+    status = Column(String(50), default="ACTIVE") # ACTIVE, INACTIVE
     
     # Quan hệ với trạm/bưu cục
     point_id = Column(Integer, ForeignKey("hierarchy_nodes.id"), nullable=True)
