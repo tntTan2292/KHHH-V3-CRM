@@ -149,7 +149,13 @@ export default function StaffManagement() {
         toast.success("Thêm nhân sự mới thành công");
       }
       setShowModal(false);
-      fetchData();
+      
+      // Fix Bug 1: Giữ context filter
+      if (selectedNode) {
+        fetchStaffByNode();
+      } else {
+        fetchData();
+      }
     } catch (err) {
       const detail = err.response?.data?.detail;
       const errorMsg = Array.isArray(detail) ? detail.map(d => d.msg).join(', ') : detail;

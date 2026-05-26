@@ -10,10 +10,10 @@ import sys
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 sys.path.append(PROJECT_ROOT)
 
-from backend.app.database import SessionLocal
-from backend.app.services.task_service import TaskService
-from backend.app.services.sla_service import SLAService
-from backend.app.models import SystemEvent, ActionTaskTemplate, Customer, ActionTask, SLATracker
+from app.database import SessionLocal
+from app.services.task_service import TaskService
+from app.services.sla_service import SLAService
+from app.models import SystemEvent, ActionTaskTemplate, Customer, ActionTask, SLATracker
 
 logger = logging.getLogger(__name__)
 

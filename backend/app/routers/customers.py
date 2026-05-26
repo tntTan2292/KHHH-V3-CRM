@@ -187,7 +187,7 @@ async def get_staff_options(
     from ..services.hierarchy_service import HierarchyService
     from ..services.scoping_service import ScopingService
     
-    query = db.query(NhanSu)
+    query = db.query(NhanSu).filter(NhanSu.status == 'ACTIVE')
     target_point_id = None
     
     if target_id and type == 'HienHuu':

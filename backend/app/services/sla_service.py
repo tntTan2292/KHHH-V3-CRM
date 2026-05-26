@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timedelta
-from backend.app.database import SessionLocal
-from backend.app.models import SLAPolicy, SLATracker, SLASnapshot
+from app.database import SessionLocal
+from app.models import SLAPolicy, SLATracker, SLASnapshot
 import json
 
 logger = logging.getLogger(__name__)

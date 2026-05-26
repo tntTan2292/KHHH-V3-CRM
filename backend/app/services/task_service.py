@@ -1,9 +1,9 @@
 import logging
 import json
 from datetime import datetime
-from backend.app.database import SessionLocal
-from backend.app.models import ActionTask, TaskStateLog, ActionTaskTemplate, User, NhanSu
-from backend.app.services.sla_service import SLAService
+from app.database import SessionLocal
+from app.models import ActionTask, TaskStateLog, ActionTaskTemplate, User, NhanSu
+from app.services.sla_service import SLAService
 
 logger = logging.getLogger(__name__)
 
