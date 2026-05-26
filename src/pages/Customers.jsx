@@ -1220,8 +1220,8 @@ export default function Customers() {
                          
                          <div className="space-y-2">
                             {(() => {
-                               const validIds = assignSelectedNode ? getDescendantIds(assignSelectedNode) : [];
-                               const validKeys = assignSelectedNode ? getDescendantKeys(assignSelectedNode) : [];
+                               const validIds = assignSelectedNode ? [assignSelectedNode.id] : [];
+                               const validKeys = assignSelectedNode?.key ? [String(assignSelectedNode.key).trim()] : [];
                                const filteredStaff = staffOptions.filter(s => {
                                   if (!assignSelectedNode) return true;
                                   const matchById = validIds.includes(s.point_id);

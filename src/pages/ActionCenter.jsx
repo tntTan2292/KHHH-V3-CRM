@@ -514,8 +514,8 @@ function LeaderDashboard({ filters }) {
                  
                  <div className="space-y-2">
                     {(() => {
-                      const validIds = selectedNode ? getDescendantIds(selectedNode) : [];
-                      const validKeys = selectedNode ? getDescendantKeys(selectedNode) : [];
+                      const validIds = selectedNode ? [selectedNode.id] : [];
+                      const validKeys = selectedNode?.key ? [String(selectedNode.key).trim()] : [];
                       const filteredStaff = staffList.filter(s => {
                          if (!selectedNode) return true;
                          const matchById = validIds.includes(s.point_id);
