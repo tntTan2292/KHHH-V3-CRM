@@ -63,7 +63,7 @@ Hệ thống được vận hành bởi 4 "Động cơ" cốt lõi:
 ## 📜 4. HIẾN PHÁP & QUY TẮC PHÁT TRIỂN
 Tuyệt đối không vi phạm các nguyên tắc quản trị trong các tài liệu sau (nằm trong thư mục `Rules/`):
 - `Rules/CORE_SYSTEM/HIEN_PHAP_CRM_3.0.md` (Quy tắc tối thượng)
-- `Rules/ASSIGNMENT/ASSIGNMENT_CONSTITUTION.md` (FROZEN)
+- `Rules/ASSIGNMENT/ASSIGNMENT_CONSTITUTION.md` (FROZEN - **Single Source of Truth cho toàn bộ Assignment System**)
 - `Rules/SECURITY/SAFE_REFACTOR_RULES.md`
 
 ---

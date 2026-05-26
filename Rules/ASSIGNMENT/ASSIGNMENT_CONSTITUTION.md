@@ -96,13 +96,34 @@
 
 ---
 
-## 9. MISSING BUSINESS RULES (CẦN ĐỊNH NGHĨA CHO PHASE GIAO VIỆC)
+## 9. FINAL BUSINESS RULES (GIAO VIỆC PHASE)
 
-1. **Reassignment (Giao lại):** Khi nhân sự nghỉ việc, ai được quyền gán lại toàn bộ khách hàng của họ? Lãnh đạo trực tiếp hay Admin?
-2. **Task Recall (Thu hồi):** Lãnh đạo giao việc xong, nhân viên đã bắt đầu làm, Lãnh đạo có được rút lại không?
-3. **Completed Task Lock:** Công việc đã "Done" có được phép chuyển assign (sửa lịch sử) không?
-4. **Multi-assignee:** Một khách hàng (Customer) có thể có nhiều Sale phụ trách cùng lúc không? (Primary vs Secondary Assignee).
-5. **Transferred Staff Handling:** Khi 1 nhân sự chuyển từ Bưu cục A sang Bưu cục B (Đổi `point_id`), KPI cũ thuộc về A hay B? Khách hàng đang theo người đó có tự động chạy sang B không?
+1. **Completed Task:**
+   - Task hoàn thành => khóa chỉnh sửa.
+   - Chỉ cấp trên mới được Recall/Reopen.
+2. **Recall Rule:**
+   - Chỉ lãnh đạo cấp cao hơn người nhận mới được Recall.
+3. **Escalation Rule:**
+   - Escalate lên cấp trên trực tiếp.
+   - Không escalate ngang cấp.
+4. **Transfer Cross-Center Rule:**
+   - Không được giao trực tiếp người thực hiện khác Trung tâm.
+   - Chỉ được chuyển giao cho Lãnh đạo Trung tâm đích.
+   - Trung tâm nhận sẽ tự phân giao nội bộ.
+5. **Reassignment Rule:**
+   - Người xử lý nghỉ việc / vắng mặt => Lãnh đạo trực tiếp tự xử lý phân giao lại.
+   - Hệ thống KHÔNG auto detect nghỉ việc.
+6. **Staff Status Rule:**
+   - Bổ sung trạng thái nhân sự: `ACTIVE`, `INACTIVE`.
+   - `INACTIVE` không xuất hiện trong dropdown giao việc. Nhưng vẫn giữ toàn bộ lịch sử task cũ.
+7. **Bulk Assignment Rule:**
+   - Cho phép Import Excel giao việc số lượng lớn.
+   - Chỉ cấp lãnh đạo phù hợp mới được dùng.
+8. **Assignment Permission Rule:**
+   - Có thể giao xuống cấp dưới trực thuộc.
+   - Không được chỉ định trực tiếp nhân sự khác trung tâm.
+9. **Constitution Priority Rule:**
+   - Nếu: Audit Report, AI_CONTEXT, Decision Logs, Patch Notes mâu thuẫn với Constitution => Constitution luôn thắng.
 
 ---
 
