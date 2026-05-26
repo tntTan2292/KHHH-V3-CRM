@@ -117,6 +117,15 @@ export default function StaffManagement() {
         phone: ''
       });
     }
+    
+    console.log(`[StaffManagement RUNTIME TRACE] handleOpenModal:`, {
+      editingStaff: item,
+      point_id: item ? item.point_id : null,
+      scope_node_id: item ? item.scope_node_id : null,
+      point_name: item ? item.point_name : null,
+      scope_node_name: item ? item.scope_node_name : null
+    });
+    
     setUnitSearch('');
     setShowModal(true);
   };
@@ -521,6 +530,7 @@ export default function StaffManagement() {
                     value={formData.point_id}
                     onChange={(val) => setFormData({...formData, point_id: val})}
                     placeholder="-- Chọn Đơn Vị --"
+                    initialLabel={editingStaff?.point_name || ''}
                   />
                 </div>
                 <div>
@@ -529,6 +539,7 @@ export default function StaffManagement() {
                     value={formData.scope_node_id}
                     onChange={(val) => setFormData({...formData, scope_node_id: val})}
                     placeholder="-- Trống: Mặc định theo Nơi làm việc --"
+                    initialLabel={editingStaff?.scope_node_name || ''}
                   />
                 </div>
                 <div className="space-y-1.5">

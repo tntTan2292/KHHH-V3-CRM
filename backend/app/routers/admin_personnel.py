@@ -40,6 +40,8 @@ class NhanSuUpdate(BaseModel):
 def serialize_staff_row(db: Session, staff: NhanSu):
     user = db.query(User).filter(User.nhan_su_id == staff.id).first()
     node = db.query(HierarchyNode).filter(HierarchyNode.id == staff.point_id).first() if staff.point_id else None
+    scope_node = db.query(HierarchyNode).filter(HierarchyNode.id == user.scope_node_id).first() if user and user.scope_node_id else None
+    
     return {
         "id": staff.id,
         "hr_id": staff.hr_id,
@@ -48,6 +50,8 @@ def serialize_staff_row(db: Session, staff: NhanSu):
         "chuc_vu": staff.chuc_vu,
         "point_id": staff.point_id,
         "point_name": node.name if node else "Chưa gán",
+        "scope_node_id": user.scope_node_id if user else None,
+        "scope_node_name": scope_node.name if scope_node else "Mặc định (Toàn quyền hoặc theo Đơn vị)",
         "email": staff.email,
         "phone": staff.phone,
         "is_active": user.is_active if user else False,
@@ -247,13 +251,14 @@ async def update_staff(
         raise HTTPException(status_code=404, detail="Không tìm thấy nhân viên")
     
     update_data = staff_in.dict(exclude_unset=True)
+    has_scope_update = "scope_node_id" in update_data
     scope_node_id = update_data.pop("scope_node_id", None)
     
     for key, value in update_data.items():
         setattr(staff, key, value)
         
     # Also update User scope_node_id if provided
-    if scope_node_id is not None:
+    if has_scope_update:
         user = db.query(User).filter(User.nhan_su_id == staff.id).first()
         if user:
             user.scope_node_id = scope_node_id

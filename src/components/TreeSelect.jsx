@@ -57,13 +57,22 @@ const TreeNode = ({ node, level = 0, onSelect, selectedId }) => {
   );
 };
 
-export default function TreeSelect({ value, onChange, placeholder = "Chọn đơn vị...", valueType = "id" }) {
+export default function TreeSelect({ value, onChange, placeholder = "Chọn đơn vị...", valueType = "id", initialLabel = "" }) {
   const [isOpen, setIsOpen] = useState(false);
   const [treeData, setTreeData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedLabel, setSelectedLabel] = useState('');
+  const [selectedLabel, setSelectedLabel] = useState(initialLabel);
   const dropdownRef = useRef(null);
+
+  console.log(`[TreeSelect RUNTIME TRACE] Render - placeholder: "${placeholder}", value: ${value}, initialLabel: "${initialLabel}", selectedLabel: "${selectedLabel}"`);
+
+  // Update selectedLabel if initialLabel changes (e.g. when modal opens with new item)
+  useEffect(() => {
+    if (initialLabel) {
+      setSelectedLabel(initialLabel);
+    }
+  }, [initialLabel]);
 
   useEffect(() => {
     if (isOpen && treeData.length === 0) {
@@ -77,31 +86,34 @@ export default function TreeSelect({ value, onChange, placeholder = "Chọn đơ
     }
   }, [isOpen]);
 
-  // Find label for current value
   useEffect(() => {
     if (!value) {
+        // If no value, clear it (or use initialLabel if it's meant to represent an empty state, but normally empty means clear)
         setSelectedLabel('');
         return;
     }
-    // Simple flatten to find label
-    const findLabel = (nodes) => {
-        for (const n of nodes) {
-            const nodeVal = valueType === 'id' ? n.id : n.key;
-            if (nodeVal === value) return n.title;
-            if (n.children) {
-                const found = findLabel(n.children);
-                if (found) return found;
-            }
-        }
-        return null;
-    };
     
-    // If tree data is not loaded yet, we might need a separate call or just wait
     if (treeData.length > 0) {
+        const findLabel = (nodes) => {
+            for (const n of nodes) {
+                // Use loose equality (==) to prevent string/number mismatch bugs
+                const nodeVal = valueType === 'id' ? n.id : n.key;
+                if (nodeVal == value) return n.title;
+                if (n.children) {
+                    const found = findLabel(n.children);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
         const label = findLabel(treeData);
         if (label) setSelectedLabel(label);
+        else if (initialLabel) setSelectedLabel(initialLabel);
+    } else {
+        // Tree not loaded yet, rely entirely on initialLabel
+        if (initialLabel) setSelectedLabel(initialLabel);
     }
-  }, [value, treeData]);
+  }, [value, treeData, initialLabel, valueType]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
