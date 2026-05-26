@@ -517,7 +517,7 @@ function LeaderDashboard({ filters }) {
                       const validIds = selectedNode ? [selectedNode.id] : [];
                       const validKeys = selectedNode?.key ? [String(selectedNode.key).trim()] : [];
                       const filteredStaff = staffList.filter(s => {
-                         if (!selectedNode) return true;
+                         if (!selectedNode) return false; // Prevent fallback bypass
                          const matchById = validIds.includes(s.point_id);
                          const matchByCode = s.ma_bc && validKeys.includes(String(s.ma_bc).trim());
                          return matchById || matchByCode;

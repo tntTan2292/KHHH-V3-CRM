@@ -434,7 +434,7 @@ const PotentialCustomers_V3 = () => {
                       if (selectedWardId) {
                         return s.point_id === parseInt(selectedWardId, 10);
                       }
-                      return true;
+                      return false; // Prevent fallback bypass
                     })
                     .map(s => (
                     <option key={s.id} value={s.id}>{s.name} ({s.hr_id})</option>

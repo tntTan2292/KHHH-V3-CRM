@@ -1223,7 +1223,7 @@ export default function Customers() {
                                const validIds = assignSelectedNode ? [assignSelectedNode.id] : [];
                                const validKeys = assignSelectedNode?.key ? [String(assignSelectedNode.key).trim()] : [];
                                const filteredStaff = staffOptions.filter(s => {
-                                  if (!assignSelectedNode) return true;
+                                  if (!assignSelectedNode) return false; // Prevent fallback bypass
                                   const matchById = validIds.includes(s.point_id);
                                   const matchByCode = s.ma_bc && validKeys.includes(String(s.ma_bc).trim());
                                   return matchById || matchByCode;
