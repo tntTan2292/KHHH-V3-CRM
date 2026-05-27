@@ -23,6 +23,7 @@ class NhanSuCreate(BaseModel):
     full_name: str
     username_app: Optional[str] = None
     point_id: Optional[int] = None
+    ward_id: Optional[int] = None
     scope_node_id: Optional[int] = None
     chuc_vu: Optional[str] = None
     email: Optional[str] = None
@@ -33,6 +34,7 @@ class NhanSuUpdate(BaseModel):
     full_name: Optional[str] = None
     username_app: Optional[str] = None
     point_id: Optional[int] = None
+    ward_id: Optional[int] = None
     scope_node_id: Optional[int] = None
     chuc_vu: Optional[str] = None
     email: Optional[str] = None
@@ -42,6 +44,7 @@ class NhanSuUpdate(BaseModel):
 def serialize_staff_row(db: Session, staff: NhanSu):
     user = db.query(User).filter(User.nhan_su_id == staff.id).first()
     node = db.query(HierarchyNode).filter(HierarchyNode.id == staff.point_id).first() if staff.point_id else None
+    ward_node = db.query(HierarchyNode).filter(HierarchyNode.id == staff.ward_id).first() if staff.ward_id else None
     scope_node = db.query(HierarchyNode).filter(HierarchyNode.id == user.scope_node_id).first() if user and user.scope_node_id else None
     
     return {
@@ -52,6 +55,8 @@ def serialize_staff_row(db: Session, staff: NhanSu):
         "chuc_vu": staff.chuc_vu,
         "point_id": staff.point_id,
         "point_name": node.name if node else "Chưa gán",
+        "ward_id": staff.ward_id,
+        "ward_name": ward_node.name if ward_node else "Chưa gán",
         "scope_node_id": user.scope_node_id if user else None,
         "scope_node_name": scope_node.name if scope_node else "Mặc định (Toàn quyền hoặc theo Đơn vị)",
         "email": staff.email,
@@ -203,6 +208,7 @@ async def create_staff(
         full_name=staff_in.full_name,
         username_app=staff_in.username_app,
         point_id=staff_in.point_id,
+        ward_id=staff_in.ward_id,
         chuc_vu=staff_in.chuc_vu,
         email=staff_in.email,
         phone=staff_in.phone,

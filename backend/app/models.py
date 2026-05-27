@@ -84,9 +84,13 @@ class NhanSu(Base):
     phone = Column(String(20))
     status = Column(String(50), default="ACTIVE") # ACTIVE, INACTIVE
     
-    # Quan hệ với trạm/bưu cục
+    # Quan hệ với trạm/bưu cục (Nơi làm việc thực tế)
     point_id = Column(Integer, ForeignKey("hierarchy_nodes.id"), nullable=True)
-    point = relationship("HierarchyNode")
+    point = relationship("HierarchyNode", foreign_keys=[point_id])
+    
+    # Quan hệ với đơn vị hành chính quản lý (Ví dụ: Phường)
+    ward_id = Column(Integer, ForeignKey("hierarchy_nodes.id"), nullable=True)
+    ward = relationship("HierarchyNode", foreign_keys=[ward_id])
 
 class Customer(Base):
     __tablename__ = "customers"
