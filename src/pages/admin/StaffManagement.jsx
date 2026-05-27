@@ -12,13 +12,13 @@ import TreeSelect from '../../components/TreeSelect';
 
 export default function StaffManagement() {
   const [staff, setStaff] = useState([]);
+  const [allStaff, setAllStaff] = useState([]);
   const [nodes, setNodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
   const [search, setSearch] = useState('');
   const [selectedNode, setSelectedNode] = useState(null);
-  const [includeChildren, setIncludeChildren] = useState(false);
   const [unitSearch, setUnitSearch] = useState('');
   
   const [formData, setFormData] = useState({
@@ -39,7 +39,7 @@ export default function StaffManagement() {
 
   useEffect(() => {
     fetchStaffByNode();
-  }, [selectedNode, includeChildren]);
+  }, [selectedNode, allStaff, nodes]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -49,6 +49,7 @@ export default function StaffManagement() {
         api.get(`/api/nodes/tree`), // Use existing tree node endpoint
       ]);
       setStaff(staffRes.data);
+      setAllStaff(staffRes.data);
       setNodes(flattenNodes(nodesRes.data));
     } catch (err) {
       toast.error(err.response?.data?.detail || "Không thể tải dữ liệu nhân sự");
@@ -58,27 +59,14 @@ export default function StaffManagement() {
     }
   };
 
-  const fetchStaffByNode = async () => {
+  const fetchStaffByNode = () => {
     if (!selectedNode?.id) {
-      fetchData();
+      if (allStaff.length > 0) setStaff(allStaff);
       return;
     }
 
-    setLoading(true);
-    try {
-      const res = await api.get(`/api/users/by-node`, {
-        params: {
-          node_id: selectedNode.id,
-          include_children: includeChildren
-        }
-      });
-      setStaff(res.data);
-    } catch (err) {
-      toast.error(err.response?.data?.detail || "Không thể tải danh sách user theo node");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    const filtered = allStaff.filter(s => s.point_id === selectedNode.id);
+    setStaff(filtered);
   };
 
   const flattenNodes = (nodesList, level = 0) => {
@@ -151,11 +139,7 @@ export default function StaffManagement() {
       setShowModal(false);
       
       // Fix Bug 1: Giữ context filter
-      if (selectedNode) {
-        fetchStaffByNode();
-      } else {
-        fetchData();
-      }
+      fetchData();
     } catch (err) {
       const detail = err.response?.data?.detail;
       const errorMsg = Array.isArray(detail) ? detail.map(d => d.msg).join(', ') : detail;
@@ -350,16 +334,6 @@ export default function StaffManagement() {
                 </p>
               </div>
             </div>
-
-            <label className="flex items-center gap-3 px-3 py-2 rounded-xl bg-gray-50 border border-gray-100 text-xs font-bold text-gray-600">
-              <input
-                type="checkbox"
-                checked={includeChildren}
-                onChange={(e) => setIncludeChildren(e.target.checked)}
-                className="rounded border-gray-300 text-vnpost-blue focus:ring-vnpost-blue/20"
-              />
-              Bao gồm cả node con
-            </label>
 
             <div className="h-[420px]">
               <TreeExplorer

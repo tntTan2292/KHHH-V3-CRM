@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import SearchableDropdown from '../components/SearchableDropdown';
 import api from '../utils/api';
 import { 
   Target, 
@@ -379,79 +380,64 @@ const PotentialCustomers_V3 = () => {
               {wardOptions.length > 0 && (
                 <div className="space-y-2">
                   <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">Bưu điện Phường/Xã</label>
-                  <select 
-                    className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-100 focus:border-vnpost-blue outline-none transition-all text-sm font-bold bg-white"
+                  <SearchableDropdown
                     value={selectedWardId}
                     disabled={apiUserRole === 'UNIT_HEAD'}
-                    onChange={(e) => {
-                      const wId = e.target.value;
+                    onChange={(wId) => {
                       setSelectedWardId(wId);
                       setSelectedPointId("");
                       setSelectedStaffId("");
                     }}
-                  >
-                    <option value="">-- Tất cả BĐ P/X trong Cụm --</option>
-                    {wardOptions.map(w => (
-                      <option key={w.id} value={w.id}>{w.name} ({w.code})</option>
-                    ))}
-                  </select>
+                    placeholder="-- Tất cả BĐ P/X trong Cụm --"
+                    options={wardOptions.map(w => ({ value: w.id.toString(), label: w.name, subLabel: w.code, searchKey: w.code }))}
+                  />
                 </div>
               )}
 
               {pointOptions.length > 0 && (
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Chọn Bưu cục</label>
-                  <select 
-                    className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-100 focus:border-vnpost-blue outline-none transition-all text-sm font-bold bg-white"
+                  <SearchableDropdown
                     value={selectedPointId}
-                    onChange={(e) => {
-                      const pId = e.target.value;
+                    onChange={(pId) => {
                       setSelectedPointId(pId);
                       setSelectedStaffId("");
                     }}
-                  >
-                    <option value="">-- Tất cả Bưu cục --</option>
-                    {pointOptions
+                    placeholder="-- Tất cả Bưu cục --"
+                    options={pointOptions
                       .filter(p => !selectedWardId || p.ward_id === parseInt(selectedWardId, 10))
-                      .map(p => (
-                      <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
-                    ))}
-                  </select>
+                      .map(p => ({ value: p.id.toString(), label: p.name, subLabel: p.code, searchKey: p.code }))}
+                  />
                 </div>
               )}
 
               <div className="space-y-2">
                 <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">Chọn nhân sự phụ trách</label>
-                <select 
-                  className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-100 focus:border-vnpost-blue outline-none transition-all text-sm font-bold bg-white"
+                <SearchableDropdown
                   value={selectedStaffId}
-                  onChange={(e) => setSelectedStaffId(e.target.value)}
-                >
-                  <option value="">-- Chọn nhân viên --</option>
-                  {staffOptions
+                  onChange={(val) => setSelectedStaffId(val)}
+                  placeholder="-- Chọn nhân viên --"
+                  options={staffOptions
                     .filter(s => {
                       if (selectedPointId) {
                          const pointIdInt = parseInt(selectedPointId, 10);
-                         const matchById = s.point_id === pointIdInt;
-                         const selectedPointCode = pointOptions.find(p => p.id === pointIdInt)?.code;
-                         const matchByCode = selectedPointCode && s.ma_bc && String(s.ma_bc).trim() === String(selectedPointCode).trim();
-                         return matchById || matchByCode;
+                         return s.point_id === pointIdInt;
                       }
                       if (selectedWardId) {
                         const wardIdInt = parseInt(selectedWardId, 10);
-                        const descendantPoints = pointOptions.filter(p => p.ward_id === wardIdInt);
-                        const validIds = [wardIdInt, ...descendantPoints.map(p => p.id)];
-                        const validCodes = descendantPoints.map(p => String(p.code).trim());
-                        const matchById = validIds.includes(s.point_id);
-                        const matchByCode = s.ma_bc && validCodes.includes(String(s.ma_bc).trim());
-                        return matchById || matchByCode;
+                        return s.point_id === wardIdInt;
                       }
-                      return false; // Prevent fallback bypass
+                      return false;
                     })
-                    .map(s => (
-                    <option key={s.id} value={s.id}>{s.name} ({s.hr_id})</option>
-                  ))}
-                </select>
+                    .map(s => ({ 
+                      value: s.id.toString(), 
+                      label: s.name, 
+                      subLabel: s.hr_id + (s.chuc_vu ? ' - ' + s.chuc_vu : ''), 
+                      searchKey: s.hr_id,
+                      ma_bc: s.ma_bc || 'Khác'
+                    }))}
+                  groupBy="ma_bc"
+                />
               </div>
 
               <div className="space-y-2">
