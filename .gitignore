@@ -57,3 +57,4 @@ DATA_MASTER/
 
 data/database/*.bak
 *.db
+local_tools/
