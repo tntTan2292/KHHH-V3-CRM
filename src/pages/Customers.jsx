@@ -319,27 +319,7 @@ const CustomerRow = React.memo(({ c, handleRowClick, handleHistoryModal, handleO
   );
 });
 
-const getDescendantIds = (node) => {
-  if (!node) return [];
-  let ids = [node.id];
-  if (node.children && node.children.length > 0) {
-    node.children.forEach(child => {
-      ids = [...ids, ...getDescendantIds(child)];
-    });
-  }
-  return ids;
-};
 
-const getDescendantKeys = (node) => {
-  if (!node) return [];
-  let keys = node.key ? [String(node.key).trim()] : [];
-  if (node.children && node.children.length > 0) {
-    node.children.forEach(child => {
-      keys = [...keys, ...getDescendantKeys(child)];
-    });
-  }
-  return keys;
-};
 
 
 // -------------------------------------------------------------
@@ -1218,22 +1198,9 @@ export default function Customers() {
                          
                          <div className="space-y-2">
                             {(() => {
-                               let validIds = [];
-                               let validKeys = [];
-                               if (assignSelectedNode) {
-                                 if (assignSelectedNode.type === 'BRANCH' || assignSelectedNode.type === 'POINT') {
-                                   validIds = [assignSelectedNode.id];
-                                   validKeys = assignSelectedNode.key ? [String(assignSelectedNode.key).trim()] : [];
-                                 } else {
-                                   validIds = getDescendantIds(assignSelectedNode);
-                                   validKeys = getDescendantKeys(assignSelectedNode);
-                                 }
-                               }
                                const filteredStaff = staffOptions.filter(s => {
-                                  if (!assignSelectedNode) return false; // Prevent fallback bypass
-                                  const matchById = validIds.includes(s.point_id);
-                                  const matchByCode = s.ma_bc && validKeys.includes(String(s.ma_bc).trim());
-                                  return matchById || matchByCode;
+                                  if (!assignSelectedNode) return false;
+                                  return s.point_id === assignSelectedNode.id;
                                });
                                
                                if (filteredStaff.length === 0) {

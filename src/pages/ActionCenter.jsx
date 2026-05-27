@@ -8,26 +8,7 @@ import { toast } from 'react-toastify';
 import TreeExplorer from '../components/TreeExplorer';
 import CustomerHistoryModal from '../components/CustomerHistoryModal';
 
-const getDescendantIds = (node) => {
-  if (!node) return [];
-  let ids = [node.id];
-  if (node.children && node.children.length > 0) {
-    node.children.forEach(child => {
-      ids = [...ids, ...getDescendantIds(child)];
-    });
-  }
-  return ids;
-};
-const getDescendantKeys = (node) => {
-  if (!node) return [];
-  let keys = node.key ? [String(node.key).trim()] : [];
-  if (node.children && node.children.length > 0) {
-    node.children.forEach(child => {
-      keys = [...keys, ...getDescendantKeys(child)];
-    });
-  }
-  return keys;
-};
+
 
 
 export default function ActionCenter() {
@@ -511,23 +492,9 @@ function LeaderDashboard({ filters }) {
                  
                  <div className="space-y-2">
                     {(() => {
-                      let validIds = [];
-                      let validKeys = [];
-                      if (selectedNode) {
-                        if (selectedNode.type === 'BRANCH' || selectedNode.type === 'POINT') {
-                          validIds = [selectedNode.id];
-                          validKeys = selectedNode.key ? [String(selectedNode.key).trim()] : [];
-                        } else {
-                          validIds = getDescendantIds(selectedNode);
-                          validKeys = getDescendantKeys(selectedNode);
-                        }
-                      }
-                      
                       const filteredStaff = staffList.filter(s => {
-                         if (!selectedNode) return false; // Prevent fallback bypass
-                         const matchById = validIds.includes(s.point_id);
-                         const matchByCode = s.ma_bc && validKeys.includes(String(s.ma_bc).trim());
-                         return matchById || matchByCode;
+                         if (!selectedNode) return false;
+                         return s.point_id === selectedNode.id;
                       });
                       
                       if (filteredStaff.length === 0) {
