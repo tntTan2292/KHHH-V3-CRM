@@ -390,16 +390,20 @@ function LeaderDashboard({ filters }) {
                 <th className="p-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => requestSort('staff_name')}>
                    <div className="flex items-center gap-1">Nhân sự <SortIcon config={sortConfig} field="staff_name" /></div>
                 </th>
-                <th className="p-4">Kịch bản Giao</th>
+                <th className="p-4">Người giao</th>
+                <th className="p-4">TG giao việc</th>
+                <th className="p-4">TG xử lý</th>
+                <th className="p-4">Cập nhật cuối</th>
+                <th className="p-4 max-w-[200px]">Kịch bản</th>
                 <th className="p-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => requestSort('trang_thai')}>
                    <div className="flex items-center gap-1">Trạng thái <SortIcon config={sortConfig} field="trang_thai" /></div>
                 </th>
-                <th className="p-4 rounded-tr-xl">Báo cáo Kết quả</th>
+                <th className="p-4 rounded-tr-xl">Báo cáo</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {paginatedTasks.length === 0 ? (
-                 <tr><td colSpan="5" className="p-8 text-center text-gray-400 font-bold text-xs uppercase">Chưa có dữ liệu giao việc</td></tr>
+                 <tr><td colSpan="9" className="p-8 text-center text-gray-400 font-bold text-xs uppercase">Chưa có dữ liệu giao việc</td></tr>
               ) : paginatedTasks.map(task => (
                 <tr key={task.id} className="hover:bg-blue-50/30 transition-colors">
                   <td className="p-4">
@@ -437,20 +441,26 @@ function LeaderDashboard({ filters }) {
                       )}
                     </div>
                   </td>
-                  <td className="p-4">
+                  <td className="p-4 text-xs font-semibold text-gray-700">
+                    {task.assigner_name || <span className="text-gray-300 italic">N/A</span>}
+                  </td>
+                  <td className="p-4 text-xs font-medium text-gray-600">
+                    {task.assigned_time || <span className="text-gray-300 italic">N/A</span>}
+                  </td>
+                  <td className="p-4 text-xs font-medium">
+                    <span className={task.task_age_seconds > 86400 * 2 ? "text-yellow-600 font-black" : "text-gray-600"}>
+                      {formatTaskAge(task.task_age_seconds)}
+                    </span>
+                  </td>
+                  <td className="p-4 text-xs font-medium text-gray-600">
+                    {formatTaskAge(task.stuck_duration_seconds)} trước
+                  </td>
+                  <td className="p-4 max-w-[200px]">
                     <div className="flex flex-col gap-1 items-start">
                        <FlowBadge type={task.phan_loai_giao_viec} />
-                       <span className="text-xs font-semibold text-vnpost-blue">{task.tieu_de}</span>
+                       <span className="text-xs font-semibold text-vnpost-blue line-clamp-2" title={task.tieu_de}>{task.tieu_de}</span>
                     </div>
-                    <div className="text-[9px] text-gray-400 mt-1 max-w-[200px] truncate" title={task.noi_dung}>{task.noi_dung}</div>
-                    <div className="mt-2 text-[9px] text-gray-500 font-medium space-y-0.5 bg-gray-50 p-2 rounded-lg border border-gray-100 w-fit">
-                       <div><span className="font-bold text-gray-400">Giao bởi:</span> {task.assigner_name} ({task.assigned_time})</div>
-                       <div className="flex items-center gap-1">
-                          <span className="font-bold text-gray-400">Task age:</span> 
-                          <span className={task.task_age_seconds > 86400 * 2 ? "text-yellow-600 font-black uppercase" : ""}>{formatTaskAge(task.task_age_seconds)}</span>
-                       </div>
-                       <div><span className="font-bold text-gray-400">Cập nhật:</span> {formatTaskAge(task.stuck_duration_seconds)} trước</div>
-                    </div>
+                    <div className="text-[10px] text-gray-500 mt-1 line-clamp-2" title={task.noi_dung}>{task.noi_dung}</div>
                   </td>
                   <td className="p-4">
                     <div className="flex flex-col gap-2 items-start">
