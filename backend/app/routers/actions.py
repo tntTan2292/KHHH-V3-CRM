@@ -230,23 +230,6 @@ async def assign_task(
     
     return {"message": "Đã tạo task thành công", "task_id": new_task.id}
 
-@router.get("/summary")
-async def get_action_summary(
-    loai_doi_tuong: Optional[str] = None,
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
-    node_code: Optional[str] = None,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    from datetime import datetime
-    now = datetime.now()
-    
-    query = db.query(ActionTask).options(
-        joinedload(ActionTask.staff),
-        joinedload(ActionTask.template)
-    )
-    # ... logic for summary stats including upcoming_overdue_count, stale_task_count, and staff_stats ...
 
 @router.get("/tasks")
 async def get_tasks(
