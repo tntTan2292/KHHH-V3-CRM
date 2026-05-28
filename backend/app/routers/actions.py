@@ -292,6 +292,14 @@ async def get_tasks(
     query = query.order_by(desc(ActionTask.created_at))
     tasks = query.all()
     
+    task_ids = [t.id for t in tasks]
+    logs = db.query(TaskStateLog).options(joinedload(TaskStateLog.user)).filter(TaskStateLog.task_id.in_(task_ids)).all() if task_ids else []
+    logs_by_task = {}
+    for log in logs:
+        if log.task_id not in logs_by_task:
+            logs_by_task[log.task_id] = []
+        logs_by_task[log.task_id].append(log)
+    
     result = []
     for t in tasks:
         ten_kh = t.target_id
@@ -305,7 +313,22 @@ async def get_tasks(
         staff_name = t.staff.full_name if t.staff else "Chưa gán"
         
         upcoming_sla = SLAService.is_upcoming_sla(t, hours=24, now=now)
-        stale_days = SLAService.calculate_stale_days(t, now=now)
+        
+        t_logs = sorted(logs_by_task.get(t.id, []), key=lambda x: x.timestamp, reverse=True)
+        last_activity_time = t_logs[0].timestamp if t_logs else (t.updated_at or t.created_at)
+        
+        assigner_name = "Hệ thống"
+        assigned_time = t.created_at
+        assign_logs = [log for log in t_logs if log.action_type in ['ASSIGN', 'ASSIGN_STAFF', 'REASSIGNED', 'DELEGATED']]
+        if assign_logs:
+            latest_assign = assign_logs[0]
+            assigned_time = latest_assign.timestamp
+            if latest_assign.user:
+                assigner_name = latest_assign.user.full_name
+                
+        task_age_seconds = (now - assigned_time).total_seconds() if assigned_time else 0
+        stuck_duration_seconds = (now - last_activity_time).total_seconds() if last_activity_time else 0
+        stale_days = stuck_duration_seconds / 86400
 
         result.append({
             "id": t.id,
@@ -322,7 +345,7 @@ async def get_tasks(
             "deadline": t.deadline.strftime("%Y-%m-%d %H:%M") if t.deadline else None,
             "overdue_at": t.overdue_at.strftime("%Y-%m-%d %H:%M") if t.overdue_at else None,
             "upcoming_sla": upcoming_sla,
-            "stale_days": stale_days,
+            "stale_days": int(stale_days),
             "trang_thai": t.trang_thai,
             "verified": t.verified,
             "converted_ma_kh": t.converted_ma_kh,
@@ -332,7 +355,12 @@ async def get_tasks(
             "bao_cao_ket_qua": t.bao_cao_ket_qua,
             "kenh_tiep_can": t.kenh_tiep_can,
             "ket_qua": t.ket_qua,
-            "is_stale": (datetime.now() - (t.updated_at or t.created_at)).total_seconds() > 432000 if t.trang_thai in ["Mới", "Đang xử lý"] else False, # 5 days
+            "is_stale": t.trang_thai in ["Mới", "Đang xử lý", "CHỜ CHỈ ĐẠO"] and stuck_duration_seconds > 48 * 3600,
+            "assigner_name": assigner_name,
+            "assigned_time": assigned_time.strftime("%Y-%m-%d %H:%M") if assigned_time else None,
+            "last_activity_time": last_activity_time.strftime("%Y-%m-%d %H:%M") if last_activity_time else None,
+            "task_age_seconds": task_age_seconds,
+            "stuck_duration_seconds": stuck_duration_seconds,
             "ngay_hoan_thanh": t.ngay_hoan_thanh.strftime("%Y-%m-%d %H:%M") if t.ngay_hoan_thanh else None,
             "created_at": t.created_at.strftime("%Y-%m-%d %H:%M") if t.created_at else None
         })
@@ -653,37 +681,57 @@ async def get_action_summary(
         
     tasks = query.all()
     
+    task_ids = [t.id for t in tasks]
+    logs = db.query(TaskStateLog).filter(TaskStateLog.task_id.in_(task_ids)).all() if task_ids else []
+    logs_by_task = {}
+    for log in logs:
+        if log.task_id not in logs_by_task:
+            logs_by_task[log.task_id] = []
+        logs_by_task[log.task_id].append(log)
+    
     staff_map = {}
     upcoming_count = 0
     stale_count = 0
+    vip_overdue_count = 0
     
     for t in tasks:
         if SLAService.is_task_active(t):
             if SLAService.is_upcoming_sla(t, hours=24, now=now):
                 upcoming_count += 1
-            if SLAService.calculate_stale_days(t, now=now) >= 2:
+                
+            t_logs = sorted(logs_by_task.get(t.id, []), key=lambda x: x.timestamp, reverse=True)
+            last_activity_time = t_logs[0].timestamp if t_logs else (t.updated_at or t.created_at)
+            
+            is_stuck = (now - last_activity_time).total_seconds() > 48 * 3600
+            if is_stuck:
                 stale_count += 1
+            
+            is_ov = SLAService.is_overdue(t, now=now)
+            if is_ov and (t.phan_loai_giao_viec == "VIP" or t.loai_doi_tuong == "VIP"):
+                vip_overdue_count += 1
             
             s_name = t.staff.full_name if t.staff else "Chưa gán"
             if s_name not in staff_map:
-                staff_map[s_name] = {"pending": 0, "overdue": 0}
+                staff_map[s_name] = {"pending": 0, "overdue": 0, "stuck": 0}
             staff_map[s_name]["pending"] += 1
             
-            # Use SLAService to check overdue instead of just checking overdue_at
-            if SLAService.is_overdue(t, now=now):
+            if is_stuck:
+                staff_map[s_name]["stuck"] += 1
+            
+            if is_ov:
                 staff_map[s_name]["overdue"] += 1
 
     staff_stats = []
     for s_name, data in staff_map.items():
-        rate = round(data["overdue"] / data["pending"] * 100, 1) if data["pending"] > 0 else 0
         staff_stats.append({
             "staff_name": s_name,
             "pending": data["pending"],
             "overdue": data["overdue"],
-            "rate": rate
+            "stuck": data["stuck"],
+            "severity_score": data["overdue"] * 2 + data["stuck"]
         })
     
-    staff_stats.sort(key=lambda x: x["overdue"], reverse=True)
+    staff_stats.sort(key=lambda x: x["severity_score"], reverse=True)
 
     stats = {
         "total": len(tasks),
@@ -699,6 +747,7 @@ async def get_action_summary(
         "overdue_rate": round(sum(1 for t in tasks if t.overdue_at is not None) / len(tasks) * 100, 2) if tasks else 0,
         "upcoming_overdue_count": upcoming_count,
         "stale_task_count": stale_count,
+        "vip_overdue_count": vip_overdue_count,
         "staff_stats": staff_stats[:5] # Top 5 staff có nhiều backlog/overdue nhất
     }
     return stats

@@ -124,6 +124,15 @@ export default function ActionCenter() {
 }
 
 // -------------------------------------------------------------
+function formatTaskAge(seconds) {
+  if (seconds == null || isNaN(seconds)) return 'Không rõ';
+  if (seconds < 60) return `${Math.floor(seconds)} giây`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} phút`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)} giờ`;
+  return `${Math.floor(seconds / 86400)} ngày`;
+}
+
+// -------------------------------------------------------------
 // LEADER DASHBOARD
 // -------------------------------------------------------------
 function LeaderDashboard({ filters }) {
@@ -302,7 +311,7 @@ function LeaderDashboard({ filters }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
          {/* Overdue Staff Table */}
          <div className="card p-6 bg-white border border-gray-100 shadow-xl shadow-gray-200/40 rounded-3xl">
-            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Top Nhân sự Quá Hạn</h3>
+            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Staff Backlog Leaderboard</h3>
             {Array.isArray(summary?.staff_stats) && summary.staff_stats.length > 0 ? (
                <table className="w-full text-left text-sm">
                  <thead>
@@ -310,7 +319,7 @@ function LeaderDashboard({ filters }) {
                      <th className="pb-2">Nhân sự</th>
                      <th className="pb-2">Đang giữ</th>
                      <th className="pb-2">Quá hạn</th>
-                     <th className="pb-2">Tỷ lệ</th>
+                     <th className="pb-2 text-yellow-600">Treo (&gt;2 ngày)</th>
                    </tr>
                  </thead>
                  <tbody className="divide-y divide-gray-50">
@@ -319,7 +328,7 @@ function LeaderDashboard({ filters }) {
                        <td className="py-2 font-bold text-gray-700">{s.staff_name}</td>
                        <td className="py-2">{s.pending}</td>
                        <td className="py-2 text-red-500 font-bold">{s.overdue}</td>
-                       <td className="py-2 font-semibold">{s.rate}%</td>
+                       <td className="py-2 font-semibold text-yellow-600">{s.stuck}</td>
                      </tr>
                    ))}
                  </tbody>
@@ -330,12 +339,15 @@ function LeaderDashboard({ filters }) {
          </div>
 
          <div className="flex flex-col gap-4">
-           <div className="card p-6 bg-red-50/50 border border-red-100 shadow-xl shadow-red-200/20 rounded-3xl flex items-center gap-4">
-              <div className="p-3 bg-red-100 text-red-600 rounded-xl"><AlertCircle size={24} /></div>
-              <div>
+           <div className="flex gap-4 h-full">
+             <div className="card p-6 flex-1 bg-red-50/50 border border-red-100 shadow-xl shadow-red-200/20 rounded-3xl flex flex-col justify-center gap-2">
                 <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">Tổng Task Quá Hạn</p>
-                <h3 className="text-2xl font-black text-red-600">{summary?.overdue_count || 0}</h3>
-              </div>
+                <h3 className="text-xl font-black text-red-600 flex items-center gap-2"><AlertCircle size={16}/> {summary?.overdue_count || 0}</h3>
+             </div>
+             <div className="card p-6 flex-1 bg-purple-50/50 border border-purple-100 shadow-xl shadow-purple-200/20 rounded-3xl flex flex-col justify-center gap-2">
+                <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest">VIP Quá Hạn</p>
+                <h3 className="text-xl font-black text-purple-600 flex items-center gap-2"><AlertCircle size={16}/> {summary?.vip_overdue_count || 0}</h3>
+             </div>
            </div>
            <div className="flex gap-4 h-full">
              <div className="card p-6 flex-1 bg-orange-50/50 border border-orange-100 rounded-3xl flex flex-col justify-center gap-2">
@@ -417,13 +429,21 @@ function LeaderDashboard({ filters }) {
                        <span className="text-xs font-semibold text-vnpost-blue">{task.tieu_de}</span>
                     </div>
                     <div className="text-[9px] text-gray-400 mt-1 max-w-[200px] truncate" title={task.noi_dung}>{task.noi_dung}</div>
+                    <div className="mt-2 text-[9px] text-gray-500 font-medium space-y-0.5 bg-gray-50 p-2 rounded-lg border border-gray-100 w-fit">
+                       <div><span className="font-bold text-gray-400">Giao bởi:</span> {task.assigner_name} ({task.assigned_time})</div>
+                       <div className="flex items-center gap-1">
+                          <span className="font-bold text-gray-400">Task age:</span> 
+                          <span className={task.task_age_seconds > 86400 * 2 ? "text-yellow-600 font-black uppercase" : ""}>{formatTaskAge(task.task_age_seconds)}</span>
+                       </div>
+                       <div><span className="font-bold text-gray-400">Cập nhật:</span> {formatTaskAge(task.stuck_duration_seconds)} trước</div>
+                    </div>
                   </td>
                   <td className="p-4">
                     <div className="flex flex-col gap-2 items-start">
                       <StatusBadge status={task.trang_thai} />
                       {task.overdue_at && <span className="bg-red-50 text-red-600 text-[9px] font-black uppercase px-2 py-0.5 rounded shadow-sm border border-red-200 tracking-wider">⚠️ QUÁ HẠN</span>}
                       {task.upcoming_sla && !task.overdue_at && <span className="bg-orange-50 text-orange-600 text-[9px] font-black uppercase px-2 py-0.5 rounded shadow-sm border border-orange-200 tracking-wider">SẮP QUÁ HẠN</span>}
-                      {task.stale_days >= 2 && <span className="bg-yellow-50 text-yellow-600 text-[9px] font-black uppercase px-2 py-0.5 rounded shadow-sm border border-yellow-200 tracking-wider">TREO {task.stale_days} NGÀY</span>}
+                      {task.is_stale && <span className="bg-yellow-50 text-yellow-600 text-[9px] font-black uppercase px-2 py-0.5 rounded shadow-sm border border-yellow-200 tracking-wider">⚠️ TREO {formatTaskAge(task.stuck_duration_seconds)}</span>}
                     </div>
                   </td>
                   <td className="p-4 max-w-[250px]">
@@ -715,6 +735,7 @@ function StaffKanbanBoard({ filters }) {
                       {task.trang_thai === 'Hủy' && <span className="bg-gray-100 text-gray-500 text-[10px] font-black px-2 py-0.5 rounded border border-gray-200 uppercase tracking-widest shadow-sm">Đã Hủy</span>}
                       {task.trang_thai === 'CHỜ CHỈ ĐẠO' && <span className="bg-purple-50 text-purple-600 text-[10px] font-black px-2 py-0.5 rounded border border-purple-200 uppercase tracking-widest shadow-sm">Xin chỉ đạo</span>}
                       {task.overdue_at && <span className="bg-red-50 text-red-600 text-[10px] font-black px-2 py-0.5 rounded border border-red-200 uppercase tracking-widest shadow-sm">⚠️ QUÁ HẠN</span>}
+                      {task.is_stale && <span className="bg-yellow-50 text-yellow-600 text-[10px] font-black px-2 py-0.5 rounded border border-yellow-200 uppercase tracking-widest shadow-sm">⚠️ TREO {formatTaskAge(task.stuck_duration_seconds)}</span>}
                     </div>
                     {task.deadline && (
                       <span className="text-[10px] font-bold text-gray-400 flex items-center gap-1"><Clock size={12}/> {task.deadline.substring(0, 10)}</span>
@@ -724,9 +745,14 @@ function StaffKanbanBoard({ filters }) {
                   <h4 className="font-bold text-gray-800 text-sm mb-1 group-hover:text-vnpost-blue transition-colors">
                     {task.ten_kh_display}
                   </h4>
-                  <p className="text-xs text-gray-500 font-medium line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-gray-500 font-medium line-clamp-2 leading-relaxed mb-3">
                     Kịch bản: {task.tieu_de}
                   </p>
+                  
+                  <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[9px] text-gray-400 font-medium">
+                     <span className="truncate max-w-[120px]" title={task.assigner_name}>Giao: {task.assigner_name}</span>
+                     <span>Age: <span className={task.task_age_seconds > 86400 * 2 ? "text-yellow-600 font-black uppercase" : ""}>{formatTaskAge(task.task_age_seconds)}</span></span>
+                  </div>
                 </div>
               ))}
               
