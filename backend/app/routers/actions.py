@@ -317,17 +317,20 @@ async def get_tasks(
         t_logs = sorted(logs_by_task.get(t.id, []), key=lambda x: x.timestamp, reverse=True)
         last_activity_time = t_logs[0].timestamp if t_logs else (t.updated_at or t.created_at)
         
-        assigner_name = "Hệ thống"
-        assigned_time = t.created_at
         assign_logs = [log for log in t_logs if log.action_type in ['ASSIGN', 'ASSIGN_STAFF', 'REASSIGNED', 'DELEGATED']]
         if assign_logs:
             latest_assign = assign_logs[0]
             assigned_time = latest_assign.timestamp
             if latest_assign.user:
                 assigner_name = latest_assign.user.full_name
+            else:
+                assigner_name = getattr(t, "created_by_name", getattr(t, "created_by", "Hệ thống"))
+        else:
+            assigner_name = getattr(t, "created_by_name", getattr(t, "created_by", "Hệ thống"))
+            assigned_time = t.created_at
                 
-        task_age_seconds = (now - assigned_time).total_seconds() if assigned_time else 0
-        stuck_duration_seconds = (now - last_activity_time).total_seconds() if last_activity_time else 0
+        task_age_seconds = max(0, (now - assigned_time).total_seconds()) if assigned_time else 0
+        stuck_duration_seconds = max(0, (now - last_activity_time).total_seconds()) if last_activity_time else 0
         stale_days = stuck_duration_seconds / 86400
 
         result.append({

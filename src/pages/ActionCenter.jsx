@@ -442,14 +442,14 @@ function LeaderDashboard({ filters }) {
                     </div>
                   </td>
                   <td className="p-4 text-xs font-semibold text-gray-700">
-                    {task.assigner_name || <span className="text-gray-300 italic">N/A</span>}
+                    {task.assigner_name || "Hệ thống"}
                   </td>
                   <td className="p-4 text-xs font-medium text-gray-600">
-                    {task.assigned_time || <span className="text-gray-300 italic">N/A</span>}
+                    {task.assigned_time || "Vừa giao"}
                   </td>
                   <td className="p-4 text-xs font-medium">
                     <span className={task.task_age_seconds > 86400 * 2 ? "text-yellow-600 font-black" : "text-gray-600"}>
-                      {formatTaskAge(task.task_age_seconds)}
+                      {task.task_age_seconds != null ? formatTaskAge(task.task_age_seconds) : "Đang xử lý"}
                     </span>
                   </td>
                   <td className="p-4 text-xs font-medium text-gray-600">
@@ -801,8 +801,8 @@ function StaffKanbanBoard({ filters }) {
                   
                   <div className="pt-2 border-t border-gray-100 flex flex-col gap-2 relative">
                      <div className="flex items-center justify-between text-[9px] text-gray-400 font-medium">
-                        <span className="truncate max-w-[120px]" title={task.assigner_name}>Giao: {task.assigner_name}</span>
-                        <span className="lg:group-hover:opacity-0 transition-opacity">Age: <span className={task.task_age_seconds > 86400 * 2 ? "text-yellow-600 font-black uppercase" : ""}>{formatTaskAge(task.task_age_seconds)}</span></span>
+                        <span className="truncate max-w-[120px]" title={task.assigner_name || "Hệ thống"}>Giao: {task.assigner_name || "Hệ thống"}</span>
+                        <span className="lg:group-hover:opacity-0 transition-opacity">Age: <span className={task.task_age_seconds > 86400 * 2 ? "text-yellow-600 font-black uppercase" : ""}>{task.task_age_seconds != null ? formatTaskAge(task.task_age_seconds) : "Đang xử lý"}</span></span>
                      </div>
                      
                      {/* Staff Quick Actions Bar */}
