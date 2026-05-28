@@ -699,6 +699,145 @@ async def reassign_task(
     )
     return {"message": "Đã điều phối nhân sự thành công"}
 
+class BulkActionPayload(BaseModel):
+    task_ids: List[int]
+    action: str  # ASSIGN, VERIFY, REJECT, COMPLETE
+    staff_id: Optional[int] = None
+    reason: Optional[str] = None
+
+@router.post("/bulk")
+async def bulk_actions(
+    request: Request,
+    payload: BulkActionPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if not payload.task_ids:
+        raise HTTPException(status_code=400, detail="Không có task nào được chọn")
+
+    from ..services.scoping_service import ScopingService
+    user_scope_ids = ScopingService.get_effective_scope_ids(db, current_user)
+
+    success_count = 0
+    now = datetime.now()
+
+    for task_id in payload.task_ids:
+        task = db.query(ActionTask).filter(ActionTask.id == task_id).first()
+        if not task:
+            continue
+
+        old_status = task.trang_thai
+
+        if payload.action == "ASSIGN":
+            if not payload.staff_id:
+                continue
+            # Scoping lock
+            if user_scope_ids is not None:
+                target_staff = db.query(NhanSu).filter(NhanSu.id == payload.staff_id).first()
+                if not target_staff or target_staff.point_id not in user_scope_ids:
+                    continue # Skip without raising error for bulk
+
+            old_staff_id = task.staff_id
+            task.staff_id = payload.staff_id
+            
+            if task.loai_doi_tuong == "HienHuu":
+                customer = db.query(Customer).filter(Customer.ma_crm_cms == task.target_id).first()
+                if customer:
+                    customer.assigned_staff_id = payload.staff_id
+
+            evidence = build_timeline_payload(
+                db=db,
+                event_type="REASSIGNED" if old_staff_id else "ASSIGN",
+                acted_by_user=current_user,
+                action_source="ACTION_CENTER",
+                from_staff_id=old_staff_id,
+                to_staff_id=payload.staff_id,
+                previous_status=task.trang_thai,
+                new_status=task.trang_thai,
+                reason=payload.reason or "Điều phối hàng loạt",
+                evidence_text=f"Giao nhiệm vụ cho nhân sự ID {payload.staff_id}"
+            )
+            state_log = TaskStateLog(
+                task_id=task.id,
+                previous_status=task.trang_thai,
+                new_status=task.trang_thai,
+                changed_by=current_user.id,
+                action_type="REASSIGNED" if old_staff_id else "ASSIGN",
+                reason=payload.reason or "Điều phối hàng loạt",
+                evidence_snapshot_json=json.dumps(evidence, ensure_ascii=False)
+            )
+            db.add(state_log)
+            success_count += 1
+
+        elif payload.action == "VERIFY":
+            if old_status != "PENDING_VERIFY":
+                continue
+            task.trang_thai = "Hoàn thành"
+            task.updated_at = now
+            task.ngay_hoan_thanh = now
+            
+            evidence = build_timeline_payload(
+                db=db, event_type="VERIFIED", acted_by_user=current_user, action_source="ACTION_CENTER",
+                from_staff_id=task.staff_id, to_staff_id=task.staff_id,
+                previous_status=old_status, new_status="Hoàn thành",
+                reason=payload.reason or "Duyệt nhanh hàng loạt", evidence_text="Duyệt nhanh"
+            )
+            db.add(TaskStateLog(
+                task_id=task.id, previous_status=old_status, new_status="Hoàn thành",
+                changed_by=current_user.id, action_type="VERIFIED", reason=payload.reason or "Duyệt nhanh",
+                evidence_snapshot_json=json.dumps(evidence, ensure_ascii=False)
+            ))
+            success_count += 1
+
+        elif payload.action == "REJECT":
+            if old_status != "PENDING_VERIFY":
+                continue
+            task.trang_thai = "Đang xử lý"
+            task.updated_at = now
+            
+            evidence = build_timeline_payload(
+                db=db, event_type="REOPENED", acted_by_user=current_user, action_source="ACTION_CENTER",
+                from_staff_id=task.staff_id, to_staff_id=task.staff_id,
+                previous_status=old_status, new_status="Đang xử lý",
+                reason=payload.reason or "Từ chối hàng loạt", evidence_text="Yêu cầu làm lại"
+            )
+            db.add(TaskStateLog(
+                task_id=task.id, previous_status=old_status, new_status="Đang xử lý",
+                changed_by=current_user.id, action_type="REOPENED", reason=payload.reason or "Từ chối",
+                evidence_snapshot_json=json.dumps(evidence, ensure_ascii=False)
+            ))
+            success_count += 1
+
+        elif payload.action == "COMPLETE":
+            if old_status != "Đang xử lý":
+                continue
+            task.trang_thai = "Hoàn thành"
+            task.updated_at = now
+            task.ngay_hoan_thanh = now
+            
+            evidence = build_timeline_payload(
+                db=db, event_type="COMPLETED", acted_by_user=current_user, action_source="ACTION_CENTER",
+                from_staff_id=current_user.nhan_su_id, to_staff_id=current_user.nhan_su_id,
+                previous_status=old_status, new_status="Hoàn thành",
+                reason=payload.reason or "Hoàn thành nhanh", evidence_text="Báo cáo hoàn thành hàng loạt"
+            )
+            db.add(TaskStateLog(
+                task_id=task.id, previous_status=old_status, new_status="Hoàn thành",
+                changed_by=current_user.id, action_type="COMPLETED", reason=payload.reason or "Hoàn thành nhanh",
+                evidence_snapshot_json=json.dumps(evidence, ensure_ascii=False)
+            ))
+            success_count += 1
+
+    db.commit()
+
+    LogService.log_action(
+        db=db, user_id=current_user.id, action="BULK_ACTION", resource="ActionTask",
+        details=f"Bulk {payload.action} on {len(payload.task_ids)} tasks (Success: {success_count})",
+        ip_address=request.client.host
+    )
+    return {"message": f"Thao tác thành công {success_count}/{len(payload.task_ids)} nhiệm vụ."}
+
+
 @router.get("/summary")
 async def get_action_summary(
     start_date: str = Query(None),

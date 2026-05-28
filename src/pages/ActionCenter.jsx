@@ -142,6 +142,7 @@ function LeaderDashboard({ filters }) {
   const [loading, setLoading] = useState(true);
   const [staffList, setStaffList] = useState([]);
   const [assigningTask, setAssigningTask] = useState(null);
+  const [selectedTaskIds, setSelectedTaskIds] = useState([]);
   const [selectedNode, setSelectedNode] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
   const [currentPage, setCurrentPage] = useState(1);
@@ -244,6 +245,23 @@ function LeaderDashboard({ filters }) {
       fetchData();
     } catch(err) {
       toast.error('Có lỗi xảy ra khi thao tác');
+    }
+  };
+
+  const handleBulkAction = async (actionType, staffId = null, reason = null) => {
+    if (selectedTaskIds.length === 0) return;
+    try {
+      await api.post('/api/actions/bulk', {
+        task_ids: selectedTaskIds,
+        action: actionType,
+        staff_id: staffId,
+        reason: reason
+      });
+      toast.success(`Đã thực hiện thao tác hàng loạt thành công (${selectedTaskIds.length} tasks)`);
+      setSelectedTaskIds([]);
+      fetchData();
+    } catch (err) {
+      toast.error('Có lỗi xảy ra khi thao tác hàng loạt');
     }
   };
 
@@ -384,7 +402,18 @@ function LeaderDashboard({ filters }) {
           <table className="w-full text-left text-sm">
             <thead className="bg-gray-50/50 text-gray-400 text-[10px] uppercase font-black tracking-widest">
               <tr>
-                <th className="p-4 rounded-tl-xl cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => requestSort('ten_kh_display')}>
+                <th className="p-4 rounded-tl-xl w-12">
+                   <input 
+                     type="checkbox" 
+                     className="w-4 h-4 rounded text-vnpost-blue focus:ring-vnpost-blue border-gray-300"
+                     checked={paginatedTasks.length > 0 && selectedTaskIds.length === paginatedTasks.length}
+                     onChange={(e) => {
+                       if (e.target.checked) setSelectedTaskIds(paginatedTasks.map(t => t.id));
+                       else setSelectedTaskIds([]);
+                     }}
+                   />
+                </th>
+                <th className="p-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => requestSort('ten_kh_display')}>
                    <div className="flex items-center gap-1">Khách hàng Mục tiêu <SortIcon config={sortConfig} field="ten_kh_display" /></div>
                 </th>
                 <th className="p-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => requestSort('staff_name')}>
@@ -403,12 +432,21 @@ function LeaderDashboard({ filters }) {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {paginatedTasks.length === 0 ? (
-                 <tr><td colSpan="9" className="p-8 text-center text-gray-400 font-bold text-xs uppercase">Chưa có dữ liệu giao việc</td></tr>
+                 <tr><td colSpan="10" className="p-8 text-center text-gray-400 font-bold text-xs uppercase">Chưa có dữ liệu giao việc</td></tr>
               ) : paginatedTasks.map(task => {
-                console.log("Frontend Verify Task:", task);
                 return (
-                <tr key={task.id} className="hover:bg-blue-50/30 transition-colors">
-
+                <tr key={task.id} className={`hover:bg-blue-50/30 transition-colors ${selectedTaskIds.includes(task.id) ? 'bg-blue-50/50' : ''}`}>
+                  <td className="p-4">
+                    <input 
+                      type="checkbox" 
+                      className="w-4 h-4 rounded text-vnpost-blue focus:ring-vnpost-blue border-gray-300"
+                      checked={selectedTaskIds.includes(task.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) setSelectedTaskIds([...selectedTaskIds, task.id]);
+                        else setSelectedTaskIds(selectedTaskIds.filter(id => id !== task.id));
+                      }}
+                    />
+                  </td>
                   <td className="p-4">
                     <div className="flex items-center gap-2">
                        <div className="font-bold text-gray-800">{task.ten_kh_display}</div>
@@ -558,6 +596,54 @@ function LeaderDashboard({ filters }) {
         )}
       </div>
 
+      {/* Floating Action Bar */}
+      {selectedTaskIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 animate-in slide-in-from-bottom-8 fade-in duration-300">
+          <div className="bg-gray-900 text-white px-6 py-4 rounded-full shadow-2xl flex items-center gap-6 border border-gray-700/50 backdrop-blur-md">
+            <div className="flex items-center gap-2">
+              <span className="bg-white/20 text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black">{selectedTaskIds.length}</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-gray-300">Đã chọn</span>
+            </div>
+            <div className="w-px h-6 bg-gray-700"></div>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setAssigningTask({ id: "BULK", isBulk: true })}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-400 text-white rounded-full text-[10px] font-black uppercase tracking-wider transition-colors shadow-lg shadow-blue-500/20"
+              >
+                <User size={14}/> Giao việc
+              </button>
+              <button 
+                onClick={() => {
+                  if(window.confirm(`Xác nhận duyệt nhanh ${selectedTaskIds.length} báo cáo thành Hoàn thành?`)) {
+                    handleBulkAction('VERIFY');
+                  }
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white rounded-full text-[10px] font-black uppercase tracking-wider transition-colors shadow-lg shadow-emerald-500/20"
+              >
+                <CheckCircle2 size={14}/> Duyệt nhanh
+              </button>
+              <button 
+                onClick={() => {
+                  if(window.confirm(`Từ chối ${selectedTaskIds.length} báo cáo và yêu cầu làm lại?`)) {
+                    handleBulkAction('REJECT');
+                  }
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-400 text-white rounded-full text-[10px] font-black uppercase tracking-wider transition-colors shadow-lg shadow-red-500/20"
+              >
+                <XCircle size={14}/> Từ chối
+              </button>
+            </div>
+            <button 
+              onClick={() => setSelectedTaskIds([])}
+              className="p-2 hover:bg-gray-800 rounded-full text-gray-400 hover:text-white transition-colors ml-2"
+              title="Bỏ chọn tất cả"
+            >
+              <X size={16}/>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Quick Assign Modal - Flexible Assignment UI */}
       {assigningTask && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
@@ -594,8 +680,8 @@ function LeaderDashboard({ filters }) {
                    <h3 className="font-black text-gray-800 flex items-center gap-2 uppercase tracking-widest text-xs mb-1">
                      <User size={16} className="text-vnpost-blue" /> Chọn Nhân sự
                    </h3>
-                   <div className="text-[10px] text-gray-400 font-bold uppercase truncate max-w-[200px]" title={assigningTask.ten_kh_display}>
-                     Giao: {assigningTask.ten_kh_display}
+                   <div className="text-[10px] text-gray-400 font-bold uppercase truncate max-w-[300px]" title={assigningTask.ten_kh_display}>
+                     {assigningTask.isBulk ? `Đang giao hàng loạt: ${selectedTaskIds.length} nhiệm vụ` : `Giao: ${assigningTask.ten_kh_display}`}
                    </div>
                  </div>
                  <button onClick={() => { setAssigningTask(null); setSelectedNode(null); }} className="p-2 hover:bg-gray-100 rounded-full"><X size={20}/></button>
@@ -634,7 +720,16 @@ function LeaderDashboard({ filters }) {
                       return filteredStaff.map(s => (
                         <button 
                           key={s.id}
-                          onClick={() => handleQuickAssign(s.id)}
+                          onClick={() => {
+                            if (assigningTask.isBulk) {
+                              if(window.confirm(`Giao ${selectedTaskIds.length} nhiệm vụ cho ${s.full_name}?`)) {
+                                handleBulkAction('ASSIGN', s.id);
+                                setAssigningTask(null);
+                              }
+                            } else {
+                              handleQuickAssign(s.id);
+                            }
+                          }}
                           className="w-full flex items-center justify-between p-4 rounded-2xl hover:bg-blue-50 border border-gray-50 hover:border-blue-100 transition-all text-left group shadow-sm hover:shadow-md"
                         >
                           <div className="flex items-center gap-3">
