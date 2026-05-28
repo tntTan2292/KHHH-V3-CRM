@@ -554,8 +554,8 @@ function StaffKanbanBoard({ filters }) {
   const [tasks, setTasks] = useState({
     'Mới': [],
     'Đang xử lý': [],
-    'Hoàn thành': [],
-    'Thất bại': []
+    'Chờ kiểm tra': [],
+    'Hoàn thành': []
   });
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState(null);
@@ -575,10 +575,10 @@ function StaffKanbanBoard({ filters }) {
       });
       
       const grouped = {
-        'Mới': allTasks.filter(t => t.trang_thai === 'Mới' || t.trang_thai === 'Hủy'),
+        'Mới': allTasks.filter(t => t.trang_thai === 'Mới'),
         'Đang xử lý': allTasks.filter(t => t.trang_thai === 'Đang xử lý' || t.trang_thai === 'CHỜ CHỈ ĐẠO'),
-        'Hoàn thành': allTasks.filter(t => t.trang_thai === 'Hoàn thành'),
-        'Thất bại': allTasks.filter(t => t.trang_thai === 'Thất bại')
+        'Chờ kiểm tra': allTasks.filter(t => t.trang_thai === 'PENDING_VERIFY'),
+        'Hoàn thành': allTasks.filter(t => t.trang_thai === 'Hoàn thành' || t.trang_thai === 'Thất bại' || t.trang_thai === 'Hủy')
       };
       setTasks(grouped);
     } catch(err) {
@@ -632,6 +632,7 @@ function StaffKanbanBoard({ filters }) {
   const columns = [
     { id: 'Mới', title: 'Việc Mới Nhận', icon: <AlertCircle size={16} />, color: 'bg-blue-50 text-blue-600 border-blue-200' },
     { id: 'Đang xử lý', title: 'Đang Tiến Hành', icon: <PlayCircle size={16} />, color: 'bg-orange-50 text-orange-600 border-orange-200' },
+    { id: 'Chờ kiểm tra', title: 'Chờ Kiểm Tra', icon: <Clock size={16} />, color: 'bg-yellow-50 text-yellow-600 border-yellow-200' },
     { id: 'Hoàn thành', title: 'Đã Báo Cáo Xong', icon: <CheckCircle2 size={16} />, color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
   ];
 

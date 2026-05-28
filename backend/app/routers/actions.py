@@ -385,17 +385,40 @@ async def report_task(
     
     old_status = task.trang_thai
     
-    task.trang_thai = payload.trang_thai
     task.bao_cao_ket_qua = payload.bao_cao_ket_qua
     task.pipeline_stage = payload.pipeline_stage or task.pipeline_stage
     task.kenh_tiep_can = payload.kenh_tiep_can or task.kenh_tiep_can
     task.ket_qua = payload.ket_qua or task.ket_qua
     task.converted_ma_kh = payload.converted_ma_kh or task.converted_ma_kh
     
-    # Nếu là B3 -> Chuyển sang chờ xác thực giao dịch
-    if payload.pipeline_stage == "B3":
-        task.trang_thai = "PENDING_VERIFY"
-        task.verified = False
+    # PENDING VERIFY RULE
+    proposed_status = payload.trang_thai
+    if proposed_status in ["Hoàn thành", "Thất bại"]:
+        needs_verify = False
+        
+        # 1. overdue_at != null
+        if task.overdue_at is not None:
+            needs_verify = True
+        # 2. VIP task
+        elif task.phan_loai_giao_viec == "VIP" or task.loai_doi_tuong == "VIP":
+            needs_verify = True
+        # 3. report quá ngắn
+        elif not payload.bao_cao_ket_qua or len(payload.bao_cao_ket_qua.strip()) < 20:
+            needs_verify = True
+        # 4. reopen >= 2 lần
+        elif db.query(TaskStateLog).filter(TaskStateLog.task_id == task_id, TaskStateLog.new_status == "Đang xử lý").count() >= 2:
+            needs_verify = True
+        # 5. task thất bại
+        elif proposed_status == "Thất bại":
+            needs_verify = True
+            
+        if needs_verify:
+            task.trang_thai = "PENDING_VERIFY"
+            task.verified = False
+        else:
+            task.trang_thai = proposed_status
+    else:
+        task.trang_thai = proposed_status
 
     if is_meaningful:
         task.updated_at = datetime.now()
@@ -666,7 +689,10 @@ async def get_action_summary(
         "total": len(tasks),
         "new": sum(1 for t in tasks if t.trang_thai == "Mới"),
         "processing": sum(1 for t in tasks if t.trang_thai == "Đang xử lý"),
+        "waiting_direction": sum(1 for t in tasks if t.trang_thai == "CHỜ CHỈ ĐẠO"),
+        "pending_verify": sum(1 for t in tasks if t.trang_thai == "PENDING_VERIFY"),
         "completed": sum(1 for t in tasks if t.trang_thai == "Hoàn thành"),
+        "completed_today": sum(1 for t in tasks if t.trang_thai == "Hoàn thành" and t.ngay_hoan_thanh and t.ngay_hoan_thanh.date() == now.date()),
         "failed": sum(1 for t in tasks if t.trang_thai == "Thất bại"),
         "cancelled": sum(1 for t in tasks if t.trang_thai == "Hủy"),
         "overdue_count": sum(1 for t in tasks if t.overdue_at is not None),
@@ -695,7 +721,7 @@ async def escalate_to_cluster(
         ActionTask.target_id == payload.target_id,
         ActionTask.loai_doi_tuong == payload.loai_doi_tuong,
         ActionTask.staff_id == current_user.nhan_su_id,
-        ActionTask.trang_thai.in_(["Mới", "Đang xử lý", "OVERDUE"])
+        ActionTask.trang_thai.in_(["Mới", "Đang xử lý"])
     ).first()
     
     if not task:
@@ -756,26 +782,27 @@ async def mark_task_overdue(
     if not task:
         raise HTTPException(status_code=404, detail="Không tìm thấy nhiệm vụ")
     
-    if task.trang_thai in ["Hoàn thành", "Thất bại", "Hủy", "OVERDUE"]:
-        raise HTTPException(status_code=400, detail="Trạng thái hiện tại không thể chuyển sang quá hạn")
+    if task.trang_thai in ["Hoàn thành", "Thất bại", "Hủy"]:
+        raise HTTPException(status_code=400, detail="Trạng thái hiện tại không thể đánh dấu quá hạn")
         
-    old_status = task.trang_thai
-    task.trang_thai = "OVERDUE"
+    # Không update trang_thai thành OVERDUE, chỉ ghi nhận overdue_at
+    if not task.overdue_at:
+        task.overdue_at = datetime.now()
     
     # Timeline Hook
     evidence = {
         "event_type": "TASK_OVERDUE",
         "action_by": "System Engine",
-        "previous_status": old_status,
-        "new_status": "OVERDUE",
+        "previous_status": task.trang_thai,
+        "new_status": task.trang_thai,
         "created_at": datetime.now().isoformat(),
         "reason": "Quá 7 ngày không cập nhật",
-        "evidence_text": "Hệ thống tự động chuyển trạng thái OVERDUE và gửi cảnh báo đỏ cho người giao việc"
+        "evidence_text": "Hệ thống tự động đánh dấu quá hạn và gửi cảnh báo đỏ cho người giao việc"
     }
     state_log = TaskStateLog(
         task_id=task.id,
-        previous_status=old_status,
-        new_status="OVERDUE",
+        previous_status=task.trang_thai,
+        new_status=task.trang_thai,
         changed_by=None,
         action_type="OVERDUE",
         reason="Quá 7 ngày",
