@@ -224,15 +224,15 @@ function LeaderDashboard({ filters }) {
   };
 
   const sortedTasks = useMemo(() => {
-    let sortableItems = [...tasks];
+    let sortableItems = Array.isArray(tasks) ? [...tasks] : [];
     if (sortConfig.key !== null) {
       sortableItems.sort((a, b) => {
-        let aVal = a[sortConfig.key];
-        let bVal = b[sortConfig.key];
+        let aVal = a?.[sortConfig.key];
+        let bVal = b?.[sortConfig.key];
 
         if (sortConfig.key === 'staff_name') {
-           aVal = a.staff_name || 'Z'; 
-           bVal = b.staff_name || 'Z';
+           aVal = a?.staff_name || 'Z'; 
+           bVal = b?.staff_name || 'Z';
         }
 
         if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
@@ -269,7 +269,7 @@ function LeaderDashboard({ filters }) {
            <div>
              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Đã Hoàn Thành</p>
              <h3 className="text-2xl font-black text-gray-800">{summary?.completed || 0}</h3>
-             <p className="text-[10px] font-black text-emerald-600 mt-1">Hôm nay: {summary?.completed_today || 0} | SLA: {summary?.total > 0 ? Math.round(((summary?.completed || 0) / summary.total) * 100) : 0}%</p>
+             <p className="text-[10px] font-black text-emerald-600 mt-1">Hôm nay: {summary?.completed_today || 0} | SLA: {(summary?.total || 0) > 0 ? Math.round(((summary?.completed || 0) / (summary?.total || 1)) * 100) : 0}%</p>
            </div>
         </div>
         <div className="card p-6 bg-white border border-gray-100 shadow-xl shadow-gray-200/40 rounded-3xl flex items-center gap-4">
@@ -295,7 +295,7 @@ function LeaderDashboard({ filters }) {
          {/* Overdue Staff Table */}
          <div className="card p-6 bg-white border border-gray-100 shadow-xl shadow-gray-200/40 rounded-3xl">
             <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Top Nhân sự Quá Hạn</h3>
-            {summary?.staff_stats?.length > 0 ? (
+            {Array.isArray(summary?.staff_stats) && summary.staff_stats.length > 0 ? (
                <table className="w-full text-left text-sm">
                  <thead>
                    <tr className="text-[10px] text-gray-400 uppercase border-b border-gray-50">
