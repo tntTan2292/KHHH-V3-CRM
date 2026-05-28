@@ -326,7 +326,7 @@ async def get_tasks(
         stale_days = 0
         assigned_time = t.created_at
 
-        assign_logs = [log for log in t_logs if log.action_type in ['ASSIGN', 'ASSIGNED', 'ASSIGN_STAFF', 'REASSIGNED', 'DELEGATED', 'CREATE_TASK', 'AUTO_ASSIGN']]
+        assign_logs = [log for log in t_logs if log.action_type in ['ASSIGN', 'ASSIGNED', 'ASSIGN_STAFF', 'REASSIGNED', 'DELEGATED', 'CREATE', 'AUTO_ASSIGN']]
         
         assigner_name_temp = None
         if assign_logs:
@@ -514,7 +514,16 @@ async def report_task(
     db.commit()
     
     # Timeline Hook
-    event_type = "COMPLETED" if payload.trang_thai in ["Hoàn thành", "Thất bại"] else "REPORTED"
+    if old_status == "PENDING_VERIFY" and payload.trang_thai == "Đang xử lý":
+        event_type = "REOPENED"
+        reason = "Yêu cầu làm lại"
+    elif old_status == "PENDING_VERIFY" and payload.trang_thai in ["Hoàn thành", "Thất bại"]:
+        event_type = "VERIFIED"
+        reason = "Đã duyệt báo cáo"
+    else:
+        event_type = "COMPLETED" if payload.trang_thai in ["Hoàn thành", "Thất bại"] else "REPORTED"
+        reason = "Báo cáo tiến độ"
+
     evidence = build_timeline_payload(
         db=db,
         event_type=event_type,
@@ -524,7 +533,7 @@ async def report_task(
         to_staff_id=current_user.nhan_su_id,
         previous_status=old_status,
         new_status=task.trang_thai,
-        reason="Báo cáo tiến độ",
+        reason=reason,
         evidence_text=payload.bao_cao_ket_qua
     )
     state_log = TaskStateLog(
@@ -533,7 +542,7 @@ async def report_task(
         new_status=task.trang_thai,
         changed_by=current_user.id,
         action_type=event_type,
-        reason="Báo cáo tiến độ",
+        reason=reason,
         evidence_snapshot_json=json.dumps(evidence, ensure_ascii=False)
     )
     db.add(state_log)
