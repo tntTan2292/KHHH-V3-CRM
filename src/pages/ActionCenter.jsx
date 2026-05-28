@@ -125,8 +125,8 @@ export default function ActionCenter() {
 
 // -------------------------------------------------------------
 function formatTaskAge(seconds) {
-  if (seconds == null || isNaN(seconds)) return 'Không rõ';
-  if (seconds < 0) return 'Vừa xong';
+  if (seconds == null || isNaN(seconds)) return '-';
+  if (seconds <= 0) return '0 giây';
   if (seconds < 60) return `${Math.floor(seconds)} giây`;
   if (seconds < 3600) return `${Math.floor(seconds / 60)} phút`;
   if (seconds < 86400) return `${Math.floor(seconds / 3600)} giờ`;

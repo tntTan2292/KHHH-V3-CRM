@@ -324,7 +324,10 @@ async def get_tasks(
             latest_assign = assign_logs[0]
             assigned_time = latest_assign.timestamp
             if latest_assign.user:
-                assigner_name = latest_assign.user.full_name
+                if getattr(latest_assign.user, "username", "") == "admin":
+                    assigner_name = "admin"
+                else:
+                    assigner_name = latest_assign.user.full_name
         else:
             assigned_time = t.created_at
 
