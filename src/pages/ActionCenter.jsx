@@ -134,6 +134,8 @@ function LeaderDashboard({ filters }) {
   const [assigningTask, setAssigningTask] = useState(null);
   const [selectedNode, setSelectedNode] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
   const [hierarchyTree, setHierarchyTree] = useState([]);
   
   // Auto-select node when assigning a task
@@ -248,7 +250,14 @@ function LeaderDashboard({ filters }) {
       direction = 'desc';
     }
     setSortConfig({ key, direction });
+    setCurrentPage(1); // Reset to first page on sort
   };
+
+  const paginatedTasks = useMemo(() => {
+    const startIdx = (currentPage - 1) * itemsPerPage;
+    return sortedTasks.slice(startIdx, startIdx + itemsPerPage);
+  }, [sortedTasks, currentPage]);
+  const totalPages = Math.ceil(sortedTasks.length / itemsPerPage);
 
   if (loading) return <div className="p-20 text-center text-gray-400 font-bold">Đang tải dữ liệu...</div>;
 
@@ -363,9 +372,9 @@ function LeaderDashboard({ filters }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {sortedTasks.length === 0 ? (
+              {paginatedTasks.length === 0 ? (
                  <tr><td colSpan="5" className="p-8 text-center text-gray-400 font-bold text-xs uppercase">Chưa có dữ liệu giao việc</td></tr>
-              ) : sortedTasks.map(task => (
+              ) : paginatedTasks.map(task => (
                 <tr key={task.id} className="hover:bg-blue-50/30 transition-colors">
                   <td className="p-4">
                     <div className="flex items-center gap-2">
@@ -431,6 +440,31 @@ function LeaderDashboard({ filters }) {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="p-4 border-t border-gray-50 flex items-center justify-between">
+             <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                Trang {currentPage} / {totalPages}
+             </span>
+             <div className="flex gap-2">
+                <button 
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600 font-black text-xs disabled:opacity-50 transition-colors uppercase tracking-widest"
+                >
+                  Trước
+                </button>
+                <button 
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600 font-black text-xs disabled:opacity-50 transition-colors uppercase tracking-widest"
+                >
+                  Sau
+                </button>
+             </div>
+          </div>
+        )}
       </div>
 
       {/* Quick Assign Modal - Flexible Assignment UI */}
