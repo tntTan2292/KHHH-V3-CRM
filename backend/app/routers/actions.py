@@ -357,17 +357,6 @@ async def get_tasks(
             else:
                 last_activity_time_display = last_activity_time.strftime("%H:%M %d/%m/%Y")
 
-        print({
-            "task_id": t.id,
-            "assigner_name": assigner_name,
-            "assigned_time_display": assigned_time_display,
-            "task_age_seconds": task_age_seconds,
-            "last_activity_display": last_activity_time_display,
-        })
-        print(f"Task ID: {t.id}")
-        print(f"Total Logs: {len(t_logs)}")
-        print([log.action_type for log in t_logs[:5]])
-
         result.append({
             "id": t.id,
             "target_id": t.target_id,
