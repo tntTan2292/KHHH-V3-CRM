@@ -135,7 +135,7 @@ function LeaderDashboard({ filters }) {
   const [selectedNode, setSelectedNode] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const [itemsPerPage, setItemsPerPage] = useState(20);
   const [hierarchyTree, setHierarchyTree] = useState([]);
   
   // Auto-select node when assigning a task
@@ -442,11 +442,29 @@ function LeaderDashboard({ filters }) {
         </div>
 
         {/* Pagination Controls */}
-        {totalPages > 1 && (
+        {(totalPages > 1 || itemsPerPage !== 20) && (
           <div className="p-4 border-t border-gray-50 flex items-center justify-between">
-             <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                Trang {currentPage} / {totalPages}
-             </span>
+             <div className="flex items-center gap-4">
+               <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                  Trang {currentPage} / {totalPages || 1}
+               </span>
+               <div className="flex items-center gap-2">
+                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Hiển thị</span>
+                 <select 
+                   value={itemsPerPage} 
+                   onChange={(e) => {
+                     setItemsPerPage(Number(e.target.value));
+                     setCurrentPage(1);
+                   }}
+                   className="text-xs font-bold text-gray-600 bg-gray-50 border-none rounded-lg px-2 py-1 outline-none cursor-pointer hover:bg-gray-100 transition-colors"
+                 >
+                   <option value={10}>10</option>
+                   <option value={20}>20</option>
+                   <option value={50}>50</option>
+                   <option value={100}>100</option>
+                 </select>
+               </div>
+             </div>
              <div className="flex gap-2">
                 <button 
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
