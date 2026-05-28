@@ -317,45 +317,59 @@ async def get_tasks(
         t_logs = sorted(logs_by_task.get(t.id, []), key=lambda x: x.timestamp, reverse=True)
         last_activity_time = t_logs[0].timestamp if t_logs else (t.updated_at or t.created_at)
         
-        assign_logs = [log for log in t_logs if log.action_type in ['ASSIGN', 'ASSIGNED', 'ASSIGN_STAFF', 'REASSIGNED', 'DELEGATED', 'CREATE_TASK', 'AUTO_ASSIGN']]
-        
-        assigner_name = None
-        if assign_logs:
-            latest_assign = assign_logs[0]
-            assigned_time = latest_assign.timestamp
-            if latest_assign.user:
-                if getattr(latest_assign.user, "username", "") == "admin":
-                    assigner_name = "admin"
-                else:
-                    assigner_name = latest_assign.user.full_name
-        else:
-            assigned_time = t.created_at
-
-        # Fallbacks cho assigner_name
-        if not assigner_name:
-            if getattr(t, "created_by", None):
-                cb = getattr(t, "created_by")
-                assigner_name = getattr(cb, "full_name", None) or getattr(cb, "username", None)
-            if not assigner_name:
-                assigner_name = getattr(t, "created_by_name", None)
-            if not assigner_name:
-                assigner_name = "Hệ thống"
-                
-        task_age_seconds = max(0, (now - assigned_time).total_seconds()) if assigned_time else 0
-        stuck_duration_seconds = max(0, (now - last_activity_time).total_seconds()) if last_activity_time else 0
-        stale_days = stuck_duration_seconds / 86400
-        
-        # Display logic
-        assigned_time_display = assigned_time.strftime("%H:%M %d/%m/%Y") if assigned_time else "-"
-        
+        # --- START WRAP SAFE SEMANTIC FIELDS ---
+        assigner_name = "-"
+        assigned_time_display = "-"
         last_activity_time_display = "-"
-        if last_activity_time:
-            if stuck_duration_seconds < 3600:
-                last_activity_time_display = f"{int(max(1, stuck_duration_seconds/60))} phút trước"
-            elif stuck_duration_seconds < 86400:
-                last_activity_time_display = f"{int(stuck_duration_seconds/3600)} giờ trước"
+        task_age_seconds = 0
+        stuck_duration_seconds = 0
+        stale_days = 0
+        assigned_time = t.created_at
+
+        try:
+            assign_logs = [log for log in t_logs if log.action_type in ['ASSIGN', 'ASSIGNED', 'ASSIGN_STAFF', 'REASSIGNED', 'DELEGATED', 'CREATE_TASK', 'AUTO_ASSIGN']]
+            
+            assigner_name_temp = None
+            if assign_logs:
+                latest_assign = assign_logs[0]
+                assigned_time = latest_assign.timestamp
+                if latest_assign.user:
+                    if getattr(latest_assign.user, "username", "") == "admin":
+                        assigner_name_temp = "admin"
+                    else:
+                        assigner_name_temp = latest_assign.user.full_name
             else:
-                last_activity_time_display = last_activity_time.strftime("%H:%M %d/%m/%Y")
+                assigned_time = t.created_at
+
+            # Fallbacks cho assigner_name
+            if not assigner_name_temp:
+                if getattr(t, "created_by", None):
+                    cb = getattr(t, "created_by")
+                    assigner_name_temp = getattr(cb, "full_name", None) or getattr(cb, "username", None)
+                if not assigner_name_temp:
+                    assigner_name_temp = getattr(t, "created_by_name", None)
+                if not assigner_name_temp:
+                    assigner_name_temp = "Hệ thống"
+            
+            assigner_name = assigner_name_temp
+
+            task_age_seconds = max(0, (now - assigned_time).total_seconds()) if assigned_time else 0
+            stuck_duration_seconds = max(0, (now - last_activity_time).total_seconds()) if last_activity_time else 0
+            stale_days = stuck_duration_seconds / 86400
+            
+            # Display logic
+            assigned_time_display = assigned_time.strftime("%H:%M %d/%m/%Y") if assigned_time else "-"
+            
+            if last_activity_time:
+                if stuck_duration_seconds < 3600:
+                    last_activity_time_display = f"{int(max(1, stuck_duration_seconds/60))} phút trước"
+                elif stuck_duration_seconds < 86400:
+                    last_activity_time_display = f"{int(stuck_duration_seconds/3600)} giờ trước"
+                else:
+                    last_activity_time_display = last_activity_time.strftime("%H:%M %d/%m/%Y")
+        except Exception:
+            pass # Silent fail để bảo vệ API runtime
+        # --- END WRAP SAFE ---
 
         result.append({
             "id": t.id,
