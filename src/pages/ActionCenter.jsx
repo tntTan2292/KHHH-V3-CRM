@@ -226,11 +226,24 @@ function LeaderDashboard({ filters }) {
       await api.patch(`/api/actions/tasks/${assigningTask.id}/reassign`, null, {
         params: { staff_id: staffId }
       });
-      toast.success('Đã giao việc thành công!');
+      toast.success('Đã điều phối thành công!');
       setAssigningTask(null);
       fetchData();
     } catch (err) {
-      toast.error('Lỗi khi giao việc');
+      toast.error('Lỗi khi điều phối việc');
+    }
+  };
+
+  const handleUpdateReport = async (taskId, newStatus, reportText) => {
+    try {
+      await api.patch(`/api/actions/tasks/${taskId}/report`, {
+        trang_thai: newStatus,
+        bao_cao_ket_qua: reportText
+      });
+      toast.success('Đã thao tác thành công');
+      fetchData();
+    } catch(err) {
+      toast.error('Có lỗi xảy ra khi thao tác');
     }
   };
 
@@ -445,6 +458,32 @@ function LeaderDashboard({ filters }) {
                       {task.overdue_at && <span className="bg-red-50 text-red-600 text-[9px] font-black uppercase px-2 py-0.5 rounded shadow-sm border border-red-200 tracking-wider">⚠️ QUÁ HẠN</span>}
                       {task.upcoming_sla && !task.overdue_at && <span className="bg-orange-50 text-orange-600 text-[9px] font-black uppercase px-2 py-0.5 rounded shadow-sm border border-orange-200 tracking-wider">SẮP QUÁ HẠN</span>}
                       {task.is_stale && <span className="bg-yellow-50 text-yellow-600 text-[9px] font-black uppercase px-2 py-0.5 rounded shadow-sm border border-yellow-200 tracking-wider">⚠️ TREO {formatTaskAge(task.stuck_duration_seconds)}</span>}
+                      
+                      {/* Leader Quick Actions */}
+                      <div className="flex items-center gap-1 mt-1">
+                        {task.trang_thai === 'PENDING_VERIFY' && (
+                          <button 
+                            onClick={() => {
+                              if(window.confirm('Từ chối báo cáo và yêu cầu nhân sự xử lý lại?')) {
+                                handleUpdateReport(task.id, 'Đang xử lý', 'Leader yêu cầu xử lý lại');
+                              }
+                            }}
+                            className="flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white rounded text-[9px] font-black uppercase tracking-wider transition-colors shadow-sm"
+                            title="Bắt xử lý lại"
+                          >
+                            <XCircle size={10}/> Từ chối
+                          </button>
+                        )}
+                        {task.staff_id && task.trang_thai !== 'Hoàn thành' && task.trang_thai !== 'Hủy' && (
+                          <button 
+                            onClick={() => setAssigningTask(task)}
+                            className="flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white rounded text-[9px] font-black uppercase tracking-wider transition-colors shadow-sm"
+                            title="Điều phối lại nhân sự khác"
+                          >
+                            <RefreshCw size={10}/> Đổi người
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="p-4 max-w-[250px]">
@@ -750,9 +789,34 @@ function StaffKanbanBoard({ filters }) {
                     Kịch bản: {task.tieu_de}
                   </p>
                   
-                  <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[9px] text-gray-400 font-medium">
-                     <span className="truncate max-w-[120px]" title={task.assigner_name}>Giao: {task.assigner_name}</span>
-                     <span>Age: <span className={task.task_age_seconds > 86400 * 2 ? "text-yellow-600 font-black uppercase" : ""}>{formatTaskAge(task.task_age_seconds)}</span></span>
+                  <div className="pt-2 border-t border-gray-100 flex flex-col gap-2 relative">
+                     <div className="flex items-center justify-between text-[9px] text-gray-400 font-medium">
+                        <span className="truncate max-w-[120px]" title={task.assigner_name}>Giao: {task.assigner_name}</span>
+                        <span className="lg:group-hover:opacity-0 transition-opacity">Age: <span className={task.task_age_seconds > 86400 * 2 ? "text-yellow-600 font-black uppercase" : ""}>{formatTaskAge(task.task_age_seconds)}</span></span>
+                     </div>
+                     
+                     {/* Staff Quick Actions Bar */}
+                     <div className="flex justify-end gap-1.5 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity lg:absolute lg:right-0 lg:bottom-0 lg:bg-white lg:pl-4">
+                         {task.trang_thai === 'Đang xử lý' && (
+                            <>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); if(window.confirm('Xác nhận hoàn thành nhanh nhiệm vụ này?')) handleUpdateReport(task.id, 'Hoàn thành', 'Đã xử lý xong (Quick Action)'); }}
+                              className="flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white rounded text-[9px] font-black uppercase tracking-wider transition-colors shadow-sm" title="Hoàn thành nhanh">
+                               <CheckCircle2 size={10}/> Xong
+                            </button>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleEscalate(task); }}
+                              className="flex items-center gap-1 px-2 py-1 bg-purple-50 text-purple-600 hover:bg-purple-500 hover:text-white rounded text-[9px] font-black uppercase tracking-wider transition-colors shadow-sm" title="Xin chỉ đạo">
+                               <AlertCircle size={10}/> Chỉ đạo
+                            </button>
+                            </>
+                         )}
+                         <button 
+                           onClick={(e) => { e.stopPropagation(); setHistoryTarget(task); setShowHistoryModal(true); }}
+                           className="flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-600 hover:bg-gray-500 hover:text-white rounded text-[9px] font-black uppercase tracking-wider transition-colors shadow-sm" title="Lịch sử">
+                            <History size={10}/>
+                         </button>
+                     </div>
                   </div>
                 </div>
               ))}
