@@ -137,7 +137,7 @@ function LeaderDashboard({ filters }) {
   
   // Auto-select node when assigning a task
   useEffect(() => {
-    if (assigningTask && staffList.length > 0 && treeData.length > 0 && !selectedNode) {
+    if (assigningTask && staffList.length > 0 && hierarchyTree.length > 0 && !selectedNode) {
        const staffId = assigningTask.staff_id || assigningTask.assigned_staff_id;
        if (staffId) {
           const staff = staffList.find(s => s.id === parseInt(staffId) || s.id === staffId);
@@ -152,14 +152,14 @@ function LeaderDashboard({ filters }) {
                 }
                 return null;
              };
-             const targetNode = findNode(treeData, staff.point_id);
+             const targetNode = findNode(hierarchyTree, staff.point_id);
              if (targetNode) {
                 setSelectedNode(targetNode);
              }
           }
        }
     }
-  }, [assigningTask, staffList, treeData, selectedNode]);
+  }, [assigningTask, staffList, hierarchyTree, selectedNode]);
 
   // History Tracker
   const [showHistoryModal, setShowHistoryModal] = useState(false);
