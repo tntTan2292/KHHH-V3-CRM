@@ -134,6 +134,7 @@ function LeaderDashboard({ filters }) {
   const [assigningTask, setAssigningTask] = useState(null);
   const [selectedNode, setSelectedNode] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
+  const [hierarchyTree, setHierarchyTree] = useState([]);
   
   // Auto-select node when assigning a task
   useEffect(() => {
@@ -164,8 +165,6 @@ function LeaderDashboard({ filters }) {
   // History Tracker
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [historyTarget, setHistoryTarget] = useState(null);
-
-  const [hierarchyTree, setHierarchyTree] = useState([]);
 
 
   useEffect(() => {
