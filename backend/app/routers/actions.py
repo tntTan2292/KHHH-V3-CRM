@@ -317,7 +317,7 @@ async def get_tasks(
         t_logs = sorted(logs_by_task.get(t.id, []), key=lambda x: x.timestamp, reverse=True)
         last_activity_time = t_logs[0].timestamp if t_logs else (t.updated_at or t.created_at)
         
-        assign_logs = [log for log in t_logs if log.action_type in ['ASSIGN', 'ASSIGN_STAFF', 'REASSIGNED', 'DELEGATED']]
+        assign_logs = [log for log in t_logs if log.action_type in ['ASSIGN', 'ASSIGNED', 'ASSIGN_STAFF', 'REASSIGNED', 'DELEGATED', 'CREATE_TASK', 'AUTO_ASSIGN']]
         
         assigner_name = None
         if assign_logs:
@@ -330,14 +330,11 @@ async def get_tasks(
 
         # Fallbacks cho assigner_name
         if not assigner_name:
-            if getattr(t, "created_by_name", None):
-                assigner_name = getattr(t, "created_by_name")
-            elif getattr(t, "created_by", None):
+            if getattr(t, "created_by", None):
                 cb = getattr(t, "created_by")
-                if getattr(cb, "full_name", None):
-                    assigner_name = getattr(cb, "full_name")
-                elif getattr(cb, "username", None):
-                    assigner_name = getattr(cb, "username")
+                assigner_name = getattr(cb, "full_name", None) or getattr(cb, "username", None)
+            if not assigner_name:
+                assigner_name = getattr(t, "created_by_name", None)
             if not assigner_name:
                 assigner_name = "Hệ thống"
                 
@@ -355,7 +352,18 @@ async def get_tasks(
             elif stuck_duration_seconds < 86400:
                 last_activity_time_display = f"{int(stuck_duration_seconds/3600)} giờ trước"
             else:
-                last_activity_time_display = last_activity_time.strftime("%d/%m %H:%M")
+                last_activity_time_display = last_activity_time.strftime("%H:%M %d/%m/%Y")
+
+        print({
+            "task_id": t.id,
+            "assigner_name": assigner_name,
+            "assigned_time_display": assigned_time_display,
+            "task_age_seconds": task_age_seconds,
+            "last_activity_display": last_activity_time_display,
+        })
+        print(f"Task ID: {t.id}")
+        print(f"Total Logs: {len(t_logs)}")
+        print([log.action_type for log in t_logs[:5]])
 
         result.append({
             "id": t.id,

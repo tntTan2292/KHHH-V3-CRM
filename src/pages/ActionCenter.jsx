@@ -404,8 +404,11 @@ function LeaderDashboard({ filters }) {
             <tbody className="divide-y divide-gray-50">
               {paginatedTasks.length === 0 ? (
                  <tr><td colSpan="9" className="p-8 text-center text-gray-400 font-bold text-xs uppercase">Chưa có dữ liệu giao việc</td></tr>
-              ) : paginatedTasks.map(task => (
+              ) : paginatedTasks.map(task => {
+                console.log("Frontend Verify Task:", task);
+                return (
                 <tr key={task.id} className="hover:bg-blue-50/30 transition-colors">
+
                   <td className="p-4">
                     <div className="flex items-center gap-2">
                        <div className="font-bold text-gray-800">{task.ten_kh_display}</div>
@@ -506,7 +509,7 @@ function LeaderDashboard({ filters }) {
                     )}
                   </td>
                 </tr>
-              ))}
+              ); })}
             </tbody>
           </table>
         </div>
