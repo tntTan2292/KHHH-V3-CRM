@@ -256,7 +256,7 @@ function LeaderDashboard({ filters }) {
   const paginatedTasks = useMemo(() => {
     const startIdx = (currentPage - 1) * itemsPerPage;
     return sortedTasks.slice(startIdx, startIdx + itemsPerPage);
-  }, [sortedTasks, currentPage]);
+  }, [sortedTasks, currentPage, itemsPerPage]);
   const totalPages = Math.ceil(sortedTasks.length / itemsPerPage);
 
   if (loading) return <div className="p-20 text-center text-gray-400 font-bold">Đang tải dữ liệu...</div>;
