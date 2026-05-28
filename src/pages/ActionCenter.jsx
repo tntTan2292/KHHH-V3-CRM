@@ -166,7 +166,7 @@ function LeaderDashboard({ filters }) {
   const [historyTarget, setHistoryTarget] = useState(null);
 
   const [hierarchyTree, setHierarchyTree] = useState([]);
-  const [selectedNode, setSelectedNode] = useState(null);
+
 
   useEffect(() => {
     fetchData();
@@ -855,7 +855,14 @@ function TaskTimeline({ taskId, currentStatus }) {
            Dấu chân Timeline
          </h4>
          <span className="text-[9px] font-black bg-white px-2 py-1 rounded-lg text-gray-400 shadow-sm border border-gray-100">{timeline.length} Events</span>
-                  <div className="flex items-start justify-between gap-2 mb-1">
+      </div>
+      <div className="relative pl-3 border-l-2 border-gray-100 space-y-6">
+        {timeline.map((event, idx) => {
+          return (
+            <div key={idx} className="relative group">
+              <div className="absolute -left-3 top-0 w-2 h-2 rounded-full bg-gray-200 border-2 border-white group-hover:bg-vnpost-blue transition-colors z-10" style={{ transform: 'translateX(-50%) mt-1.5' }}></div>
+              <div className="bg-white p-3 rounded-2xl border border-gray-50 shadow-lg shadow-gray-200/20 group-hover:-translate-y-0.5 transition-transform">
+                <div className="flex items-start justify-between gap-2 mb-1">
                      <span className="font-black text-gray-800 text-[11px] uppercase tracking-wider">{event.event_type.replace(/_/g, ' ')}</span>
                      <span className="text-[9px] text-gray-400 font-bold whitespace-nowrap bg-white px-1.5 py-0.5 rounded shadow-sm border border-gray-50">
                         {new Date(event.created_at).toLocaleString('vi-VN', {hour: '2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'})}
