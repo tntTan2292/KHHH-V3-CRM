@@ -326,49 +326,46 @@ async def get_tasks(
         stale_days = 0
         assigned_time = t.created_at
 
-        try:
-            assign_logs = [log for log in t_logs if log.action_type in ['ASSIGN', 'ASSIGNED', 'ASSIGN_STAFF', 'REASSIGNED', 'DELEGATED', 'CREATE_TASK', 'AUTO_ASSIGN']]
-            
-            assigner_name_temp = None
-            if assign_logs:
-                latest_assign = assign_logs[0]
-                assigned_time = latest_assign.timestamp
-                if latest_assign.user:
-                    if getattr(latest_assign.user, "username", "") == "admin":
-                        assigner_name_temp = "admin"
-                    else:
-                        assigner_name_temp = latest_assign.user.full_name
-            else:
-                assigned_time = t.created_at
-
-            # Fallbacks cho assigner_name
-            if not assigner_name_temp:
-                if getattr(t, "created_by", None):
-                    cb = getattr(t, "created_by")
-                    assigner_name_temp = getattr(cb, "full_name", None) or getattr(cb, "username", None)
-                if not assigner_name_temp:
-                    assigner_name_temp = getattr(t, "created_by_name", None)
-                if not assigner_name_temp:
-                    assigner_name_temp = "Hệ thống"
-            
-            assigner_name = assigner_name_temp
-
-            task_age_seconds = max(0, (now - assigned_time).total_seconds()) if assigned_time else 0
-            stuck_duration_seconds = max(0, (now - last_activity_time).total_seconds()) if last_activity_time else 0
-            stale_days = stuck_duration_seconds / 86400
-            
-            # Display logic
-            assigned_time_display = assigned_time.strftime("%H:%M %d/%m/%Y") if assigned_time else "-"
-            
-            if last_activity_time:
-                if stuck_duration_seconds < 3600:
-                    last_activity_time_display = f"{int(max(1, stuck_duration_seconds/60))} phút trước"
-                elif stuck_duration_seconds < 86400:
-                    last_activity_time_display = f"{int(stuck_duration_seconds/3600)} giờ trước"
+        assign_logs = [log for log in t_logs if log.action_type in ['ASSIGN', 'ASSIGNED', 'ASSIGN_STAFF', 'REASSIGNED', 'DELEGATED', 'CREATE_TASK', 'AUTO_ASSIGN']]
+        
+        assigner_name_temp = None
+        if assign_logs:
+            latest_assign = assign_logs[0]
+            assigned_time = latest_assign.timestamp
+            if latest_assign.user:
+                if getattr(latest_assign.user, "username", "") == "admin":
+                    assigner_name_temp = "admin"
                 else:
-                    last_activity_time_display = last_activity_time.strftime("%H:%M %d/%m/%Y")
-        except Exception:
-            pass # Silent fail để bảo vệ API runtime
+                    assigner_name_temp = latest_assign.user.full_name
+        else:
+            assigned_time = t.created_at
+
+        # Fallbacks cho assigner_name
+        if not assigner_name_temp:
+            if getattr(t, "created_by", None):
+                cb = getattr(t, "created_by")
+                assigner_name_temp = getattr(cb, "full_name", None) or getattr(cb, "username", None)
+            if not assigner_name_temp:
+                assigner_name_temp = getattr(t, "created_by_name", None)
+            if not assigner_name_temp:
+                assigner_name_temp = "Hệ thống"
+        
+        assigner_name = assigner_name_temp
+
+        task_age_seconds = max(0, (now - assigned_time).total_seconds()) if assigned_time else 0
+        stuck_duration_seconds = max(0, (now - last_activity_time).total_seconds()) if last_activity_time else 0
+        stale_days = stuck_duration_seconds / 86400
+        
+        # Display logic
+        assigned_time_display = assigned_time.strftime("%H:%M %d/%m/%Y") if assigned_time else "-"
+        
+        if last_activity_time:
+            if stuck_duration_seconds < 3600:
+                last_activity_time_display = f"{int(max(1, stuck_duration_seconds/60))} phút trước"
+            elif stuck_duration_seconds < 86400:
+                last_activity_time_display = f"{int(stuck_duration_seconds/3600)} giờ trước"
+            else:
+                last_activity_time_display = last_activity_time.strftime("%H:%M %d/%m/%Y")
         # --- END WRAP SAFE ---
 
         result.append({
@@ -702,7 +699,8 @@ async def get_action_summary(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    query = db.query(ActionTask)
+    now = datetime.now()
+    query = db.query(ActionTask).options(joinedload(ActionTask.staff))
     
     role_name = (current_user.role.name if current_user.role else "").strip().upper()
     if role_name == "STAFF" and current_user.nhan_su_id:
@@ -717,7 +715,7 @@ async def get_action_summary(
     if start_date and start_date.strip():
         query = query.filter(ActionTask.created_at >= start_date)
     if end_date and end_date.strip():
-        query = query.filter(ActionTask.created_at <= end_date)
+        query = query.filter(ActionTask.created_at <= f"{end_date} 23:59:59")
     
     if loai_doi_tuong:
         query = query.filter(ActionTask.loai_doi_tuong == loai_doi_tuong)
@@ -736,6 +734,7 @@ async def get_action_summary(
     upcoming_count = 0
     stale_count = 0
     vip_overdue_count = 0
+    global_overdue_count = 0
     
     for t in tasks:
         if SLAService.is_task_active(t):
@@ -750,8 +749,10 @@ async def get_action_summary(
                 stale_count += 1
             
             is_ov = SLAService.is_overdue(t, now=now)
-            if is_ov and (t.phan_loai_giao_viec == "VIP" or t.loai_doi_tuong == "VIP"):
-                vip_overdue_count += 1
+            if is_ov:
+                global_overdue_count += 1
+                if (t.phan_loai_giao_viec == "VIP" or t.loai_doi_tuong == "VIP"):
+                    vip_overdue_count += 1
             
             s_name = t.staff.full_name if t.staff else "Chưa gán"
             if s_name not in staff_map:
@@ -786,8 +787,8 @@ async def get_action_summary(
         "completed_today": sum(1 for t in tasks if t.trang_thai == "Hoàn thành" and t.ngay_hoan_thanh and t.ngay_hoan_thanh.date() == now.date()),
         "failed": sum(1 for t in tasks if t.trang_thai == "Thất bại"),
         "cancelled": sum(1 for t in tasks if t.trang_thai == "Hủy"),
-        "overdue_count": sum(1 for t in tasks if t.overdue_at is not None),
-        "overdue_rate": round(sum(1 for t in tasks if t.overdue_at is not None) / len(tasks) * 100, 2) if tasks else 0,
+        "overdue_count": global_overdue_count,
+        "overdue_rate": round((global_overdue_count / len(tasks)) * 100, 2) if tasks else 0,
         "upcoming_overdue_count": upcoming_count,
         "stale_task_count": stale_count,
         "vip_overdue_count": vip_overdue_count,
