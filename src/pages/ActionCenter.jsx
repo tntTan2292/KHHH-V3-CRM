@@ -269,22 +269,23 @@ function LeaderDashboard({ filters }) {
            <div>
              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Đã Hoàn Thành</p>
              <h3 className="text-2xl font-black text-gray-800">{summary?.completed || 0}</h3>
-             {/* RF2B C6 - Completion % */}
-             {summary?.total > 0 && (<p className="text-[10px] font-black text-emerald-600 mt-1">Tỉ lệ: {Math.round(((summary?.completed || 0) / summary.total) * 100)}%</p>)}
+             <p className="text-[10px] font-black text-emerald-600 mt-1">Hôm nay: {summary?.completed_today || 0} | SLA: {summary?.total > 0 ? Math.round(((summary?.completed || 0) / summary.total) * 100) : 0}%</p>
            </div>
         </div>
         <div className="card p-6 bg-white border border-gray-100 shadow-xl shadow-gray-200/40 rounded-3xl flex items-center gap-4">
            <div className="p-3 bg-orange-50 text-orange-500 rounded-xl"><Clock size={24} /></div>
            <div>
              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Đang Xử Lý</p>
-             <h3 className="text-2xl font-black text-gray-800">{summary?.processing || 0}</h3>
+             <h3 className="text-2xl font-black text-gray-800">{(summary?.processing || 0) + (summary?.waiting_direction || 0)}</h3>
+             <p className="text-[10px] font-black text-orange-600 mt-1">Xin chỉ đạo: {summary?.waiting_direction || 0}</p>
            </div>
         </div>
         <div className="card p-6 bg-white border border-gray-100 shadow-xl shadow-gray-200/40 rounded-3xl flex items-center gap-4">
-           <div className="p-3 bg-red-50 text-red-500 rounded-xl"><AlertCircle size={24} /></div>
+           <div className="p-3 bg-yellow-50 text-yellow-500 rounded-xl"><AlertCircle size={24} /></div>
            <div>
-             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Mới Nhận</p>
-             <h3 className="text-2xl font-black text-gray-800">{summary?.new || 0}</h3>
+             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Chờ Kiểm Tra</p>
+             <h3 className="text-2xl font-black text-gray-800">{summary?.pending_verify || 0}</h3>
+             <p className="text-[10px] font-black text-gray-400 mt-1">Mới: {summary?.new || 0}</p>
            </div>
         </div>
       </div>
@@ -659,6 +660,9 @@ function StaffKanbanBoard({ filters }) {
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex gap-2 flex-wrap items-center">
                       <FlowBadge type={task.phan_loai_giao_viec} />
+                      {task.trang_thai === 'Thất bại' && <span className="bg-gray-100 text-gray-600 text-[10px] font-black px-2 py-0.5 rounded border border-gray-300 uppercase tracking-widest shadow-sm">Thất bại</span>}
+                      {task.trang_thai === 'Hủy' && <span className="bg-gray-100 text-gray-500 text-[10px] font-black px-2 py-0.5 rounded border border-gray-200 uppercase tracking-widest shadow-sm">Đã Hủy</span>}
+                      {task.trang_thai === 'CHỜ CHỈ ĐẠO' && <span className="bg-purple-50 text-purple-600 text-[10px] font-black px-2 py-0.5 rounded border border-purple-200 uppercase tracking-widest shadow-sm">Xin chỉ đạo</span>}
                       {task.overdue_at && <span className="bg-red-50 text-red-600 text-[10px] font-black px-2 py-0.5 rounded border border-red-200 uppercase tracking-widest shadow-sm">⚠️ QUÁ HẠN</span>}
                     </div>
                     {task.deadline && (
