@@ -318,20 +318,44 @@ async def get_tasks(
         last_activity_time = t_logs[0].timestamp if t_logs else (t.updated_at or t.created_at)
         
         assign_logs = [log for log in t_logs if log.action_type in ['ASSIGN', 'ASSIGN_STAFF', 'REASSIGNED', 'DELEGATED']]
+        
+        assigner_name = None
         if assign_logs:
             latest_assign = assign_logs[0]
             assigned_time = latest_assign.timestamp
             if latest_assign.user:
                 assigner_name = latest_assign.user.full_name
-            else:
-                assigner_name = getattr(t, "created_by_name", getattr(t, "created_by", "Hệ thống"))
         else:
-            assigner_name = getattr(t, "created_by_name", getattr(t, "created_by", "Hệ thống"))
             assigned_time = t.created_at
+
+        # Fallbacks cho assigner_name
+        if not assigner_name:
+            if getattr(t, "created_by_name", None):
+                assigner_name = getattr(t, "created_by_name")
+            elif getattr(t, "created_by", None):
+                cb = getattr(t, "created_by")
+                if getattr(cb, "full_name", None):
+                    assigner_name = getattr(cb, "full_name")
+                elif getattr(cb, "username", None):
+                    assigner_name = getattr(cb, "username")
+            if not assigner_name:
+                assigner_name = "Hệ thống"
                 
         task_age_seconds = max(0, (now - assigned_time).total_seconds()) if assigned_time else 0
         stuck_duration_seconds = max(0, (now - last_activity_time).total_seconds()) if last_activity_time else 0
         stale_days = stuck_duration_seconds / 86400
+        
+        # Display logic
+        assigned_time_display = assigned_time.strftime("%H:%M %d/%m/%Y") if assigned_time else "-"
+        
+        last_activity_time_display = "-"
+        if last_activity_time:
+            if stuck_duration_seconds < 3600:
+                last_activity_time_display = f"{int(max(1, stuck_duration_seconds/60))} phút trước"
+            elif stuck_duration_seconds < 86400:
+                last_activity_time_display = f"{int(stuck_duration_seconds/3600)} giờ trước"
+            else:
+                last_activity_time_display = last_activity_time.strftime("%d/%m %H:%M")
 
         result.append({
             "id": t.id,
@@ -361,7 +385,9 @@ async def get_tasks(
             "is_stale": t.trang_thai in ["Mới", "Đang xử lý", "CHỜ CHỈ ĐẠO"] and stuck_duration_seconds > 48 * 3600,
             "assigner_name": assigner_name,
             "assigned_time": assigned_time.strftime("%Y-%m-%d %H:%M") if assigned_time else None,
+            "assigned_time_display": assigned_time_display,
             "last_activity_time": last_activity_time.strftime("%Y-%m-%d %H:%M") if last_activity_time else None,
+            "last_activity_time_display": last_activity_time_display,
             "task_age_seconds": task_age_seconds,
             "stuck_duration_seconds": stuck_duration_seconds,
             "ngay_hoan_thanh": t.ngay_hoan_thanh.strftime("%Y-%m-%d %H:%M") if t.ngay_hoan_thanh else None,
