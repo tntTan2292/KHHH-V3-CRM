@@ -259,7 +259,10 @@ async def get_tasks(
         if scope_ids is not None:
             # Get staff IDs within scope
             staff_ids = [s.id for s in db.query(NhanSu.id).filter(NhanSu.point_id.in_(scope_ids)).all()]
-            query = query.filter(ActionTask.staff_id.in_(staff_ids))
+            query = query.filter(or_(
+                ActionTask.staff_id.in_(staff_ids),
+                ActionTask.staff_id.is_(None)
+            ))
     
     if start_date and start_date.strip():
         query = query.filter(ActionTask.created_at >= start_date)
@@ -841,7 +844,10 @@ async def get_action_summary(
         scope_ids = ScopingService.get_effective_scope_ids(db, current_user, node_code)
         if scope_ids is not None:
             staff_ids = [s.id for s in db.query(NhanSu.id).filter(NhanSu.point_id.in_(scope_ids)).all()]
-            query = query.filter(ActionTask.staff_id.in_(staff_ids))
+            query = query.filter(or_(
+                ActionTask.staff_id.in_(staff_ids),
+                ActionTask.staff_id.is_(None)
+            ))
         
     if start_date and start_date.strip():
         query = query.filter(ActionTask.created_at >= start_date)

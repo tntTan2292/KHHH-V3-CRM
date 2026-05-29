@@ -413,6 +413,7 @@ function LeaderDashboard({ filters }) {
                      }}
                    />
                 </th>
+                <th className="p-4 w-12 text-center">STT</th>
                 <th className="p-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => requestSort('ten_kh_display')}>
                    <div className="flex items-center gap-1">Khách hàng Mục tiêu <SortIcon config={sortConfig} field="ten_kh_display" /></div>
                 </th>
@@ -432,8 +433,8 @@ function LeaderDashboard({ filters }) {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {paginatedTasks.length === 0 ? (
-                 <tr><td colSpan="10" className="p-8 text-center text-gray-400 font-bold text-xs uppercase">Chưa có dữ liệu giao việc</td></tr>
-              ) : paginatedTasks.map(task => {
+                 <tr><td colSpan="11" className="p-8 text-center text-gray-400 font-bold text-xs uppercase">Chưa có dữ liệu giao việc</td></tr>
+              ) : paginatedTasks.map((task, index) => {
                 return (
                 <tr key={task.id} className={`hover:bg-blue-50/30 transition-colors ${selectedTaskIds.includes(task.id) ? 'bg-blue-50/50' : ''}`}>
                   <td className="p-4">
@@ -447,6 +448,7 @@ function LeaderDashboard({ filters }) {
                       }}
                     />
                   </td>
+                  <td className="p-4 text-center text-xs font-bold text-gray-400">{(currentPage - 1) * 20 + index + 1}</td>
                   <td className="p-4">
                     <div className="flex items-center gap-2">
                        <div className="font-bold text-gray-800">{task.ten_kh_display}</div>
@@ -857,9 +859,9 @@ function StaffKanbanBoard({ filters }) {
   ];
 
   return (
-    <div className="flex gap-6 overflow-x-auto pb-4 custom-scrollbar">
+    <div className="flex gap-6 overflow-x-auto pb-4 custom-scrollbar h-[calc(100vh-140px)]">
       {columns.map(col => (
-        <div key={col.id} className="min-w-[320px] max-w-[320px] flex flex-col gap-4">
+        <div key={col.id} className="min-w-[320px] max-w-[320px] flex flex-col gap-4 h-full">
            {/* Column Header */}
            <div className={`p-4 rounded-2xl border font-black uppercase tracking-widest text-xs flex items-center justify-between shadow-sm ${col.color}`}>
               <div className="flex items-center gap-2">
@@ -869,7 +871,7 @@ function StaffKanbanBoard({ filters }) {
            </div>
 
            {/* Cards */}
-           <div className="flex-1 space-y-4">
+           <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar pr-2 pb-10">
               {tasks[col.id].map(task => (
                 <div 
                   key={task.id} 
@@ -979,13 +981,21 @@ function StaffKanbanBoard({ filters }) {
                          </div>
                        )}
 
-                       {selectedTask.trang_thai !== 'Mới' && (
-                         <>
-                           <ReportForm 
-                              task={selectedTask} 
-                              onSubmit={handleUpdateReport} 
-                           />
-                         </>
+                       {['Đang xử lý', 'CHỜ CHỈ ĐẠO'].includes(selectedTask.trang_thai) && (
+                         <ReportForm 
+                            task={selectedTask} 
+                            onSubmit={handleUpdateReport} 
+                         />
+                       )}
+                       {['Hoàn thành', 'Thất bại', 'Hủy', 'PENDING_VERIFY'].includes(selectedTask.trang_thai) && (
+                         <div className="p-4 bg-gray-50 border border-gray-200 rounded-2xl text-center">
+                            <p className="text-sm font-bold text-gray-500">Nhiệm vụ này đã kết thúc hoặc đang chờ kiểm duyệt. Không thể chỉnh sửa báo cáo.</p>
+                            {selectedTask.bao_cao_ket_qua && (
+                               <div className="mt-4 p-4 bg-white border border-gray-100 rounded-xl text-left text-sm text-gray-700 whitespace-pre-wrap shadow-sm">
+                                  {selectedTask.bao_cao_ket_qua}
+                               </div>
+                            )}
+                         </div>
                        )}
                      </div>
                   )}
