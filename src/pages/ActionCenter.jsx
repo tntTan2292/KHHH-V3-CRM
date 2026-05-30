@@ -46,17 +46,17 @@ export default function ActionCenter() {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-700">
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+    <div className="space-y-3 animate-in fade-in duration-700">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
           <div className="flex items-center gap-2 text-vnpost-blue mb-1">
-             <Target size={20} className="text-vnpost-orange" />
-             <span className="text-[10px] font-black uppercase tracking-[0.3em]">Module Chuyên trách V3.0</span>
+             <Target size={16} className="text-vnpost-orange" />
+             <span className="text-[10px] font-black uppercase tracking-[0.2em]">Module Chuyên trách V3.0</span>
           </div>
-          <h2 className="text-3xl font-black text-gray-800 tracking-tight">
+          <h2 className="text-2xl font-black text-gray-900 tracking-tight">
             Quản trị Tiếp cận Khách hàng
           </h2>
-          <p className="text-gray-500 text-sm font-medium mt-1">
+          <p className="text-gray-600 text-xs font-medium mt-1">
             {isLeader ? 'Giám sát tiến độ và hiệu quả tiếp cận của nhân viên.' : 'Bảng công việc Kanban cá nhân.'}
           </p>
         </div>
@@ -303,95 +303,100 @@ function LeaderDashboard({ filters }) {
   if (loading) return <div className="p-20 text-center text-gray-400 font-bold">Đang tải dữ liệu...</div>;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="card p-6 bg-white border border-gray-100 shadow-xl shadow-gray-200/40 rounded-3xl flex items-center gap-4">
-           <div className="p-3 bg-blue-50 text-blue-500 rounded-xl"><Target size={24} /></div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="card p-3 px-4 bg-white border border-gray-100 shadow-sm rounded-2xl flex items-center gap-3">
+           <div className="p-2 bg-blue-50 text-blue-500 rounded-lg"><Target size={18} /></div>
            <div>
-             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tổng Giao Việc</p>
-             <h3 className="text-2xl font-black text-gray-800">{summary?.total || 0}</h3>
+             <p className="text-[11px] font-black text-gray-600 uppercase tracking-wider">Tổng Giao Việc</p>
+             <h3 className="text-xl font-black text-gray-900">{summary?.total || 0}</h3>
            </div>
         </div>
-        <div className="card p-6 bg-white border border-gray-100 shadow-xl shadow-gray-200/40 rounded-3xl flex items-center gap-4">
-           <div className="p-3 bg-emerald-50 text-emerald-500 rounded-xl"><CheckCircle2 size={24} /></div>
+        <div className="card p-3 px-4 bg-white border border-gray-100 shadow-sm rounded-2xl flex items-center gap-3">
+           <div className="p-2 bg-emerald-50 text-emerald-500 rounded-lg"><CheckCircle2 size={18} /></div>
            <div>
-             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Đã Hoàn Thành</p>
-             <h3 className="text-2xl font-black text-gray-800">{summary?.completed || 0}</h3>
-             <p className="text-[10px] font-black text-emerald-600 mt-1">Hôm nay: {summary?.completed_today || 0} | SLA: {(summary?.total || 0) > 0 ? Math.round(((summary?.completed || 0) / (summary?.total || 1)) * 100) : 0}%</p>
+             <p className="text-[11px] font-black text-gray-600 uppercase tracking-wider">Đã Hoàn Thành</p>
+             <div className="flex items-end gap-2">
+               <h3 className="text-xl font-black text-gray-900">{summary?.completed || 0}</h3>
+               <span className="text-[10px] font-bold text-emerald-600 mb-1 border-l pl-2 border-gray-200">H.Nay: {summary?.completed_today || 0}</span>
+             </div>
            </div>
         </div>
-        <div className="card p-6 bg-white border border-gray-100 shadow-xl shadow-gray-200/40 rounded-3xl flex items-center gap-4">
-           <div className="p-3 bg-orange-50 text-orange-500 rounded-xl"><Clock size={24} /></div>
+        <div className="card p-3 px-4 bg-white border border-gray-100 shadow-sm rounded-2xl flex items-center gap-3">
+           <div className="p-2 bg-orange-50 text-orange-500 rounded-lg"><Clock size={18} /></div>
            <div>
-             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Đang Xử Lý</p>
-             <h3 className="text-2xl font-black text-gray-800">{(summary?.processing || 0) + (summary?.waiting_direction || 0)}</h3>
-             <p className="text-[10px] font-black text-orange-600 mt-1">Xin chỉ đạo: {summary?.waiting_direction || 0}</p>
+             <p className="text-[11px] font-black text-gray-600 uppercase tracking-wider">Đang Xử Lý</p>
+             <div className="flex items-end gap-2">
+               <h3 className="text-xl font-black text-gray-900">{(summary?.processing || 0) + (summary?.waiting_direction || 0)}</h3>
+               <span className="text-[10px] font-bold text-orange-600 mb-1 border-l pl-2 border-gray-200">Xin chỉ đạo: {summary?.waiting_direction || 0}</span>
+             </div>
            </div>
         </div>
-        <div className="card p-6 bg-white border border-gray-100 shadow-xl shadow-gray-200/40 rounded-3xl flex items-center gap-4">
-           <div className="p-3 bg-yellow-50 text-yellow-500 rounded-xl"><AlertCircle size={24} /></div>
+        <div className="card p-3 px-4 bg-white border border-gray-100 shadow-sm rounded-2xl flex items-center gap-3">
+           <div className="p-2 bg-yellow-50 text-yellow-500 rounded-lg"><AlertCircle size={18} /></div>
            <div>
-             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Chờ Kiểm Tra</p>
-             <h3 className="text-2xl font-black text-gray-800">{summary?.pending_verify || 0}</h3>
-             <p className="text-[10px] font-black text-gray-400 mt-1">Mới: {summary?.new || 0}</p>
+             <p className="text-[11px] font-black text-gray-600 uppercase tracking-wider">Chờ Kiểm Tra</p>
+             <div className="flex items-end gap-2">
+               <h3 className="text-xl font-black text-gray-900">{summary?.pending_verify || 0}</h3>
+               <span className="text-[10px] font-bold text-gray-500 mb-1 border-l pl-2 border-gray-200">Mới: {summary?.new || 0}</span>
+             </div>
            </div>
         </div>
       </div>
       
-      {/* SLA Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-         {/* Overdue Staff Table */}
-         <div className="card p-6 bg-white border border-gray-100 shadow-xl shadow-gray-200/40 rounded-3xl">
-            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Staff Backlog Leaderboard</h3>
-            {Array.isArray(summary?.staff_stats) && summary.staff_stats.length > 0 ? (
-               <table className="w-full text-left text-sm">
-                 <thead>
-                   <tr className="text-[10px] text-gray-400 uppercase border-b border-gray-50">
-                     <th className="pb-2">Nhân sự</th>
-                     <th className="pb-2">Đang giữ</th>
-                     <th className="pb-2">Quá hạn</th>
-                     <th className="pb-2 text-yellow-600">Treo (&gt;2 ngày)</th>
-                   </tr>
-                 </thead>
-                 <tbody className="divide-y divide-gray-50">
-                   {summary.staff_stats.map(s => (
-                     <tr key={s.staff_name}>
-                       <td className="py-2 font-bold text-gray-700">{s.staff_name}</td>
-                       <td className="py-2">{s.pending}</td>
-                       <td className="py-2 text-red-500 font-bold">{s.overdue}</td>
-                       <td className="py-2 font-semibold text-yellow-600">{s.stuck}</td>
-                     </tr>
-                   ))}
-                 </tbody>
-               </table>
-            ) : (
-               <div className="text-center text-gray-400 text-xs italic py-4">Tất cả nhân sự đều đúng tiến độ</div>
-            )}
-         </div>
+      {/* SLA Metrics Alert Strip */}
+      <div className="flex flex-wrap gap-2">
+        <div className="flex-1 bg-red-50 border border-red-100 px-4 py-2 rounded-xl flex items-center justify-between">
+           <span className="text-[11px] font-black text-red-600 uppercase tracking-wider">Tổng Quá Hạn</span>
+           <span className="text-sm font-black text-red-700 flex items-center gap-1"><AlertCircle size={14}/> {summary?.overdue_count || 0}</span>
+        </div>
+        <div className="flex-1 bg-purple-50 border border-purple-100 px-4 py-2 rounded-xl flex items-center justify-between">
+           <span className="text-[11px] font-black text-purple-600 uppercase tracking-wider">VIP Quá Hạn</span>
+           <span className="text-sm font-black text-purple-700 flex items-center gap-1"><AlertCircle size={14}/> {summary?.vip_overdue_count || 0}</span>
+        </div>
+        <div className="flex-1 bg-orange-50 border border-orange-100 px-4 py-2 rounded-xl flex items-center justify-between">
+           <span className="text-[11px] font-black text-orange-600 uppercase tracking-wider">Sắp Quá Hạn (&lt; 24h)</span>
+           <span className="text-sm font-black text-orange-700 flex items-center gap-1"><Clock size={14}/> {summary?.upcoming_overdue_count || 0}</span>
+        </div>
+        <div className="flex-1 bg-yellow-50 border border-yellow-100 px-4 py-2 rounded-xl flex items-center justify-between">
+           <span className="text-[11px] font-black text-yellow-600 uppercase tracking-wider">Treo Lâu (&gt; 2 ngày)</span>
+           <span className="text-sm font-black text-yellow-700 flex items-center gap-1"><History size={14}/> {summary?.stale_task_count || 0}</span>
+        </div>
+      </div>
 
-         <div className="flex flex-col gap-4">
-           <div className="flex gap-4 h-full">
-             <div className="card p-6 flex-1 bg-red-50/50 border border-red-100 shadow-xl shadow-red-200/20 rounded-3xl flex flex-col justify-center gap-2">
-                <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">Tổng Task Quá Hạn</p>
-                <h3 className="text-xl font-black text-red-600 flex items-center gap-2"><AlertCircle size={16}/> {summary?.overdue_count || 0}</h3>
-             </div>
-             <div className="card p-6 flex-1 bg-purple-50/50 border border-purple-100 shadow-xl shadow-purple-200/20 rounded-3xl flex flex-col justify-center gap-2">
-                <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest">VIP Quá Hạn</p>
-                <h3 className="text-xl font-black text-purple-600 flex items-center gap-2"><AlertCircle size={16}/> {summary?.vip_overdue_count || 0}</h3>
-             </div>
-           </div>
-           <div className="flex gap-4 h-full">
-             <div className="card p-6 flex-1 bg-orange-50/50 border border-orange-100 rounded-3xl flex flex-col justify-center gap-2">
-                <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest">Sắp Quá Hạn (&lt; 24h)</p>
-                <h3 className="text-xl font-black text-orange-600 flex items-center gap-2"><Clock size={16}/> {summary?.upcoming_overdue_count || 0}</h3>
-             </div>
-             <div className="card p-6 flex-1 bg-yellow-50/50 border border-yellow-100 rounded-3xl flex flex-col justify-center gap-2">
-                <p className="text-[10px] font-black text-yellow-500 uppercase tracking-widest">Task Treo Lâu (&gt; 2 ngày)</p>
-                <h3 className="text-xl font-black text-yellow-600 flex items-center gap-2"><History size={16}/> {summary?.stale_task_count || 0}</h3>
-             </div>
-           </div>
-         </div>
+      {/* Overdue Staff Table */}
+      <div className="card p-4 bg-white border border-gray-100 shadow-sm rounded-2xl">
+        <h3 className="text-[11px] font-black text-gray-600 uppercase tracking-wider mb-3">Staff Backlog Leaderboard</h3>
+        {Array.isArray(summary?.staff_stats) && summary.staff_stats.length > 0 ? (
+           <table className="w-full text-left text-sm">
+             <thead>
+               <tr className="text-[10px] text-gray-500 uppercase border-b border-gray-100">
+                 <th className="pb-2">Nhân sự</th>
+                 <th className="pb-2">Đang giữ</th>
+                 <th className="pb-2">Quá hạn</th>
+                 <th className="pb-2 text-red-600">Tỷ lệ quá hạn (%)</th>
+                 <th className="pb-2 text-yellow-600">Treo (&gt;2 ngày)</th>
+               </tr>
+             </thead>
+             <tbody className="divide-y divide-gray-50">
+               {summary.staff_stats.map(s => {
+                 const percentage = s.pending > 0 ? Math.round((s.overdue / s.pending) * 100) : 0;
+                 return (
+                 <tr key={s.staff_name}>
+                   <td className="py-2 font-bold text-gray-900">{s.staff_name}</td>
+                   <td className="py-2 text-gray-700">{s.pending}</td>
+                   <td className="py-2 text-red-600 font-bold">{s.overdue}</td>
+                   <td className={`py-2 font-bold ${percentage > 30 ? 'text-red-600' : 'text-gray-700'}`}>{percentage}%</td>
+                   <td className="py-2 font-semibold text-yellow-600">{s.stuck}</td>
+                 </tr>
+                 );
+               })}
+             </tbody>
+           </table>
+        ) : (
+           <div className="text-center text-gray-500 text-xs italic py-2">Tất cả nhân sự đều đúng tiến độ</div>
+        )}
       </div>
 
       {/* List of reports */}

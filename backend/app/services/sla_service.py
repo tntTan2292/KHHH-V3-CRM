@@ -30,7 +30,11 @@ class SLAService:
         if task.overdue_at is not None:
             return True
         now = now or datetime.now()
-        return task.deadline is not None and task.deadline < now
+        if task.deadline is not None:
+            return task.deadline < now
+        # Nếu không có deadline, kiểm tra xem có bị treo quá 7 ngày không
+        stuck_days = SLAService.calculate_stale_days(task, now=now)
+        return stuck_days > 7
 
     @staticmethod
     def is_upcoming_sla(task, hours: int = 24, now: datetime = None) -> bool:
@@ -43,10 +47,13 @@ class SLAService:
 
     @staticmethod
     def calculate_stale_days(task, now: datetime = None) -> int:
-        if not SLAService.is_task_active(task) or not task.updated_at:
+        if not SLAService.is_task_active(task):
             return 0
         now = now or datetime.now()
-        return (now - task.updated_at).days
+        last_active = task.updated_at or task.created_at
+        if not last_active:
+            return 0
+        return (now - last_active).days
 
     @staticmethod
     def validate_transition(current_status, new_status):

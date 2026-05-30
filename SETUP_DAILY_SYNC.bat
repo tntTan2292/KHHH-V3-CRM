@@ -22,11 +22,11 @@ echo [*] Dang tao Task "VnPost_Daily_Sync" chay vao 07:00 hang ngay...
 echo [*] Thiet lap Repeat moi 1h trong vong 12h neu loi...
 
 :: Su dung duong dan tuyet doi den Python de dam bao on dinh
-set "PYTHON_EXE=C:\Users\Admin\AppData\Local\Programs\Python\Python311\python.exe"
+set "PYTHON_EXE=%PROJECT_DIR%backend\venv\Scripts\python.exe"
 
 :: Xoa task cu neu co va tao moi voi cau hinh Repeat chuan
 schtasks /delete /tn "VnPost_Daily_Sync" /f >nul 2>&1
-schtasks /create /tn "VnPost_Daily_Sync" /tr "\"%PYTHON_EXE%\" \"%SCRIPT_PATH%\"" /sc daily /st 07:00 /ri 60 /du 12:00 /f
+schtasks /create /tn "VnPost_Daily_Sync" /ru "SYSTEM" /tr "\"%PYTHON_EXE%\" \"%SCRIPT_PATH%\"" /sc daily /st 07:00 /ri 60 /du 12:00 /f
 
 if %errorLevel% == 0 (
     echo.

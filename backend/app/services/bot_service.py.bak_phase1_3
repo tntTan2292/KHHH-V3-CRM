@@ -137,18 +137,61 @@ class EliteBotService:
 
         alerts = []
         for c in top_at_risk:
-            # Tính số ngày ngừng gửi (Recency)
-            last_order_date = db.query(func.max(Transaction.ngay_chap_nhan)).filter(Transaction.ma_kh == c.ma_crm_cms).scalar()
-            days_since = (today - last_order_date.date()).days if last_order_date else 0
+            # Kiểm tra xem đã có task cho khách hàng này trong tháng chưa
+            existing_task = db.query(ActionTask).filter(
+                and_(
+                    ActionTask.target_id == c.ma_crm_cms,
+                    ActionTask.phan_loai_giao_viec == "Giao Cảnh báo",
+                    ActionTask.created_at >= first_day_current
+                )
+            ).first()
+
+            if not existing_task:
+                # Tạo Task tự động nếu chưa có
+                # Tính số ngày ngừng gửi (Recency)
+                last_order_date = db.query(func.max(Transaction.ngay_chap_nhan)).filter(Transaction.ma_kh == c.ma_crm_cms).scalar()
+                days_since = (today - last_order_date.date()).days if last_order_date else 0
+                last_order_str = last_order_date.strftime("%d/%m/%Y") if last_order_date else "N/A"
+
+                new_task = ActionTask(
+                    target_id=c.ma_crm_cms,
+                    loai_doi_tuong="HienHuu",
+                    phan_loai_giao_viec="Giao Cảnh báo",
+                    staff_id=c.assigned_staff_id,
+                    noi_dung=f"BOT CẢNH BÁO: Khách hàng '{c.ten_kh}' đã {days_since} ngày chưa phát sinh đơn mới (Lần cuối: {last_order_str}). Cần liên hệ cứu chữa gấp.",
+                    trang_thai="Mới"
+                )
+                db.add(new_task)
+                db.flush() # Để lấy ID
+                task_id = new_task.id
+
+                # Ghi Log cho BOT
+                from ..models import SystemLog
+                bot_log = SystemLog(
+                    user_id=None, # BOT không có user_id
+                    action="BOT_ASSIGN_TASK",
+                    resource="HienHuu",
+                    details=f"BOT tự động giao việc cảnh báo cho KH {c.ma_crm_cms} (Nhân sự ID {c.assigned_staff_id})",
+                    ip_address="127.0.0.1"
+                )
+                db.add(bot_log)
+            else:
+                task_id = existing_task.id
+
+            token = EliteBotService.generate_task_token(task_id)
+            # URL sẽ là URL tuyệt đối của backend
+            base_url = "http://localhost:8000" # Có thể cấu hình qua ENV
+            report_url = f"{base_url}/api/bot/quick-report/{task_id}?token={token}"
             
             alerts.append({
                 "ma_kh": c.ma_crm_cms,
                 "ten_kh": c.ten_kh,
                 "revenue": c.tong_doanh_thu,
-                "task_id": None,
-                "report_url": None
+                "task_id": task_id,
+                "report_url": report_url
             })
-
+        
+        db.commit()
 
         return {
             "at_risk_count": len(at_risk_ids),
@@ -176,8 +219,7 @@ class EliteBotService:
             msg += f"\n👉 *TOP KHÁCH HÀNG CẦN CỨU CHỮA:*\n"
             for i, c in enumerate(alerts['top_alerts'], 1):
                 msg += f"   {i}. {c['ten_kh']} ({c['revenue']:,.0f}đ)\n"
-                if c['report_url']:
-                    msg += f"      🔗 Báo cáo nhanh: {c['report_url']}\n"
+                msg += f"      🔗 Báo cáo nhanh: {c['report_url']}\n"
         
         msg += f"\n━━━━━━━━━━━━━━━━━━━━━\n"
         msg += f"💡 *Gợi ý:* Nhân viên bấm vào link trên để báo cáo kết quả tiếp cận ngay từ Zalo.\n"
