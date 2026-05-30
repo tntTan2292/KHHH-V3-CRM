@@ -52,11 +52,16 @@ Dành cho AI Assistant và Cộng tác viên muốn khởi chạy hệ thống l
 
 ## 🧠 3. KIẾN TRÚC & LUỒNG DỮ LIỆU (THE BRAIN)
 
-Hệ thống được vận hành bởi 4 "Động cơ" cốt lõi:
+Hệ thống được vận hành bởi 6 "Động cơ" cốt lõi:
 1.  **[Hierarchy Engine](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/app/services/hierarchy_service.py)**: Quản trị mô hình 5 cấp chức danh (BĐTP -> Trung tâm -> Trưởng đại diện -> Giám đốc Phường/Xã -> Nhân viên).
 2.  **[Lifecycle Engine](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/app/services/lifecycle_engine.py)**: Tự động phân loại 5 trạng thái khách hàng (Mới, Hiện hữu, Nguy cơ, Rời bỏ, Tái hoạt động).
 3.  **[Summary Service](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/app/services/summary_service.py)**: Tổng hợp dữ liệu từ Giao dịch thô (`Transactions`) sang bảng Analytical (`MonthlyAnalyticsSummary`).
 4.  **[Scoping Service](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/app/services/scoping_service.py)**: Đảm bảo phân quyền dữ liệu tuyệt đối theo phân cấp quản lý và các ngoại lệ (531120).
+5.  **[SLA Engine](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/app/services/sla_service.py)**: Quản trị thời gian xử lý nhiệm vụ, theo dõi tiến độ (deadline), cảnh báo nhiệm vụ treo (>7 ngày) và đánh dấu quá hạn (overdue).
+6.  **[Elite Bot Engine](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/app/services/bot_service.py)**: Tự động quét vòng đời (lifecycle alerts) để tạo/cảnh báo các task khi khách hàng có nguy cơ rời bỏ hoặc rớt doanh thu.
+
+> [!NOTE]
+> **Phân tách Dữ liệu Đối tượng (Entity Segregation)**: Hệ thống tách biệt rõ ràng giữa **Khách hàng Hiện hữu (HienHuu)** và **Khách hàng Tiềm năng (TiemNang - Lead)** trong mọi luồng logic giao việc và báo cáo.
 
 ---
 
@@ -78,13 +83,17 @@ Sử dụng các liên kết dưới đây để truy cập trực tiếp vào c
 - [lifecycle_engine.py](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/app/services/lifecycle_engine.py) - Bộ não phân loại khách hàng.
 - [summary_service.py](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/app/services/summary_service.py) - Công cụ tổng hợp doanh thu & KPI.
 - [scoping_service.py](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/app/services/scoping_service.py) - Logic phân quyền 5 cấp.
+- [sla_service.py](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/app/services/sla_service.py) - Luật SLA, logic tính task treo & quá hạn.
+- [bot_service.py](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/app/services/bot_service.py) - Bot tự động cảnh báo vòng đời.
 
 ### **API Endpoints (Routers)**
 - [analytics.py](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/app/routers/analytics.py) - Nguồn dữ liệu cho Dashboard & Biểu đồ.
 - [customers.py](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/app/routers/customers.py) - API quản lý danh sách khách hàng.
+- [actions.py](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/app/routers/actions.py) - API Action Center (Giao việc, Báo cáo, Reassign, SLA Summary).
 
 ### **Frontend UI (React Components)**
 - [Dashboard.jsx](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/src/pages/Dashboard.jsx) - Giao diện điều hành Executive.
+- [ActionCenter.jsx](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/src/pages/ActionCenter.jsx) - Bảng Kanban Staff & Bảng Backlog Leader.
 - [Customers.jsx](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/src/pages/Customers.jsx) - Lưới dữ liệu khách hàng & Drill-down.
 
 ---
