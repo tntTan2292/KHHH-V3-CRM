@@ -513,8 +513,8 @@ function LeaderDashboard({ filters }) {
                   <td className="p-4">
                     <div className="flex flex-col gap-2 items-start">
                       <StatusBadge status={task.trang_thai} />
-                      {task.overdue_at && <span className="bg-red-50 text-red-600 text-[9px] font-black uppercase px-2 py-0.5 rounded shadow-sm border border-red-200 tracking-wider">⚠️ QUÁ HẠN</span>}
-                      {task.upcoming_sla && !task.overdue_at && <span className="bg-orange-50 text-orange-600 text-[9px] font-black uppercase px-2 py-0.5 rounded shadow-sm border border-orange-200 tracking-wider">SẮP QUÁ HẠN</span>}
+                      {task.is_overdue && <span className="bg-red-50 text-red-600 text-[9px] font-black uppercase px-2 py-0.5 rounded shadow-sm border border-red-200 tracking-wider">⚠️ QUÁ HẠN</span>}
+                      {task.upcoming_sla && !task.is_overdue && <span className="bg-orange-50 text-orange-600 text-[9px] font-black uppercase px-2 py-0.5 rounded shadow-sm border border-orange-200 tracking-wider">SẮP QUÁ HẠN</span>}
                       {task.is_stale && <span className="bg-yellow-50 text-yellow-600 text-[9px] font-black uppercase px-2 py-0.5 rounded shadow-sm border border-yellow-200 tracking-wider">⚠️ TREO {formatTaskAge(task.stuck_duration_seconds)}</span>}
                       
                       {/* Leader Quick Actions */}
@@ -794,10 +794,10 @@ function StaffKanbanBoard({ filters }) {
       const res = await api.get('/api/actions/tasks', { params: filters });
       const allTasks = res.data.items || [];
       
-      // Sort tasks: overdue_at first
+      // Sort tasks: is_overdue first
       allTasks.sort((a, b) => {
-        if (a.overdue_at && !b.overdue_at) return -1;
-        if (!a.overdue_at && b.overdue_at) return 1;
+        if (a.is_overdue && !b.is_overdue) return -1;
+        if (!a.is_overdue && b.is_overdue) return 1;
         return 0;
       });
       
@@ -881,7 +881,7 @@ function StaffKanbanBoard({ filters }) {
                 <div 
                   key={task.id} 
                   onClick={() => setSelectedTask(task)}
-                  className={`bg-white p-5 rounded-3xl shadow-lg shadow-gray-200/40 border ${task.overdue_at ? 'border-red-400' : 'border-gray-100'} hover:border-vnpost-blue/30 cursor-pointer transition-all hover:-translate-y-1 group`}
+                  className={`bg-white p-5 rounded-3xl shadow-lg shadow-gray-200/40 border ${task.is_overdue ? 'border-red-400' : 'border-gray-100'} hover:border-vnpost-blue/30 cursor-pointer transition-all hover:-translate-y-1 group`}
                 >
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex gap-2 flex-wrap items-center">
@@ -889,7 +889,7 @@ function StaffKanbanBoard({ filters }) {
                       {task.trang_thai === 'Thất bại' && <span className="bg-gray-100 text-gray-600 text-[10px] font-black px-2 py-0.5 rounded border border-gray-300 uppercase tracking-widest shadow-sm">Thất bại</span>}
                       {task.trang_thai === 'Hủy' && <span className="bg-gray-100 text-gray-500 text-[10px] font-black px-2 py-0.5 rounded border border-gray-200 uppercase tracking-widest shadow-sm">Đã Hủy</span>}
                       {task.trang_thai === 'CHỜ CHỈ ĐẠO' && <span className="bg-purple-50 text-purple-600 text-[10px] font-black px-2 py-0.5 rounded border border-purple-200 uppercase tracking-widest shadow-sm">Xin chỉ đạo</span>}
-                      {task.overdue_at && <span className="bg-red-50 text-red-600 text-[10px] font-black px-2 py-0.5 rounded border border-red-200 uppercase tracking-widest shadow-sm">⚠️ QUÁ HẠN</span>}
+                      {task.is_overdue && <span className="bg-red-50 text-red-600 text-[10px] font-black px-2 py-0.5 rounded border border-red-200 uppercase tracking-widest shadow-sm">⚠️ QUÁ HẠN</span>}
                       {task.is_stale && <span className="bg-yellow-50 text-yellow-600 text-[10px] font-black px-2 py-0.5 rounded border border-yellow-200 uppercase tracking-widest shadow-sm">⚠️ TREO {formatTaskAge(task.stuck_duration_seconds)}</span>}
                     </div>
                     {task.deadline && (

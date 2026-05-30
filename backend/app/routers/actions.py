@@ -379,7 +379,8 @@ async def get_tasks(
             "bao_cao_ket_qua": t.bao_cao_ket_qua,
             "kenh_tiep_can": t.kenh_tiep_can,
             "ket_qua": t.ket_qua,
-            "is_stale": t.trang_thai in ["Mới", "Đang xử lý", "CHỜ CHỈ ĐẠO"] and stuck_duration_seconds > 48 * 3600,
+            "is_overdue": SLAService.is_overdue(t, now=now),
+            "is_stale": t.trang_thai in ["Mới", "Đang xử lý", "CHỜ CHỈ ĐẠO"] and stuck_duration_seconds > 48 * 3600 and not SLAService.is_overdue(t, now=now),
             "assigner_name": assigner_name,
             "assigned_time": assigned_time.strftime("%Y-%m-%d %H:%M") if assigned_time else None,
             "assigned_time_display": assigned_time_display,
@@ -881,15 +882,17 @@ async def get_action_summary(
             t_logs = sorted(logs_by_task.get(t.id, []), key=lambda x: x.timestamp, reverse=True)
             last_activity_time = t_logs[0].timestamp if t_logs else (t.updated_at or t.created_at)
             
-            is_stuck = (now - last_activity_time).total_seconds() > 48 * 3600
-            if is_stuck:
-                stale_count += 1
-            
             is_ov = SLAService.is_overdue(t, now=now)
+            is_stuck = False
+            
             if is_ov:
                 global_overdue_count += 1
                 if (t.phan_loai_giao_viec == "VIP" or t.loai_doi_tuong == "VIP"):
                     vip_overdue_count += 1
+            else:
+                is_stuck = (now - last_activity_time).total_seconds() > 48 * 3600
+                if is_stuck:
+                    stale_count += 1
             
             s_name = t.staff.full_name if t.staff else "Chưa gán"
             if s_name not in staff_map:
