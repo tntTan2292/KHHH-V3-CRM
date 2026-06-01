@@ -25,6 +25,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
         { name: 'Danh sách Khách hàng', path: '/customers', icon: <Users size={20} />, permission: 'view_customers' },
         { name: 'Khách hàng Tiềm năng', path: '/potential', icon: <Target size={20} />, permission: 'view_potential' },
         { name: 'Hành trình 5B', path: '/potential/pipeline', icon: <Zap size={20} />, permission: 'view_potential' },
+        { name: 'Bảng điều hành Lead', path: '/lead-performance', icon: <Target size={20} />, permission: 'view_potential' },
       ]
     },
     {

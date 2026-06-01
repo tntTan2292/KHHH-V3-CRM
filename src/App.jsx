@@ -19,6 +19,7 @@ const Login = lazy(() => import('./pages/Login'));
 const Guidelines = lazy(() => import('./pages/Guidelines'));
 const MovementReport = lazy(() => import('./pages/MovementReport'));
 const LeadPipeline = lazy(() => import('./pages/LeadPipeline'));
+const LeadPerformance = lazy(() => import('./pages/LeadPerformance'));
 const ChangePassword = lazy(() => import('./pages/ChangePassword'));
 
 // Loading Screen Component
@@ -68,6 +69,7 @@ function MainLayout() {
               <Route path="/customers" element={<Customers />} />
               <Route path="/potential" element={<PotentialCustomers />} />
               <Route path="/potential/pipeline" element={<LeadPipeline />} />
+              <Route path="/lead-performance" element={<LeadPerformance />} />
               <Route path="/analytics" element={<ServiceMix />} />
               
               {/* Admin Routes */}

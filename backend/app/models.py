@@ -791,3 +791,62 @@ class SLASnapshot(Base):
     recorded_at = Column(DateTime, server_default=func.now())
     
     tracker = relationship("SLATracker")
+
+# ==================================================
+# PHASE 9: LEAD PERFORMANCE & FUNNEL ENGINE
+# ==================================================
+
+class LeadPerformance(Base):
+    """
+    SSOT Lead Data: Synchronized from CRM_Dashboard for Performance Management.
+    """
+    __tablename__ = "lead_performance"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # KNOWLEDGE: Mã Khách Hàng CMS (Khóa nghiệp vụ chính thức)
+    ma_cms = Column(String(100), unique=True, index=True, nullable=True) # Phải cho phép NULL để chứa Tầng 1 & Tầng 2 (Lead chưa chuyển đổi)
+    lead_id = Column(String(100), unique=True, index=True, nullable=True) # Chỉ để trace về nguồn CRM_Dashboard
+    
+    ten_kh = Column(String(500), nullable=True)
+    loai_khach_hang = Column(String(200), nullable=True)
+    
+    # NGUỒN CRM_DASHBOARD (Lý thuyết / Cam kết)
+    expected_revenue = Column(Float, default=0.0)
+    lead_status = Column(String(100), nullable=True) # Trạng thái bên kia
+    
+    # NGUỒN CRM 3.0 (Thực tế)
+    actual_revenue = Column(Float, default=0.0)
+    actual_transactions_count = Column(Integer, default=0)
+    
+    # QUẢN TRỊ (KPI)
+    completion_rate = Column(Float, default=0.0) # actual_revenue / expected_revenue * 100
+    
+    # PHÂN QUYỀN (Scoping 5 Cấp)
+    owner_hrm = Column(String(100), index=True, nullable=True) # Mã HRM của Sale
+    point_id = Column(Integer, ForeignKey("hierarchy_nodes.id"), index=True, nullable=True)
+    
+    # THỜI GIAN
+    created_at_source = Column(DateTime, nullable=True)
+    last_synced_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    point = relationship("HierarchyNode")
+
+class LeadSyncLog(Base):
+    """
+    Audit log for Lead Sync Engine to ensure 100% data match.
+    """
+    __tablename__ = "lead_sync_logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    sync_started_at = Column(DateTime, server_default=func.now())
+    sync_completed_at = Column(DateTime, nullable=True)
+    
+    status = Column(String(50)) # SUCCESS, FAILED, WARNING
+    
+    source_row_count = Column(Integer, default=0)
+    inserted_count = Column(Integer, default=0)
+    updated_count = Column(Integer, default=0)
+    
+    error_message = Column(Text, nullable=True)
+
