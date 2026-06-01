@@ -37,10 +37,27 @@ class LeadSyncEngine:
             df_source = pd.read_sql_query(query, conn)
             conn.close()
             
-            # Deduplicate by lead_id (journey_fact might have multiple rows per lead)
-            df_source = df_source.drop_duplicates(subset=['lead_id'], keep='last')
+            # 1.5 Deduplicate Data Nguồn (Hybrid Deduplication)
+            # Chuẩn hóa CMS trước khi lọc trùng
+            df_source['ma_cms_norm'] = df_source['ma_cms'].apply(lambda x: self.normalize_cms_code(x) if pd.notna(x) else None)
             
-            log.source_row_count = len(df_source)
+            # Tách tập có CMS và không có CMS
+            df_with_cms = df_source[df_source['ma_cms_norm'].notna()]
+            df_without_cms = df_source[df_source['ma_cms_norm'].isna()]
+            
+            # Lọc trùng theo mã CMS cho nhóm có CMS (Cùng CMS = 1 Khách hàng)
+            df_with_cms = df_with_cms.drop_duplicates(subset=['ma_cms_norm'], keep='last')
+            
+            # Lọc trùng theo lead_id cho nhóm KHÔNG CÓ CMS
+            df_without_cms = df_without_cms.drop_duplicates(subset=['lead_id'], keep='last')
+            
+            # Gộp lại
+            df_source = pd.concat([df_with_cms, df_without_cms])
+            
+            # Xử lý triệt để: Nếu 1 lead_id vừa có dòng không CMS vừa có dòng có CMS, ưu tiên giữ dòng CÓ CMS
+            df_source['has_cms'] = df_source['ma_cms_norm'].notna()
+            df_source = df_source.sort_values(by=['has_cms'], ascending=[False])
+            df_source = df_source.drop_duplicates(subset=['lead_id'], keep='first')
             
             inserted = 0
             updated = 0
@@ -64,17 +81,16 @@ class LeadSyncEngine:
                         'count': int(row.tx_count or 0)
                     }
                     
-            # 2. Lấy toàn bộ LeadPerformance hiện có để tối ưu Update (không query từng dòng)
+            # 2. Lấy toàn bộ LeadPerformance hiện có để tối ưu Update
             existing_leads = self.db.query(LeadPerformance).all()
-            existing_map = {l.lead_id: l for l in existing_leads if l.lead_id}
+            cms_map = {l.ma_cms: l for l in existing_leads if l.ma_cms}
+            lead_map = {l.lead_id: l for l in existing_leads if l.lead_id}
             
-            # Lưu ý: Theo nguyên tắc thép, chúng ta đồng bộ toàn bộ dòng (kể cả chưa có mã CMS) 
-            # để đo lường Tầng 1 (Toàn bộ Lead) và Tầng 2 (Có cam kết). 
-            # Các khách hàng có mã CMS sẽ được map với thực tế.
+            log.source_row_count = len(df_source)
             
             for index, row in df_source.iterrows():
                 lead_id = str(row['lead_id'])
-                norm_cms = self.normalize_cms_code(row['ma_cms']) if pd.notna(row['ma_cms']) else None
+                norm_cms = row['ma_cms_norm']
                 expected_rev_str = row['lead_expected_revenue']
                 expected_rev = 0.0
                 if pd.notna(expected_rev_str) and str(expected_rev_str).strip() != '':
@@ -94,17 +110,30 @@ class LeadSyncEngine:
                 if expected_rev > 0:
                     completion_rate = (actual_rev / expected_rev) * 100.0
                     
-                # Upsert by lead_id (Because lead_id is the primary trace key from CRM_Dashboard for ALL leads. 
-                # Wait, the user specifically said: "Chỉ sử dụng mã CMS làm khóa nghiệp vụ. Lead_ID không tham gia vào logic đối chiếu doanh thu."
-                # Nhưng nếu khách hàng chưa có CMS (Tầng 1, Tầng 2) thì sao?
-                # Tầng 1 và 2 vẫn có thể update dựa vào lead_id để hứng được.
-                # Let's strictly update by lead_id from source to maintain the total pool, 
-                # but matching with V3.0 Transactions relies purely on ma_cms.
+                # HYBRID UPSERT LOGIC
+                # Ưu tiên 1: Tìm theo CMS (Định danh cao nhất)
+                # Ưu tiên 2: Tìm theo Lead_ID (Dành cho Lead chưa convert)
+                obj = None
+                if norm_cms and norm_cms in cms_map:
+                    obj = cms_map[norm_cms]
+                elif lead_id in lead_map:
+                    obj = lead_map[lead_id]
                 
-                if lead_id in existing_map:
+                if obj:
                     # Update
-                    obj = existing_map[lead_id]
-                    obj.ma_cms = norm_cms
+                    # Kiểm tra xung đột: Nếu dòng hiện tại có lead_id khác với lead_id incoming,
+                    # và lead_id incoming đang bị một dòng "Rác" (top-funnel) khác chiếm giữ
+                    if obj.lead_id != lead_id and lead_id in lead_map:
+                        conflict_obj = lead_map[lead_id]
+                        if conflict_obj.id != obj.id:
+                            # Xóa dòng rác để giải phóng lead_id
+                            self.db.delete(conflict_obj)
+                            self.db.flush()
+                            
+                    obj.lead_id = lead_id
+                    if norm_cms:
+                        obj.ma_cms = norm_cms
+                        
                     obj.ten_kh = row['lead_name']
                     obj.expected_revenue = expected_rev
                     obj.actual_revenue = actual_rev
