@@ -1,11 +1,14 @@
 import sys
 import os
-import sqlite3
 
-db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'database', 'khhh_v3.db'))
+# Ensure backend module is in path so we can import the standard DB config
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from app.database import engine
 
 def migrate():
-    conn = sqlite3.connect(db_path)
+    print(f"Starting migration using configured engine: {engine.url}")
+    conn = engine.raw_connection()
     cursor = conn.cursor()
     
     try:
