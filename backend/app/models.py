@@ -178,6 +178,7 @@ class Transaction(Base):
     # New V3 Meta
     staff_id = Column(Integer, ForeignKey("nhan_su.id"), nullable=True) # Ánh xạ từ username
     point_id = Column(Integer, ForeignKey("hierarchy_nodes.id"), nullable=True) # Cấp bưu cục
+    source_folder = Column(String(50), nullable=True, index=True) # Tên thư mục gốc từ SFTP (VD: 20260508)
 
     # Index tổ hợp để tăng tốc truy vấn doanh thu theo khách hàng + thời gian
     __table_args__ = (

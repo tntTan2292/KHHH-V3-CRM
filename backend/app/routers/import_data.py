@@ -74,7 +74,7 @@ def filter_transactions_anti_dupe(db: Session, records: list) -> list:
 
 import_status = {"running": False, "message": "Chưa khởi tạo", "done": False, "error": None}
 
-def do_import(db: Session, full_reset: bool = True, target_files: list = None):
+def do_import(db: Session, full_reset: bool = True, target_files: list = None, source_folder_map: dict = None, force_months: list = None):
     global import_status
     
     if is_sync_locked():
@@ -149,12 +149,18 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None):
         new_customer_names = {}
         from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
+        if force_months:
+            for m in force_months:
+                affected_months.add(m)
+
         for filepath in bf_files:
             filename = os.path.basename(filepath)
             logger.info(f"📂 [TRACE] DO_IMPORT: Processing file {filename}")
             import_status["message"] = f"Đang nạp {filename}..."
             df_bf = read_file2(filepath)
             df_bf = df_bf.where(pd.notnull(df_bf), None)
+            
+            f_name_src = source_folder_map.get(filepath) if source_folder_map else None
             
             raw_records = []
             for _, row in df_bf.iterrows():
@@ -189,6 +195,7 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None):
                     "ma_dv_chap_nhan": ma_dv_chap_nhan,
                     "point_id": p_id,
                     "dich_vu_chinh": str(row.get("dich_vu_chinh", "")),
+                    "source_folder": f_name_src,
                 }
                 raw_records.append(record)
                 
@@ -352,12 +359,12 @@ async def check_sftp_sync(db: Session = Depends(get_db)):
             target_file = max(xlsx_files, key=lambda x: x['size'])
             
             if folder not in synced_folders:
-                gaps.append({"folder": folder, "file": target_file["name"], "size": target_file["size"]})
+                gaps.append({"folder": folder, "file": target_file["name"], "size": target_file["size"], "mtime": target_file["mtime"]})
             else:
                 log = synced_folders[folder]
-                # Nếu dung lượng khác biệt -> Cập nhật mới từ TCT
-                if target_file["size"] != log.file_size:
-                    updates.append({"folder": folder, "file": target_file["name"], "old_size": log.file_size, "new_size": target_file["size"]})
+                # Nếu dung lượng khác biệt hoặc mtime khác biệt -> Cập nhật mới từ TCT
+                if target_file["size"] != log.file_size or target_file["mtime"] != log.remote_mtime:
+                    updates.append({"folder": folder, "file": target_file["name"], "old_size": log.file_size, "new_size": target_file["size"], "old_mtime": log.remote_mtime, "new_mtime": target_file["mtime"]})
         
         return {"gaps": gaps, "updates": updates, "total_remote": len(all_remote_folders)}
     except Exception as e:
@@ -394,7 +401,7 @@ async def sync_worker(db_in: Session, folders: list):
         check = await check_sftp_sync(db)
         print("[TRACE] after check_sftp_sync")
         
-        to_sync = folders or [g["folder"] for g in check.get("gaps", [])]
+        to_sync = folders or list(set([g["folder"] for g in check.get("gaps", [])] + [u["folder"] for u in check.get("updates", [])]))
         
         if not to_sync:
             import_status = {"running": False, "message": "✅ Hệ thống đã đầy đủ dữ liệu.", "done": True, "error": None}
@@ -402,6 +409,7 @@ async def sync_worker(db_in: Session, folders: list):
 
         downloaded_files = []
         sync_results = []
+        source_folder_map = {}
         
         print("[TRACE] before download loop")
         for f_name in to_sync:
@@ -412,12 +420,27 @@ async def sync_worker(db_in: Session, folders: list):
             local_path = SFTPManager.download_file(f_name, target["name"])
             downloaded_files.append(local_path)
             sync_results.append({"folder": f_name, "target": target})
+            source_folder_map[local_path] = f_name
+            
+            # [GOVERNANCE] Xóa dữ liệu cũ trước khi nạp lại (Phòng ngừa sinh bản ghi kép)
+            logger.info(f"🗑️ [TRACE] Deleting old transactions for folder {f_name}...")
+            try:
+                db.execute(
+                    text("DELETE FROM transactions WHERE source_folder = :f_name OR (source_folder IS NULL AND strftime('%Y%m%d', ngay_chap_nhan) = :f_name)"),
+                    {"f_name": f_name}
+                )
+                db.commit()
+            except Exception as e:
+                logger.error(f"Error during delete old data: {e}")
+                db.rollback()
+
         print("[TRACE] after download loop")
             
         # 2. Chạy Import Incremental
         import_status["message"] = "Đang nạp dữ liệu vào Database..."
         print("[TRACE] before do_import")
-        total = do_import(db, full_reset=False, target_files=downloaded_files)
+        force_months = [f"{f[:4]}-{f[4:6]}" for f in to_sync]
+        total = do_import(db, full_reset=False, target_files=downloaded_files, source_folder_map=source_folder_map, force_months=force_months)
         print("[TRACE] after do_import")
         
         # 3. Cập nhật SyncLog CHỈ KHI import thành công (Governance)
