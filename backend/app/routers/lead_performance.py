@@ -7,6 +7,7 @@ import datetime
 from ..database import get_db
 from ..models import LeadPerformance, LeadSyncLog, HierarchyNode
 from ..services.scoping_service import ScopingService
+from ..services.hierarchy_service import HierarchyService
 from ..services.lead_sync_engine import LeadSyncEngine
 
 router = APIRouter(prefix="/api/leads", tags=["Lead Performance"])
@@ -23,7 +24,7 @@ def get_lead_funnel(
     # 1. Scoping (Phân quyền 5 cấp)
     base_query = db.query(LeadPerformance)
     if scope_id:
-        effective_point_ids = ScopingService.get_effective_scope_ids(db, scope_id)
+        effective_point_ids = HierarchyService.get_descendant_ids_by_id(db, scope_id, include_children=True)
         if effective_point_ids:
             base_query = base_query.filter(LeadPerformance.point_id.in_(effective_point_ids))
     
@@ -99,7 +100,7 @@ def get_lead_ranking(
     ranking = []
     for child in children:
         # Lấy tất cả point_id thuộc nhánh của child này
-        child_point_ids = ScopingService.get_effective_scope_ids(db, child.id)
+        child_point_ids = HierarchyService.get_descendant_ids_by_id(db, child.id, include_children=True)
         
         # Aggregate dữ liệu
         stats = db.query(
@@ -145,7 +146,7 @@ def get_lead_details(
     """
     query = db.query(LeadPerformance)
     if scope_id:
-        effective_point_ids = ScopingService.get_effective_scope_ids(db, scope_id)
+        effective_point_ids = HierarchyService.get_descendant_ids_by_id(db, scope_id, include_children=True)
         if effective_point_ids:
             query = query.filter(LeadPerformance.point_id.in_(effective_point_ids))
             

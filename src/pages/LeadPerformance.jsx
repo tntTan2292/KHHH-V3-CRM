@@ -7,7 +7,7 @@ import {
   FunnelChart, Funnel, LabelList, Cell
 } from 'recharts';
 import { 
-  Users, Target, RefreshCw, BarChart3, List, ChevronRight, DownloadCloud, AlertCircle
+  Users, Target, RefreshCw, BarChart3, List, ChevronRight, DownloadCloud, AlertCircle, Loader2
 } from 'lucide-react';
 import TreeExplorer from '../components/TreeExplorer';
 import { useAuth } from '../context/AuthContext';
@@ -29,9 +29,9 @@ export default function LeadPerformance() {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
 
   // Filters
-  const queryParams = useMemo(() => ({
-    scope_id: selectedNode || ''
-  }), [selectedNode]);
+  const queryParams = useMemo(() => (
+    selectedNode ? { scope_id: selectedNode } : {}
+  ), [selectedNode]);
 
   // Data Fetching
   const { data: funnelData, error: funnelError, mutate: mutateFunnel } = useSWR(['/api/leads/funnel', queryParams], fetcherWithParams);

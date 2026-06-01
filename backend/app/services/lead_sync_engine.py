@@ -1,7 +1,7 @@
 import sqlite3
 import pandas as pd
 from sqlalchemy.orm import Session
-from ..models import LeadPerformance, LeadSyncLog, Transaction
+from ..models import LeadPerformance, LeadSyncLog, Transaction, HierarchyNode
 from sqlalchemy import func
 import datetime
 
@@ -31,11 +31,35 @@ class LeadSyncEngine:
                     lead_id,
                     ma_cms,
                     lead_name,
-                    lead_expected_revenue
+                    lead_expected_revenue,
+                    contact_owner_resolved_bdpx_code,
+                    resolved_point_code,
+                    contact_owner_ma_bdpx,
+                    primary_ma_diem_gd,
+                    origin_resolved_point_code
                 FROM journey_fact
             """
             df_source = pd.read_sql_query(query, conn)
             conn.close()
+            
+            nodes = self.db.query(HierarchyNode).all()
+            code_to_id = {str(n.code).strip().upper(): n.id for n in nodes if n.code}
+            
+            def get_best_point_id(r):
+                codes_to_try = [
+                    r.get('contact_owner_resolved_bdpx_code'),
+                    r.get('resolved_point_code'),
+                    r.get('contact_owner_ma_bdpx'),
+                    r.get('primary_ma_diem_gd'),
+                    r.get('origin_resolved_point_code')
+                ]
+                for c in codes_to_try:
+                    c_str = str(c).replace('.0', '').strip().upper() if pd.notna(c) else None
+                    if c_str and c_str != 'NAN' and c_str != 'NONE' and c_str in code_to_id:
+                        return code_to_id[c_str]
+                return None
+                
+            df_source['point_id'] = df_source.apply(get_best_point_id, axis=1)
             
             # 1.5 Deduplicate Data Nguồn (Hybrid Deduplication)
             # Chuẩn hóa CMS trước khi lọc trùng
@@ -46,17 +70,18 @@ class LeadSyncEngine:
             df_without_cms = df_source[df_source['ma_cms_norm'].isna()]
             
             # Lọc trùng theo mã CMS cho nhóm có CMS (Cùng CMS = 1 Khách hàng)
-            df_with_cms = df_with_cms.drop_duplicates(subset=['ma_cms_norm'], keep='last')
+            df_with_cms = df_with_cms.sort_values(by=['point_id'], ascending=False).drop_duplicates(subset=['ma_cms_norm'], keep='first')
             
             # Lọc trùng theo lead_id cho nhóm KHÔNG CÓ CMS
-            df_without_cms = df_without_cms.drop_duplicates(subset=['lead_id'], keep='last')
+            df_without_cms = df_without_cms.sort_values(by=['point_id'], ascending=False).drop_duplicates(subset=['lead_id'], keep='first')
             
             # Gộp lại
             df_source = pd.concat([df_with_cms, df_without_cms])
             
             # Xử lý triệt để: Nếu 1 lead_id vừa có dòng không CMS vừa có dòng có CMS, ưu tiên giữ dòng CÓ CMS
             df_source['has_cms'] = df_source['ma_cms_norm'].notna()
-            df_source = df_source.sort_values(by=['has_cms'], ascending=[False])
+            df_source['has_point'] = df_source['point_id'].notna()
+            df_source = df_source.sort_values(by=['has_cms', 'has_point'], ascending=[False, False])
             df_source = df_source.drop_duplicates(subset=['lead_id'], keep='first')
             
             inserted = 0
@@ -84,7 +109,7 @@ class LeadSyncEngine:
             # 2. Lấy toàn bộ LeadPerformance hiện có để tối ưu Update
             existing_leads = self.db.query(LeadPerformance).all()
             cms_map = {l.ma_cms: l for l in existing_leads if l.ma_cms}
-            lead_map = {l.lead_id: l for l in existing_leads if l.lead_id}
+            lead_map = {l.lead_id: l for l in existing_leads if l.lead_id is not None}
             
             log.source_row_count = len(df_source)
             
@@ -98,6 +123,8 @@ class LeadSyncEngine:
                         expected_rev = float(expected_rev_str)
                     except ValueError:
                         pass
+                
+                best_point_id = int(row['point_id']) if pd.notna(row['point_id']) else None
                 
                 # Tìm Actual Revenue
                 actual_rev = 0.0
@@ -139,6 +166,8 @@ class LeadSyncEngine:
                     obj.actual_revenue = actual_rev
                     obj.actual_transactions_count = tx_count
                     obj.completion_rate = completion_rate
+                    if best_point_id:
+                        obj.point_id = best_point_id
                     obj.last_synced_at = datetime.datetime.now()
                     updated += 1
                 else:
@@ -150,7 +179,8 @@ class LeadSyncEngine:
                         expected_revenue=expected_rev,
                         actual_revenue=actual_rev,
                         actual_transactions_count=tx_count,
-                        completion_rate=completion_rate
+                        completion_rate=completion_rate,
+                        point_id=best_point_id
                     )
                     self.db.add(new_obj)
                     inserted += 1
