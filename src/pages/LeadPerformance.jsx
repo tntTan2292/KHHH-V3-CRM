@@ -224,9 +224,9 @@ export default function LeadPerformance() {
               </h2>
               
               {!funnelData && !funnelError ? (
-                <div className="h-[400px] flex items-center justify-center"><Loader2 size={32} className="animate-spin text-vnpost-orange" /></div>
+                <div className="h-[320px] flex items-center justify-center"><Loader2 size={32} className="animate-spin text-vnpost-orange" /></div>
               ) : formattedFunnel.length > 0 ? (
-                <div className="flex flex-col md:flex-row gap-4 items-center h-[500px] min-w-0">
+                <div className="flex flex-col md:flex-row gap-4 items-center h-[320px] min-w-0">
                   {/* Cột số liệu text bên trái hiển thị rớt phễu */}
                   <div className="w-full md:w-1/3 lg:w-1/4 space-y-4 min-w-0">
                     {formattedFunnel.map((item, i) => (
@@ -274,7 +274,7 @@ export default function LeadPerformance() {
                   </div>
                 </div>
               ) : (
-                <div className="h-[400px] flex items-center justify-center text-gray-400 font-bold">Không có dữ liệu phễu</div>
+                <div className="h-[320px] flex items-center justify-center text-gray-400 font-bold">Không có dữ liệu phễu</div>
               )}
             </div>
           </div>
