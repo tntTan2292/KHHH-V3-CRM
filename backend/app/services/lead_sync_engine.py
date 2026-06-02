@@ -25,64 +25,30 @@ class LeadSyncEngine:
             # 1. Extract from CRM_Dashboard
             conn = sqlite3.connect(CRM_DASHBOARD_DB_PATH)
             
-            # Khách hàng đã được phân quyền và có đầy đủ thông tin từ journey_fact
-            query = """
-                SELECT 
-                    lead_id,
-                    ma_cms,
-                    lead_name,
-                    lead_expected_revenue,
-                    contact_owner_resolved_bdpx_code,
-                    resolved_point_code,
-                    contact_owner_ma_bdpx,
-                    primary_ma_diem_gd,
-                    origin_resolved_point_code
-                FROM journey_fact
-            """
+            # Lấy toàn bộ dữ liệu từ bảng SSOT Materialized View
+            query = "SELECT lead_id, ma_cms, lead_name as customer_name, lead_expected_revenue, primary_ma_diem_gd, primary_ma_bdpx, contact_created_at FROM journey_final_ssot"
             df_source = pd.read_sql_query(query, conn)
             conn.close()
             
             nodes = self.db.query(HierarchyNode).all()
+            
             code_to_id = {str(n.code).strip().upper(): n.id for n in nodes if n.code}
             
-            def get_best_point_id(r):
-                codes_to_try = [
-                    r.get('contact_owner_resolved_bdpx_code'),
-                    r.get('resolved_point_code'),
-                    r.get('contact_owner_ma_bdpx'),
-                    r.get('primary_ma_diem_gd'),
-                    r.get('origin_resolved_point_code')
-                ]
-                for c in codes_to_try:
-                    c_str = str(c).replace('.0', '').strip().upper() if pd.notna(c) else None
-                    if c_str and c_str != 'NAN' and c_str != 'NONE' and c_str in code_to_id:
-                        return code_to_id[c_str]
+            def get_ssot_point_id(row):
+                pt = str(row.get('primary_ma_diem_gd', '')).strip().upper()
+                if pt and pt != 'NAN' and pt != 'NONE' and pt in code_to_id:
+                    return code_to_id[pt]
+                    
+                wd = str(row.get('primary_ma_bdpx', '')).strip().upper()
+                if wd and wd != 'NAN' and wd != 'NONE' and wd in code_to_id:
+                    return code_to_id[wd]
+                    
                 return None
                 
-            df_source['point_id'] = df_source.apply(get_best_point_id, axis=1)
+            df_source['point_id'] = df_source.apply(get_ssot_point_id, axis=1)
             
-            # 1.5 Deduplicate Data Nguồn (Hybrid Deduplication)
-            # Chuẩn hóa CMS trước khi lọc trùng
+            # Chuẩn hóa CMS
             df_source['ma_cms_norm'] = df_source['ma_cms'].apply(lambda x: self.normalize_cms_code(x) if pd.notna(x) else None)
-            
-            # Tách tập có CMS và không có CMS
-            df_with_cms = df_source[df_source['ma_cms_norm'].notna()]
-            df_without_cms = df_source[df_source['ma_cms_norm'].isna()]
-            
-            # Lọc trùng theo mã CMS cho nhóm có CMS (Cùng CMS = 1 Khách hàng)
-            df_with_cms = df_with_cms.sort_values(by=['point_id'], ascending=False).drop_duplicates(subset=['ma_cms_norm'], keep='first')
-            
-            # Lọc trùng theo lead_id cho nhóm KHÔNG CÓ CMS
-            df_without_cms = df_without_cms.sort_values(by=['point_id'], ascending=False).drop_duplicates(subset=['lead_id'], keep='first')
-            
-            # Gộp lại
-            df_source = pd.concat([df_with_cms, df_without_cms])
-            
-            # Xử lý triệt để: Nếu 1 lead_id vừa có dòng không CMS vừa có dòng có CMS, ưu tiên giữ dòng CÓ CMS
-            df_source['has_cms'] = df_source['ma_cms_norm'].notna()
-            df_source['has_point'] = df_source['point_id'].notna()
-            df_source = df_source.sort_values(by=['has_cms', 'has_point'], ascending=[False, False])
-            df_source = df_source.drop_duplicates(subset=['lead_id'], keep='first')
             
             inserted = 0
             updated = 0
@@ -137,31 +103,21 @@ class LeadSyncEngine:
                 if expected_rev > 0:
                     completion_rate = (actual_rev / expected_rev) * 100.0
                     
-                # HYBRID UPSERT LOGIC
-                # Ưu tiên 1: Tìm theo CMS (Định danh cao nhất)
-                # Ưu tiên 2: Tìm theo Lead_ID (Dành cho Lead chưa convert)
+                # Cập nhật theo đúng lead_id (SSOT 1:1)
                 obj = None
-                if norm_cms and norm_cms in cms_map:
-                    obj = cms_map[norm_cms]
-                elif lead_id in lead_map:
+                if lead_id in lead_map:
                     obj = lead_map[lead_id]
                 
                 if obj:
                     # Update
-                    # Kiểm tra xung đột: Nếu dòng hiện tại có lead_id khác với lead_id incoming,
-                    # và lead_id incoming đang bị một dòng "Rác" (top-funnel) khác chiếm giữ
-                    if obj.lead_id != lead_id and lead_id in lead_map:
-                        conflict_obj = lead_map[lead_id]
-                        if conflict_obj.id != obj.id:
-                            # Xóa dòng rác để giải phóng lead_id
-                            self.db.delete(conflict_obj)
-                            self.db.flush()
-                            
-                    obj.lead_id = lead_id
                     if norm_cms:
                         obj.ma_cms = norm_cms
+                    
+                    created_at_source = pd.to_datetime(row.get('contact_created_at')) if pd.notna(row.get('contact_created_at')) else None
+                    if created_at_source:
+                        obj.created_at_source = created_at_source
                         
-                    obj.ten_kh = row['lead_name']
+                    obj.ten_kh = row.get('lead_name', row.get('customer_name', ''))
                     obj.expected_revenue = expected_rev
                     obj.actual_revenue = actual_rev
                     obj.actual_transactions_count = tx_count
@@ -175,12 +131,13 @@ class LeadSyncEngine:
                     new_obj = LeadPerformance(
                         lead_id=lead_id,
                         ma_cms=norm_cms,
-                        ten_kh=row['lead_name'],
+                        ten_kh=row.get('lead_name', row.get('customer_name', '')),
                         expected_revenue=expected_rev,
                         actual_revenue=actual_rev,
                         actual_transactions_count=tx_count,
                         completion_rate=completion_rate,
-                        point_id=best_point_id
+                        point_id=best_point_id,
+                        created_at_source=pd.to_datetime(row.get('contact_created_at')) if pd.notna(row.get('contact_created_at')) else None
                     )
                     self.db.add(new_obj)
                     inserted += 1

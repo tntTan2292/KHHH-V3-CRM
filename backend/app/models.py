@@ -806,7 +806,7 @@ class LeadPerformance(Base):
     id = Column(Integer, primary_key=True, index=True)
     
     # KNOWLEDGE: Mã Khách Hàng CMS (Khóa nghiệp vụ chính thức)
-    ma_cms = Column(String(100), unique=True, index=True, nullable=True) # Phải cho phép NULL để chứa Tầng 1 & Tầng 2 (Lead chưa chuyển đổi)
+    ma_cms = Column(String(100), index=True, nullable=True) # Phải cho phép NULL để chứa Tầng 1 & Tầng 2 (Lead chưa chuyển đổi)
     lead_id = Column(String(100), unique=True, index=True, nullable=True) # Chỉ để trace về nguồn CRM_Dashboard
     
     ten_kh = Column(String(500), nullable=True)

@@ -27,11 +27,17 @@ export default function LeadPerformance() {
   const [activeTab, setActiveTab] = useState('funnel'); // funnel, ranking, details
   const [isSyncing, setIsSyncing] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   // Filters
-  const queryParams = useMemo(() => (
-    selectedNode ? { scope_id: selectedNode } : {}
-  ), [selectedNode]);
+  const queryParams = useMemo(() => {
+    const params = {};
+    if (selectedNode) params.scope_id = selectedNode;
+    if (dateFrom) params.date_from = dateFrom;
+    if (dateTo) params.date_to = dateTo;
+    return params;
+  }, [selectedNode, dateFrom, dateTo]);
 
   // Data Fetching
   const { data: funnelData, error: funnelError, mutate: mutateFunnel } = useSWR(['/api/leads/funnel', queryParams], fetcherWithParams);
@@ -119,6 +125,23 @@ export default function LeadPerformance() {
                 </button>
               </React.Fragment>
             ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <input 
+              type="date" 
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:border-vnpost-orange"
+              title="Từ ngày"
+            />
+            <span className="text-gray-400 font-bold">-</span>
+            <input 
+              type="date" 
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:border-vnpost-orange"
+              title="Đến ngày"
+            />
           </div>
           <button 
             onClick={() => setIsTreeOpen(true)}
@@ -324,6 +347,17 @@ export default function LeadPerformance() {
             {!detailsData && !detailsError ? (
               <div className="p-12 flex justify-center"><Loader2 size={32} className="animate-spin text-vnpost-orange" /></div>
             ) : detailsData && detailsData.items.length > 0 ? (
+              <div className="flex flex-col">
+                <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 border-b border-gray-100">
+                  <div className="bg-white p-4 rounded-xl border border-gray-200 flex flex-col items-center justify-center">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tổng Cam Kết</span>
+                    <span className="text-xl font-black text-gray-700">{formatCurrency(detailsData.total_expected)} đ</span>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl border border-gray-200 flex flex-col items-center justify-center border-b-4 border-b-emerald-500">
+                    <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Tổng Thực Tế</span>
+                    <span className="text-xl font-black text-emerald-600">{formatCurrency(detailsData.total_actual)} đ</span>
+                  </div>
+                </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
@@ -360,6 +394,7 @@ export default function LeadPerformance() {
                     ))}
                   </tbody>
                 </table>
+              </div>
               </div>
             ) : (
               <div className="p-12 text-center text-gray-400 font-bold">Không có dữ liệu khách hàng</div>

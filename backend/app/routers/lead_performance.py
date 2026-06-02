@@ -15,7 +15,9 @@ router = APIRouter(prefix="/api/leads", tags=["Lead Performance"])
 @router.get("/funnel")
 def get_lead_funnel(
     db: Session = Depends(get_db),
-    scope_id: Optional[int] = Query(None, description="ID của node (Cụm/Bưu cục) để lọc")
+    scope_id: Optional[int] = Query(None, description="ID của node (Cụm/Bưu cục) để lọc"),
+    date_from: Optional[datetime.date] = Query(None),
+    date_to: Optional[datetime.date] = Query(None)
 ):
     """
     Trả về 4 Tầng Phễu Hành Trình Chuyển Đổi kèm theo Metric chuyển đổi (Conversion Rate).
@@ -27,6 +29,11 @@ def get_lead_funnel(
         effective_point_ids = HierarchyService.get_descendant_ids_by_id(db, scope_id, include_children=True)
         if effective_point_ids:
             base_query = base_query.filter(LeadPerformance.point_id.in_(effective_point_ids))
+            
+    if date_from:
+        base_query = base_query.filter(LeadPerformance.created_at_source >= date_from)
+    if date_to:
+        base_query = base_query.filter(LeadPerformance.created_at_source <= date_to)
     
     # 2. Tính toán 4 tầng
     # Tầng 1: Lead Tiếp Nhận (Tất cả khách hàng từ Dashboard)
@@ -77,39 +84,44 @@ def get_lead_funnel(
 @router.get("/ranking")
 def get_lead_ranking(
     db: Session = Depends(get_db),
-    scope_id: Optional[int] = Query(None, description="ID của node cha để xếp hạng các node con")
+    scope_id: Optional[int] = Query(None, description="ID của node cha để xếp hạng các node con"),
+    date_from: Optional[datetime.date] = Query(None),
+    date_to: Optional[datetime.date] = Query(None)
 ):
     """
     Xếp hạng Bưu cục/Cụm. 
     Tiêu chí 1: actual_revenue giảm dần. 
     Tiêu chí 2: completion_rate giảm dần.
     """
-    # 1. Tìm các node con trực tiếp của scope_id để hiển thị lên bảng
     if not scope_id:
-        # Nếu không truyền, mặc định lấy cấp cao nhất (BĐ Tỉnh)
         top_node = db.query(HierarchyNode).filter(HierarchyNode.parent_id == None).first()
         if not top_node:
             return []
         scope_id = top_node.id
         
     children = db.query(HierarchyNode).filter(HierarchyNode.parent_id == scope_id).all()
-    if not children:
-        # Nếu là bưu cục (lá), không có node con để xếp hạng
+    
+    # Nếu không có node con (tức là node lá - Bưu cục), hiển thị chính nó
+    nodes_to_rank = children if children else [db.query(HierarchyNode).filter(HierarchyNode.id == scope_id).first()]
+    if not nodes_to_rank or not nodes_to_rank[0]:
         return []
         
     ranking = []
-    for child in children:
-        # Lấy tất cả point_id thuộc nhánh của child này
+    for child in nodes_to_rank:
         child_point_ids = HierarchyService.get_descendant_ids_by_id(db, child.id, include_children=True)
         
-        # Aggregate dữ liệu
-        stats = db.query(
+        query = db.query(
             func.count(LeadPerformance.id).label("total_leads"),
             func.sum(LeadPerformance.expected_revenue).label("total_expected"),
             func.sum(LeadPerformance.actual_revenue).label("total_actual")
-        ).filter(
-            LeadPerformance.point_id.in_(child_point_ids)
-        ).first()
+        ).filter(LeadPerformance.point_id.in_(child_point_ids))
+        
+        if date_from:
+            query = query.filter(LeadPerformance.created_at_source >= date_from)
+        if date_to:
+            query = query.filter(LeadPerformance.created_at_source <= date_to)
+            
+        stats = query.first()
         
         total_leads = stats.total_leads or 0
         total_expected = stats.total_expected or 0.0
@@ -138,6 +150,8 @@ def get_lead_ranking(
 def get_lead_details(
     db: Session = Depends(get_db),
     scope_id: Optional[int] = Query(None),
+    date_from: Optional[datetime.date] = Query(None),
+    date_to: Optional[datetime.date] = Query(None),
     limit: int = 50,
     offset: int = 0
 ):
@@ -150,12 +164,36 @@ def get_lead_details(
         if effective_point_ids:
             query = query.filter(LeadPerformance.point_id.in_(effective_point_ids))
             
+    if date_from:
+        query = query.filter(LeadPerformance.created_at_source >= date_from)
+    if date_to:
+        query = query.filter(LeadPerformance.created_at_source <= date_to)
+            
     total = query.count()
+    
+    # Tính KPI tổng hợp
+    kpi_stats = db.query(
+        func.sum(LeadPerformance.expected_revenue).label("total_expected"),
+        func.sum(LeadPerformance.actual_revenue).label("total_actual")
+    )
+    if scope_id and effective_point_ids:
+        kpi_stats = kpi_stats.filter(LeadPerformance.point_id.in_(effective_point_ids))
+    if date_from:
+        kpi_stats = kpi_stats.filter(LeadPerformance.created_at_source >= date_from)
+    if date_to:
+        kpi_stats = kpi_stats.filter(LeadPerformance.created_at_source <= date_to)
+        
+    kpi_result = kpi_stats.first()
+    total_expected = kpi_result.total_expected or 0.0
+    total_actual = kpi_result.total_actual or 0.0
+    
     # Sort mặc định theo trạng thái nóng (actual_revenue > 0)
     items = query.order_by(desc(LeadPerformance.actual_revenue)).offset(offset).limit(limit).all()
     
     return {
         "total": total,
+        "total_expected": total_expected,
+        "total_actual": total_actual,
         "items": [
             {
                 "id": i.id,
