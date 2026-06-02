@@ -89,7 +89,6 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None, s
             import_status["message"] = "Đang xóa dữ liệu cũ để nạp mới..."
             db.query(Transaction).delete()
             db.query(Customer).delete()
-            db.commit()
             # Xóa cache khi reset toàn bộ dữ liệu
             CacheService.clear()
 
@@ -124,7 +123,6 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None, s
                 )
                 db.add(c)
                 customers_imported += 1
-            db.commit()
 
         # 3. Quét tất cả file BF (hoặc chỉ dùng file được chỉ định)
         if target_files:
@@ -220,7 +218,6 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None, s
                         for j in range(0, len(filtered), insert_chunk_size):
                             chunk = filtered[j:j + insert_chunk_size]
                             db.execute(sqlite_insert(Transaction).values(chunk))
-                        db.commit()
                         total_transactions += len(filtered)
                     raw_records = []
 
@@ -233,7 +230,6 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None, s
                     for j in range(0, len(filtered), insert_chunk_size):
                         chunk = filtered[j:j + insert_chunk_size]
                         db.execute(sqlite_insert(Transaction).values(chunk))
-                    db.commit()
                     total_transactions += len(filtered)
         
         logger.info(f"Import Finished: {total_transactions} inserted, {skipped_duplicates} duplicates skipped.")
@@ -248,13 +244,11 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None, s
             WHERE c.ma_crm_cms IS NULL AND t.ma_kh IS NOT NULL AND t.ma_kh NOT IN ('', 'nan', 'NAN', 'None')
             GROUP BY t.ma_kh
         """))
-        db.commit()
 
         # [GOVERNANCE] Cập nhật tên thật từ tenKhachHang nếu có thu thập được
         if new_customer_names:
             for ma_kh, real_name in new_customer_names.items():
                 db.execute(text("UPDATE customers SET ten_kh = :name WHERE ma_crm_cms = :ma_kh AND ten_kh LIKE 'KH %'"), {"name": real_name, "ma_kh": ma_kh})
-            db.commit()
         
         # [OPTIMIZATION] Batch Update using SQLite UPDATE FROM (Performance Boost)
         # 1. Create temporary aggregate to avoid repeated scanning of transactions
@@ -297,7 +291,6 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None, s
         # 3. Cleanup
         db.execute(text("DROP TABLE temp_agg"))
         db.execute(text("DROP TABLE temp_latest_tx"))
-        db.commit()
         # RFM (Tối ưu nhẹ cho data lớn)
         all_customers = db.query(Customer).all()
         cust_list_for_rfm = [{"ma_crm_cms": c.ma_crm_cms, "tong_doanh_thu": c.tong_doanh_thu} for c in all_customers]
@@ -305,23 +298,13 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None, s
         rfm_map = {r["ma_crm_cms"]: r["rfm_segment"] for r in rfm_results}
         for c in all_customers:
             c.rfm_segment = rfm_map.get(c.ma_crm_cms, "Thường")
-        db.commit()
 
-        # 4. [GOVERNANCE] Tự động cập nhật Summary & Sync Lifecycle (SSOT)
-        import_status["message"] = "Đang tổng hợp dữ liệu KPI & Lifecycle..."
-        # [OPTIMIZATION] Incremental refresh only for affected months
-        target_months = sorted(list(affected_months))
-        if not target_months:
-             SummaryService.refresh_summary_incremental() # Fallback to default
-        else:
-             SummaryService.refresh_summary_incremental(target_months=target_months)
-        
         import_status = {
             "running": False,
-            "message": f"✅ Hoàn thành! Đã nạp {total_transactions} giao dịch mới.",
+            "message": f"✅ Xử lý thành công trong RAM! Đã nạp {total_transactions} giao dịch.",
             "done": True, "error": None
         }
-        return total_transactions 
+        return total_transactions, sorted(list(affected_months)) 
     except Exception as e:
         logger.error(f"Lỗi khi import: {e}", exc_info=True)
         db.rollback()
@@ -363,7 +346,7 @@ async def check_sftp_sync(db: Session = Depends(get_db)):
             else:
                 log = synced_folders[folder]
                 # Nếu dung lượng khác biệt hoặc mtime khác biệt -> Cập nhật mới từ TCT
-                if target_file["size"] != log.file_size or target_file["mtime"] != log.remote_mtime:
+                if target_file["size"] != log.file_size:
                     updates.append({"folder": folder, "file": target_file["name"], "old_size": log.file_size, "new_size": target_file["size"], "old_mtime": log.remote_mtime, "new_mtime": target_file["mtime"]})
         
         return {"gaps": gaps, "updates": updates, "total_remote": len(all_remote_folders)}
@@ -372,16 +355,16 @@ async def check_sftp_sync(db: Session = Depends(get_db)):
         return {"error": str(e)}
 
 @router.post("/sftp-sync")
-async def sync_sftp(background_tasks: BackgroundTasks, db: Session = Depends(get_db), folders: list = None):
+async def sync_sftp(background_tasks: BackgroundTasks, folders: list = None):
     """Kích hoạt đồng bộ các folder chỉ định hoặc toàn bộ gap"""
     if import_status["running"]:
         return {"success": False, "message": "Hệ thống đang bận..."}
     
-    background_tasks.add_task(sync_worker, db, folders)
+    background_tasks.add_task(sync_worker, folders)
     logger.info("🚀 [TRACE] SYNC REQUESTED: Background task spawned.")
     return {"success": True, "message": "Bắt đầu đồng bộ SFTP..."}
 
-async def sync_worker(db_in: Session, folders: list):
+async def sync_worker(folders: list):
     """Worker xử lý đồng bộ SFTP chạy ngầm - Sử dụng Session riêng biệt"""
     print("[TRACE] sync_worker entered")
     global import_status
@@ -407,47 +390,61 @@ async def sync_worker(db_in: Session, folders: list):
             import_status = {"running": False, "message": "✅ Hệ thống đã đầy đủ dữ liệu.", "done": True, "error": None}
             return
 
-        downloaded_files = []
-        sync_results = []
-        source_folder_map = {}
+        total_inserted = 0
+        all_affected = set()
         
-        print("[TRACE] before download loop")
         for f_name in to_sync:
             import_status["message"] = f"Đang tải dữ liệu ngày {f_name}..."
             target = SFTPManager.get_target_bf_file(f_name)
             if not target: continue
             
             local_path = SFTPManager.download_file(f_name, target["name"])
-            downloaded_files.append(local_path)
-            sync_results.append({"folder": f_name, "target": target})
-            source_folder_map[local_path] = f_name
             
-            # [GOVERNANCE] Xóa dữ liệu cũ trước khi nạp lại (Phòng ngừa sinh bản ghi kép)
-            logger.info(f"🗑️ [TRACE] Deleting old transactions for folder {f_name}...")
+            # --- VALIDATION GATE ---
             try:
+                # Tính new_count, new_revenue từ file
+                df_new = read_file2(local_path)
+                new_count = len(df_new)
+                new_rev = float(df_new["doanh_thu"].fillna(0).astype(float).sum()) if "doanh_thu" in df_new.columns else 0.0
+                
+                # Tính old_count, old_revenue từ DB
+                from sqlalchemy import func
+                old_count = db.query(Transaction).filter(
+                    (Transaction.source_folder == f_name) | 
+                    ((Transaction.source_folder == None) & (func.strftime('%Y%m%d', Transaction.ngay_chap_nhan) == f_name))
+                ).count()
+                
+                old_rev_res = db.query(func.sum(Transaction.doanh_thu)).filter(
+                    (Transaction.source_folder == f_name) | 
+                    ((Transaction.source_folder == None) & (func.strftime('%Y%m%d', Transaction.ngay_chap_nhan) == f_name))
+                ).scalar()
+                old_rev = float(old_rev_res or 0.0)
+                
+                # Rules
+                if new_count == 0:
+                    logger.warning(f"🚫 REJECT {f_name}: File mới không có giao dịch (new_count=0).")
+                    continue
+                if old_count > 0 and (old_count - new_count)/old_count > 0.2:
+                    logger.warning(f"🚫 REJECT {f_name}: Số lượng giao dịch giảm bất thường (>20%). Old: {old_count}, New: {new_count}")
+                    continue
+                if old_rev > 0 and (old_rev - new_rev)/old_rev > 0.2:
+                    logger.warning(f"🚫 REJECT {f_name}: Doanh thu giảm bất thường (>20%). Old: {old_rev}, New: {new_rev}")
+                    continue
+                    
+                # PASS -> ATOMIC TRANSACTION cho từng file
+                import_status["message"] = f"Đang nạp dữ liệu {f_name} vào Database..."
                 db.execute(
                     text("DELETE FROM transactions WHERE source_folder = :f_name OR (source_folder IS NULL AND strftime('%Y%m%d', ngay_chap_nhan) = :f_name)"),
                     {"f_name": f_name}
                 )
-                db.commit()
-            except Exception as e:
-                logger.error(f"Error during delete old data: {e}")
-                db.rollback()
-
-        print("[TRACE] after download loop")
-            
-        # 2. Chạy Import Incremental
-        import_status["message"] = "Đang nạp dữ liệu vào Database..."
-        print("[TRACE] before do_import")
-        force_months = [f"{f[:4]}-{f[4:6]}" for f in to_sync]
-        total = do_import(db, full_reset=False, target_files=downloaded_files, source_folder_map=source_folder_map, force_months=force_months)
-        print("[TRACE] after do_import")
-        
-        # 3. Cập nhật SyncLog CHỈ KHI import thành công (Governance)
-        if total is not None:
-            for res in sync_results:
-                f_name = res["folder"]
-                target = res["target"]
+                
+                force_months = [f"{f_name[:4]}-{f_name[4:6]}"]
+                cnt, aff = do_import(db, full_reset=False, target_files=[local_path], source_folder_map={local_path: f_name}, force_months=force_months)
+                
+                total_inserted += cnt
+                all_affected.update(aff)
+                
+                # Chỉ update log khi import thành công
                 log = db.query(SyncLog).filter(SyncLog.folder_name == f_name).first()
                 if not log:
                     log = SyncLog(folder_name=f_name)
@@ -456,33 +453,52 @@ async def sync_worker(db_in: Session, folders: list):
                 log.file_size = target["size"]
                 log.remote_mtime = target["mtime"]
                 log.status = "COMPLETED"
+                
+                # COMMIT CHUNG DUY NHẤT cho file này
                 db.commit()
-        
+                logger.info(f"✅ Đã nạp thành công và commit {f_name}")
+                
+            except Exception as e:
+                db.rollback()
+                logger.error(f"❌ Lỗi atomic transaction khi import {f_name}: {e}")
+                
         import_status = {
             "running": False, 
-            "message": f"✅ Thành công! Đã nạp {total} giao dịch mới vào SQLite.", 
+            "message": f"✅ Thành công! Đã nạp {total_inserted} giao dịch mới vào SQLite.", 
             "done": True, "error": None
         }
-        # Tự động cập nhật Summary sau khi sync SFTP thành công
-        print("[TRACE] before refresh_summary")
-        SummaryService.refresh_summary_incremental()
-        print("[TRACE] after refresh_summary")
         
-        # Tự động xóa cache sau khi đồng bộ dữ liệu mới thành công
+        if all_affected:
+            SummaryService.refresh_summary_incremental(target_months=sorted(list(all_affected)))
         CacheService.clear()
-        logger.info(f"Sync completed: {total} records. Cache cleared.")
+        
     except Exception as e:
         logger.error(f"Sync Worker Error: {e}")
         import_status = {"running": False, "message": f"❌ Lỗi: {e}", "done": False, "error": str(e)}
     finally:
         db.close() # Luôn đóng session worker
 
+def do_full_reset_task():
+    db = SessionLocal()
+    try:
+        total, affected = do_import(db, full_reset=True)
+        db.commit()
+        if affected:
+            SummaryService.refresh_summary_incremental(target_months=affected)
+        else:
+            SummaryService.refresh_summary_incremental()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Full reset failed: {e}")
+    finally:
+        db.close()
+
 @router.post("", response_model=ImportResult)
-async def trigger_import(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+async def trigger_import(background_tasks: BackgroundTasks):
     if import_status.get("running"):
         return ImportResult(success=False, message="Đang import...", customers_imported=0, transactions_imported=0)
     
-    background_tasks.add_task(do_import, db, full_reset=True)
+    background_tasks.add_task(do_full_reset_task)
     return ImportResult(success=True, message="Bắt đầu Import (Full Reset)", customers_imported=0, transactions_imported=0)
 
 @router.get("/status")
@@ -512,7 +528,7 @@ async def smart_auto_sync(background_tasks: BackgroundTasks, db: Session = Depen
         return {"success": True, "need_sync": True, "message": "Hệ thống đang thực hiện đồng bộ tự động..."}
     
     # 4. Kích hoạt sync ngầm (Tự động quét toàn bộ gap bao gồm cả T-1)
-    background_tasks.add_task(sync_worker, db, None)
+    background_tasks.add_task(sync_worker, None)
     
     return {
         "success": True, 
