@@ -100,50 +100,79 @@ def get_lead_ranking(
         scope_id = top_node.id
         
     children = db.query(HierarchyNode).filter(HierarchyNode.parent_id == scope_id).all()
-    
+
     # Nếu không có node con (tức là node lá - Bưu cục), hiển thị chính nó
     nodes_to_rank = children if children else [db.query(HierarchyNode).filter(HierarchyNode.id == scope_id).first()]
     if not nodes_to_rank or not nodes_to_rank[0]:
         return []
-        
+
+    # [FIX] Phát hiện lead được gán trực tiếp vào scope_id (không qua node con nào)
+    # Ví dụ: Kim Long (WARD id=10) có lead point_id=10 nhưng các POINT con (64,65,66,67) không có lead.
+    # Nếu bỏ qua trường hợp này, ranking sẽ ra 0 trong khi funnel vẫn báo có dữ liệu.
+    if children:
+        orphan_query = db.query(func.count(LeadPerformance.id)).filter(
+            LeadPerformance.point_id == scope_id
+        )
+        if date_from:
+            orphan_query = orphan_query.filter(LeadPerformance.created_at_source >= date_from)
+        if date_to:
+            orphan_query = orphan_query.filter(LeadPerformance.created_at_source <= date_to)
+        orphan_count = orphan_query.scalar() or 0
+
+        if orphan_count > 0:
+            # Thêm chính scope_id vào đầu danh sách để rank (dùng descendant của chính nó)
+            scope_node_self = db.query(HierarchyNode).filter(HierarchyNode.id == scope_id).first()
+            if scope_node_self:
+                nodes_to_rank = [scope_node_self] + list(children)
+
     ranking = []
+    seen_ids = set()
     for child in nodes_to_rank:
-        child_point_ids = HierarchyService.get_descendant_ids_by_id(db, child.id, include_children=True)
-        
+        if child.id in seen_ids:
+            continue
+        seen_ids.add(child.id)
+
+        if child.id == scope_id and children:
+            child_point_ids = [child.id]
+            display_name = f"{child.name} (Trực tiếp)"
+        else:
+            child_point_ids = HierarchyService.get_descendant_ids_by_id(db, child.id, include_children=True)
+            display_name = child.name
+
         query = db.query(
             func.count(LeadPerformance.id).label("total_leads"),
             func.sum(LeadPerformance.expected_revenue).label("total_expected"),
             func.sum(LeadPerformance.actual_revenue).label("total_actual")
         ).filter(LeadPerformance.point_id.in_(child_point_ids))
-        
+
         if date_from:
             query = query.filter(LeadPerformance.created_at_source >= date_from)
         if date_to:
             query = query.filter(LeadPerformance.created_at_source <= date_to)
-            
+
         stats = query.first()
-        
+
         total_leads = stats.total_leads or 0
         total_expected = stats.total_expected or 0.0
         total_actual = stats.total_actual or 0.0
-        
+
         completion_rate = 0.0
         if total_expected > 0:
             completion_rate = round((total_actual / total_expected) * 100, 2)
-            
+
         ranking.append({
             "point_id": child.id,
-            "point_name": child.name,
+            "point_name": display_name,
             "point_code": child.code,
             "total_leads": total_leads,
             "total_expected": total_expected,
             "total_actual": total_actual,
             "completion_rate": completion_rate
         })
-        
+
     # Sort: Tiêu chí 1 (total_actual DESC), Tiêu chí 2 (completion_rate DESC)
     ranking.sort(key=lambda x: (x["total_actual"], x["completion_rate"]), reverse=True)
-    
+
     return ranking
 
 @router.get("/details")
