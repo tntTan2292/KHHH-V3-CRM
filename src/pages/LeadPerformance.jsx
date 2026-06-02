@@ -226,27 +226,26 @@ export default function LeadPerformance() {
               {!funnelData && !funnelError ? (
                 <div className="h-[400px] flex items-center justify-center"><Loader2 size={32} className="animate-spin text-vnpost-orange" /></div>
               ) : formattedFunnel.length > 0 ? (
-                <div className="flex flex-col md:flex-row gap-8 items-center h-[500px]">
+                <div className="flex flex-col md:flex-row gap-4 items-center h-[500px] min-w-0">
                   {/* Cột số liệu text bên trái hiển thị rớt phễu */}
-                  <div className="w-full md:w-1/3 space-y-6">
+                  <div className="w-full md:w-1/3 lg:w-1/4 space-y-4 min-w-0">
                     {formattedFunnel.map((item, i) => (
                       <React.Fragment key={i}>
                         <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 relative">
                           <div className="flex justify-between items-center mb-1">
-                            <span className="text-xs font-black text-gray-600 uppercase">{item.name}</span>
-                            <span className="text-lg font-black" style={{color: item.fill}}>{formatCurrency(item.count)} KH</span>
+                            <span className="text-[11px] font-black text-gray-600 uppercase truncate pr-2" title={item.name}>{item.name}</span>
+                            <span className="text-sm font-black whitespace-nowrap" style={{color: item.fill}}>{formatCurrency(item.count)} KH</span>
                           </div>
-                          <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase">
-                            <span>Chiếm: {item.percent_of_total}% tổng đầu vào</span>
+                          <div className="flex justify-between items-center text-[9px] font-bold text-gray-400 uppercase">
+                            <span>Chiếm: {item.percent_of_total}%</span>
                           </div>
                           <div className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-xl" style={{backgroundColor: item.fill}}></div>
                         </div>
                         {i < formattedFunnel.length - 1 && (
-                          <div className="flex flex-col items-center justify-center h-8 relative">
+                          <div className="flex flex-col items-center justify-center h-6 relative">
                             <div className="absolute h-full w-px bg-gray-200"></div>
-                            <div className="z-10 bg-white px-3 py-1 rounded-full border border-gray-200 shadow-sm flex items-center gap-1 text-[11px] font-black text-red-500">
+                            <div className="z-10 bg-white px-2 py-0.5 rounded-full border border-gray-200 shadow-sm flex items-center gap-1 text-[10px] font-black text-red-500 whitespace-nowrap">
                               ↓ {formattedFunnel[i+1].conversion_from_previous}% 
-                              <span className="text-gray-400 font-bold text-[9px]">(Chuyển đổi từ bước trước)</span>
                             </div>
                           </div>
                         )}
@@ -255,7 +254,7 @@ export default function LeadPerformance() {
                   </div>
 
                   {/* Biểu đồ Recharts bên phải */}
-                  <div className="w-full md:w-2/3 h-full">
+                  <div className="w-full md:w-2/3 lg:w-3/4 h-full min-w-0">
                     <ResponsiveContainer width="100%" height="100%">
                       <FunnelChart>
                         <RechartsTooltip 
@@ -348,14 +347,30 @@ export default function LeadPerformance() {
               <div className="p-12 flex justify-center"><Loader2 size={32} className="animate-spin text-vnpost-orange" /></div>
             ) : detailsData && detailsData.items.length > 0 ? (
               <div className="flex flex-col">
-                <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 border-b border-gray-100">
-                  <div className="bg-white p-4 rounded-xl border border-gray-200 flex flex-col items-center justify-center">
-                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tổng Cam Kết</span>
-                    <span className="text-xl font-black text-gray-700">{formatCurrency(detailsData.total_expected)} đ</span>
+                <div className="grid grid-cols-2 md:grid-cols-6 gap-3 p-4 bg-gray-50 border-b border-gray-100">
+                  <div className="bg-white p-3 rounded-xl border border-gray-200 flex flex-col items-center justify-center text-center">
+                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Tổng Lead</span>
+                    <span className="text-lg font-black text-gray-700">{formatCurrency(detailsData.total)}</span>
                   </div>
-                  <div className="bg-white p-4 rounded-xl border border-gray-200 flex flex-col items-center justify-center border-b-4 border-b-emerald-500">
-                    <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Tổng Thực Tế</span>
-                    <span className="text-xl font-black text-emerald-600">{formatCurrency(detailsData.total_actual)} đ</span>
+                  <div className="bg-white p-3 rounded-xl border border-gray-200 flex flex-col items-center justify-center text-center">
+                    <span className="text-[9px] font-black text-vnpost-orange uppercase tracking-widest mb-1">Đã Khai Thác</span>
+                    <span className="text-lg font-black text-vnpost-orange">{formatCurrency(detailsData.total_ops)}</span>
+                  </div>
+                  <div className="bg-white p-3 rounded-xl border border-gray-200 flex flex-col items-center justify-center text-center">
+                    <span className="text-[9px] font-black text-[#003E7E] uppercase tracking-widest mb-1">Đã Chuyển Đổi</span>
+                    <span className="text-lg font-black text-[#003E7E]">{formatCurrency(detailsData.total_cms)}</span>
+                  </div>
+                  <div className="bg-white p-3 rounded-xl border border-gray-200 flex flex-col items-center justify-center text-center">
+                    <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1">Ra Số</span>
+                    <span className="text-lg font-black text-emerald-500">{formatCurrency(detailsData.total_rev)}</span>
+                  </div>
+                  <div className="bg-white p-3 rounded-xl border border-gray-200 flex flex-col items-center justify-center text-center">
+                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Tổng Cam Kết</span>
+                    <span className="text-lg font-black text-gray-600">{formatCurrency(detailsData.total_expected)} đ</span>
+                  </div>
+                  <div className="bg-white p-3 rounded-xl border border-gray-200 flex flex-col items-center justify-center border-b-4 border-b-emerald-500 text-center">
+                    <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1">Tổng Thực Tế</span>
+                    <span className="text-lg font-black text-emerald-600">{formatCurrency(detailsData.total_actual)} đ</span>
                   </div>
                 </div>
               <div className="overflow-x-auto">

@@ -174,7 +174,10 @@ def get_lead_details(
     # Tính KPI tổng hợp
     kpi_stats = db.query(
         func.sum(LeadPerformance.expected_revenue).label("total_expected"),
-        func.sum(LeadPerformance.actual_revenue).label("total_actual")
+        func.sum(LeadPerformance.actual_revenue).label("total_actual"),
+        func.sum(case((LeadPerformance.expected_revenue > 0, 1), else_=0)).label("total_ops"),
+        func.sum(case((LeadPerformance.ma_cms.isnot(None), 1), else_=0)).label("total_cms"),
+        func.sum(case((LeadPerformance.actual_revenue > 0, 1), else_=0)).label("total_rev")
     )
     if scope_id and effective_point_ids:
         kpi_stats = kpi_stats.filter(LeadPerformance.point_id.in_(effective_point_ids))
@@ -186,6 +189,9 @@ def get_lead_details(
     kpi_result = kpi_stats.first()
     total_expected = kpi_result.total_expected or 0.0
     total_actual = kpi_result.total_actual or 0.0
+    total_ops = kpi_result.total_ops or 0
+    total_cms = kpi_result.total_cms or 0
+    total_rev = kpi_result.total_rev or 0
     
     # Sort mặc định theo trạng thái nóng (actual_revenue > 0)
     items = query.order_by(desc(LeadPerformance.actual_revenue)).offset(offset).limit(limit).all()
@@ -194,6 +200,9 @@ def get_lead_details(
         "total": total,
         "total_expected": total_expected,
         "total_actual": total_actual,
+        "total_ops": total_ops,
+        "total_cms": total_cms,
+        "total_rev": total_rev,
         "items": [
             {
                 "id": i.id,
