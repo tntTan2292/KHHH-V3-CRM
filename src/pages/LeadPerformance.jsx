@@ -44,9 +44,12 @@ export default function LeadPerformance() {
   const { data: rankingData, error: rankingError, mutate: mutateRanking } = useSWR(activeTab === 'ranking' ? ['/api/leads/ranking', queryParams] : null, fetcherWithParams);
   const { data: detailsData, error: detailsError, mutate: mutateDetails } = useSWR(activeTab === 'details' ? ['/api/leads/details', queryParams] : null, fetcherWithParams);
 
-  const handleNodeSelect = (nodeId, nodeName) => {
-    setSelectedNode(nodeId);
-    setNavStack([{ key: "", title: user?.scope || "Toàn tỉnh" }, { key: nodeId, title: nodeName }]);
+  const handleNodeSelect = (nodeIdOrObject, nodeName) => {
+    // [FIX] TreeExplorer truyền object {id, title, ...}, Ranking table truyền integer + string
+    const nodeId = nodeIdOrObject && typeof nodeIdOrObject === 'object' ? nodeIdOrObject.id : nodeIdOrObject;
+    const name = nodeIdOrObject && typeof nodeIdOrObject === 'object' ? nodeIdOrObject.title : (nodeName || '');
+    setSelectedNode(nodeId);  // Luôn là integer hoặc null
+    setNavStack([{ key: '', title: user?.scope || 'Toàn tỉnh' }, { key: nodeId, title: name }]);
     setIsTreeOpen(false);
   };
 
