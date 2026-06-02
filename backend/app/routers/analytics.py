@@ -90,7 +90,7 @@ def get_revenue_for_range_governed(db, start_dt, end_dt, scope_ids):
     return float(q.scalar() or 0.0)
 
 @router.post("/refresh-summary")
-async def trigger_summary_refresh(
+def trigger_summary_refresh(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -106,7 +106,7 @@ async def trigger_summary_refresh(
 
 @router.get("/dashboard")
 # @cache_response(ttl_hours=4)
-async def get_dashboard_stats(
+def get_dashboard_stats(
     start_date: str = None,
     end_date: str = None,
     node_code: str = None,
@@ -255,7 +255,7 @@ async def get_dashboard_stats(
 
 @router.get("/summary")
 # @cache_response(ttl_hours=24) # Tạm thời tắt để refresh số liệu SSOT
-async def get_analytics_summary(
+def get_analytics_summary(
     start_date: str = None,
     end_date: str = None,
     node_code: str = None,
@@ -266,9 +266,9 @@ async def get_analytics_summary(
     logger.info(f"[DIAGNOSTIC-SUMMARY] start_date={start_date}, end_date={end_date}, node_code={node_code}")
     """ Endpoint hợp nhất: KPIs + Service Mix + Region Mix """
     # Chạy tuần tự các query (do dùng chung 1 Session DB không an toàn cho concurrency)
-    stats = await get_dashboard_stats(start_date=start_date, end_date=end_date, node_code=node_code, comparison_type=comparison_type, db=db, current_user=current_user)
-    services = await get_revenue_by_service(start_date=start_date, end_date=end_date, node_code=node_code, db=db, current_user=current_user)
-    regions = await get_revenue_by_region(start_date=start_date, end_date=end_date, node_code=node_code, db=db, current_user=current_user)
+    stats = get_dashboard_stats(start_date=start_date, end_date=end_date, node_code=node_code, comparison_type=comparison_type, db=db, current_user=current_user)
+    services = get_revenue_by_service(start_date=start_date, end_date=end_date, node_code=node_code, db=db, current_user=current_user)
+    regions = get_revenue_by_region(start_date=start_date, end_date=end_date, node_code=node_code, db=db, current_user=current_user)
     
     # Lấy thông tin tháng gần nhất có dữ liệu
     latest_trans_raw = db.query(func.max(Transaction.ngay_chap_nhan)).scalar()
@@ -292,7 +292,7 @@ async def get_analytics_summary(
     }
 
 @router.get("/data-coverage")
-async def get_data_coverage(db: Session = Depends(get_db)):
+def get_data_coverage(db: Session = Depends(get_db)):
     """ Trả về thông tin dải dữ liệu hiện có trong hệ thống """
     stats = db.query(
         func.min(Transaction.ngay_chap_nhan),
@@ -343,7 +343,7 @@ async def get_data_coverage(db: Session = Depends(get_db)):
 
 @router.get("/revenue-trend")
 # @cache_response(ttl_hours=4)
-async def get_revenue_trend(
+def get_revenue_trend(
     start_date: str = None,
     end_date: str = None,
     node_code: str = None,
@@ -372,7 +372,7 @@ async def get_revenue_trend(
 
 @router.get("/revenue-monthly")
 @cache_response(ttl_hours=4)
-async def get_revenue_monthly(
+def get_revenue_monthly(
     start_date: str = None,
     end_date: str = None,
     node_code: str = None,
@@ -448,7 +448,7 @@ async def get_revenue_monthly(
 
 @router.get("/revenue-by-service")
 # @cache_response(ttl_hours=12)
-async def get_revenue_by_service(
+def get_revenue_by_service(
     start_date: str = None,
     end_date: str = None,
     node_code: str = None,
@@ -491,7 +491,7 @@ async def get_revenue_by_service(
 
 @router.get("/revenue-by-region")
 # @cache_response(ttl_hours=12)
-async def get_revenue_by_region(
+def get_revenue_by_region(
     start_date: str = None,
     end_date: str = None,
     node_code: str = None,
@@ -535,7 +535,7 @@ async def get_revenue_by_region(
 
 @router.get("/top-movers")
 @cache_response(ttl_hours=2)
-async def get_top_movers(
+def get_top_movers(
     start_date: str = None,
     end_date: str = None,
     node_code: str = None,
@@ -559,7 +559,7 @@ async def get_top_movers(
         }
 
     # 2 & 3. Query Doanh thu kỳ hiện tại và kỳ trước (GOVERNANCE: Smart Source Selector)
-    async def get_period_data(start_dt, end_dt, ids):
+    def get_period_data(start_dt, end_dt, ids):
         # Tầng SSOT Layer (Bounded/Realtime) - CONSTITUTIONAL RULE: Always use Transaction
         q = db.query(
             Transaction.ma_kh,
@@ -576,7 +576,8 @@ async def get_top_movers(
     curr_task = get_period_data(curr_start, curr_end, scope_ids)
     prev_task = get_period_data(prev_start, prev_end, scope_ids)
     
-    curr_results, prev_results = await asyncio.gather(curr_task, prev_task)
+    curr_results = curr_task
+    prev_results = prev_task
     prev_data = {r[0]: (r[1] or 0) for r in prev_results if r[0]}
 
     # 4. Lấy tên mới nhất cho TOÀN BỘ Mã KH tham gia (Theo lệnh Sếp: Lấy từ giao dịch gần nhất trong DB)
@@ -622,7 +623,7 @@ async def get_top_movers(
             })
 
     # 5. Phân tích TỔNG THỂ (MoM/YoY Summary by Service) - (GOVERNANCE: Bounded Engine)
-    async def get_service_stats(start_dt, end_dt, ids):
+    def get_service_stats(start_dt, end_dt, ids):
         # Tầng SSOT Layer (Bounded/Realtime) - CONSTITUTIONAL RULE: Always use Transaction
         q = db.query(
             Transaction.ma_dv,
@@ -651,7 +652,8 @@ async def get_top_movers(
     curr_svc_task = get_service_stats(curr_start, curr_end, scope_ids)
     prev_svc_task = get_service_stats(prev_start, prev_end, scope_ids)
     
-    curr_svc, prev_svc = await asyncio.gather(curr_svc_task, prev_svc_task)
+    curr_svc = curr_svc_task
+    prev_svc = prev_svc_task
     
     services_summary = []
     # Bao gồm cả 'Khác' để đảm bảo Tổng doanh thu chính xác 100%
@@ -698,7 +700,7 @@ async def get_top_movers(
     }
 
 @router.get("/sync-status")
-async def get_sync_status(db: Session = Depends(get_db)):
+def get_sync_status(db: Session = Depends(get_db)):
     """Kiểm tra tình trạng đồng bộ trong ngày để cảnh báo UI"""
     expected_date = datetime.now() - timedelta(days=1)
     expected_str = expected_date.strftime("%Y%m%d")
@@ -731,7 +733,7 @@ async def get_sync_status(db: Session = Depends(get_db)):
 
 @router.get("/system-health")
 @cache_response(ttl_hours=8)
-async def get_system_health(db: Session = Depends(get_db)):
+def get_system_health(db: Session = Depends(get_db)):
     """Kiểm tra độ sạch của dữ liệu để cảnh báo trên Dashboard"""
     # 1. Tổng số khách hàng (định danh)
     total_customers = db.query(Customer).count()
@@ -770,7 +772,7 @@ async def get_system_health(db: Session = Depends(get_db)):
 
 @router.get("/customer-scoring")
 @cache_response(ttl_hours=4)
-async def get_customer_performance_scoring(
+def get_customer_performance_scoring(
     start_date: str = None,
     end_date: str = None,
     node_code: str = None,
@@ -853,7 +855,7 @@ async def get_customer_performance_scoring(
 
 @router.get("/churn-prediction")
 @cache_response(ttl_hours=4)
-async def get_churn_prediction_alerts(
+def get_churn_prediction_alerts(
     end_date: str = None,
     node_code: str = None,
     db: Session = Depends(get_db),
@@ -955,7 +957,7 @@ async def get_churn_prediction_alerts(
 
 @router.get("/heatmap-units")
 @cache_response(ttl_hours=4)
-async def get_heatmap_units(
+def get_heatmap_units(
     start_date: str = None,
     end_date: str = None,
     node_code: str = None,
