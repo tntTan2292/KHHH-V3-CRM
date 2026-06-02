@@ -146,13 +146,35 @@ export default function LeadPerformance() {
               title="Đến ngày"
             />
           </div>
-          <button 
-            onClick={() => setIsTreeOpen(true)}
-            className="px-4 py-2 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 flex items-center gap-2"
-          >
-            <Users size={14} className="text-vnpost-blue" />
-            Chọn đơn vị (Cụm/Bưu cục)
-          </button>
+          <div className="relative">
+            <button 
+              onClick={() => setIsTreeOpen(!isTreeOpen)}
+              className="px-4 py-2 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 flex items-center gap-2"
+            >
+              <Users size={14} className="text-vnpost-blue" />
+              Chọn đơn vị (Cụm/Bưu cục)
+            </button>
+            {isTreeOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setIsTreeOpen(false)}></div>
+                <div className="absolute top-full right-0 mt-2 w-[400px] h-[550px] max-h-[70vh] bg-white border border-gray-200 rounded-2xl shadow-2xl p-4 z-50 flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg mb-2 shrink-0">
+                    <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Chọn Cụm / Bưu cục / Điểm</span>
+                    <button onClick={() => setIsTreeOpen(false)} className="text-[11px] font-black text-vnpost-blue uppercase hover:underline">Đóng</button>
+                  </div>
+                  <div className="flex-1 min-h-0">
+                    <TreeExplorer 
+                      onSelect={(node) => {
+                        handleNodeSelect(node);
+                        setIsTreeOpen(false);
+                      }}
+                      selectedNode={selectedNode}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Tabs */}
@@ -176,12 +198,6 @@ export default function LeadPerformance() {
           ))}
         </div>
       </div>
-
-      <TreeExplorer 
-        isOpen={isTreeOpen} 
-        onClose={() => setIsTreeOpen(false)} 
-        onSelect={handleNodeSelect} 
-      />
 
       <div className="p-6 max-w-[1600px] w-full mx-auto flex-1">
         
