@@ -196,9 +196,19 @@ class CustomerService:
             )
 
         if scope_ids is not None:
-            scope_nodes = db.query(HierarchyNode.code).filter(HierarchyNode.id.in_(scope_ids)).all()
-            scope_codes = [n.code for n in scope_nodes]
-            filters.append(Customer.ma_bc_phu_trach.in_(scope_codes))
+            # [SCOPING FIX] Dùng Customer.point_id (FK chuẩn, backfill 100%) làm primary scope key.
+            # Fallback sang ma_bc_phu_trach khi point_id == NULL (edge case an toàn).
+            # Trước đây: filter bằng ma_bc_phu_trach text → bỏ sót KH khi text không khớp chính xác.
+            scope_codes = [n.code for n in db.query(HierarchyNode.code).filter(HierarchyNode.id.in_(scope_ids)).all()]
+            filters.append(
+                or_(
+                    Customer.point_id.in_(scope_ids),
+                    and_(
+                        Customer.point_id == None,
+                        Customer.ma_bc_phu_trach.in_(scope_codes)
+                    )
+                )
+            )
 
         # 4. Total Count (Deterministic)
         # Snapshot mode must use customer_monthly_snapshots as the primary truth source.
