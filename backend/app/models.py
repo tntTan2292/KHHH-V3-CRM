@@ -174,6 +174,7 @@ class Transaction(Base):
     
     doanh_thu = Column(Float, default=0.0)
     dich_vu_chinh = Column(String(100), nullable=True, index=True)
+    loai_dich_vu = Column(String(100), nullable=True, index=True)
     
     # New V3 Meta
     staff_id = Column(Integer, ForeignKey("nhan_su.id"), nullable=True) # Ánh xạ từ username
