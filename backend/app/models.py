@@ -189,6 +189,16 @@ class Transaction(Base):
         Index('idx_trans_staff_date', 'staff_id', 'ngay_chap_nhan'),
     )
 
+class ServiceClassification(Base):
+    __tablename__ = "service_classifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ma_dv = Column(String(50), nullable=False, unique=True, index=True)
+    loai_dich_vu = Column(String(100), nullable=False, index=True)
+    is_active = Column(Boolean, default=True, index=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
 class ActionTaskTemplate(Base):
     __tablename__ = "action_task_templates"
     
