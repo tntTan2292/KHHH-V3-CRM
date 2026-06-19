@@ -138,8 +138,9 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None, s
                 return 0
 
         # 2. Chuẩn bị Map cho Hierarchy (Lấy tất cả các loại node để đảm bảo ánh xạ đầy đủ)
-        from ..models import HierarchyNode
+        from ..models import HierarchyNode, ServiceClassification
         point_map = {n.code: n.id for n in db.query(HierarchyNode).all()}
+        service_map = {s.ma_dv.strip().upper(): s.loai_dich_vu for s in db.query(ServiceClassification).filter(ServiceClassification.is_active == True).all()}
 
         total_transactions = 0
         skipped_duplicates = 0
@@ -192,7 +193,8 @@ def do_import(db: Session, full_reset: bool = True, target_files: list = None, s
                     "doanh_thu": float(row.get("doanh_thu", 0) or 0),
                     "ma_dv_chap_nhan": ma_dv_chap_nhan,
                     "point_id": p_id,
-                    "dich_vu_chinh": str(row.get("dich_vu_chinh", "")),
+                    "dich_vu_chinh": str(row.get("dich_vu_chinh", "")).strip().upper(),
+                    "loai_dich_vu": service_map.get(str(row.get("dich_vu_chinh", "")).strip().upper(), "Khác"),
                     "source_folder": f_name_src,
                 }
                 raw_records.append(record)
