@@ -283,6 +283,7 @@ class PotentialService:
                 "shbg": tx.shbg,
                 "ngay_chap_nhan": tx.ngay_chap_nhan.strftime('%Y-%m-%d %H:%M:%S') if tx.ngay_chap_nhan else "N/A",
                 "dich_vu_chinh": tx.dich_vu_chinh or "Khác",
+                "loai_dich_vu": getattr(tx, "loai_dich_vu", None),
                 "doanh_thu": tx.doanh_thu or 0.0,
                 "ma_dv_chap_nhan": tx.ma_dv_chap_nhan,
                 "point_name": point_map.get(tx.ma_dv_chap_nhan, tx.ma_dv_chap_nhan)

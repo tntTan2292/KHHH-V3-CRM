@@ -296,6 +296,7 @@ async def export_potential_transactions_excel(
                 "Mã bưu gửi": item["shbg"],
                 "Ngày gửi": item["ngay_chap_nhan"],
                 "Dịch vụ": item["dich_vu_chinh"],
+                "Loại dịch vụ": item.get("loai_dich_vu"),
                 "Doanh thu (VNĐ)": item["doanh_thu"],
                 "Bưu cục nhận": item["point_name"],
                 "Mã BC": item["ma_dv_chap_nhan"]

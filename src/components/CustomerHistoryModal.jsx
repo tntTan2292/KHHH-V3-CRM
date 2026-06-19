@@ -414,6 +414,7 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
                         <th className="px-6 py-4">Ngày chấp nhận</th>
                         <th className="px-6 py-4">Số hiệu bưu gửi</th>
                         <th className="px-6 py-4">Dịch vụ</th>
+                        <th className="px-6 py-4">Loại dịch vụ</th>
                         <th className="px-6 py-4 text-right">Doanh thu</th>
                       </tr>
                     </thead>
@@ -426,6 +427,15 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
                             <span className="bg-blue-50 text-vnpost-blue px-2 py-0.5 rounded-lg border border-blue-200/50 text-[11px] font-bold">
                               {item.dich_vu_chinh || 'Khác'}
                             </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {item.loai_dich_vu ? (
+                              <span className="bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-lg border border-emerald-200/50 text-[11px] font-bold">
+                                {item.loai_dich_vu}
+                              </span>
+                            ) : (
+                              <span className="text-[11px] text-gray-400">-</span>
+                            )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right font-bold text-gray-800">
                             {new Intl.NumberFormat('vi-VN').format(item.doanh_thu || 0)} đ
@@ -561,7 +571,12 @@ const CustomerHistoryModal = ({ isOpen, onClose, targetId, loaiDoiTuong, custome
                               </div>
                             )}
                             {item.event_type === 'transaction' && item.raw_data && (
-                               <p className="text-xs text-gray-500 font-medium">Mã bưu gửi: <span className="text-vnpost-blue font-mono">{item.raw_data.shbg}</span> - Doanh thu: <span className="font-bold">{new Intl.NumberFormat('vi-VN').format(item.raw_data.doanh_thu || 0)}đ</span></p>
+                               <div className="mt-1">
+                                 <p className="text-xs text-gray-500 font-medium mb-1">Mã bưu gửi: <span className="text-vnpost-blue font-mono">{item.raw_data.shbg}</span> - Doanh thu: <span className="font-bold">{new Intl.NumberFormat('vi-VN').format(item.raw_data.doanh_thu || 0)}đ</span></p>
+                                 <span className="bg-blue-50 text-vnpost-blue px-2 py-0.5 rounded-lg border border-blue-200/50 text-[10px] font-bold inline-block">
+                                   {item.raw_data.dich_vu_chinh || 'Khác'} {item.raw_data.loai_dich_vu ? `| ${item.raw_data.loai_dich_vu}` : ''}
+                                 </span>
+                               </div>
                             )}
                             {(item.event_type === 'lifecycle' || item.event_type === 'vip') && item.raw_data && (
                               <div className="flex items-center gap-2 mt-2">
