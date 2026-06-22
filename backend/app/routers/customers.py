@@ -413,6 +413,7 @@ async def get_customer_details(ma_crm: str, db: Session = Depends(get_db), curre
     return {
         "customer": customer_payload,
         "services": sorted(services_arr, key=lambda x: x['value'], reverse=True),
+        "classifications": sorted(classifications_arr, key=lambda x: x['value'], reverse=True),
         "scope": scope_arr,
         "trend": trend_arr,
         "total_transactions": total_transactions,
