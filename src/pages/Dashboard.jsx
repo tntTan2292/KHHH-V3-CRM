@@ -228,6 +228,12 @@ function Dashboard() {
     { revalidateOnFocus: false, revalidateIfStale: false }
   );
 
+  const { data: classDistData } = useSWR(
+    (!waitingForDefaultDate && !!summaryData) ? ['/api/analytics/revenue-by-classification', queryParams] : null,
+    fetcherWithParams,
+    { revalidateOnFocus: false, revalidateIfStale: false }
+  );
+
 
 
   // Sync state with SWR results
@@ -814,6 +820,30 @@ function Dashboard() {
                     <Legend iconType="circle" />
                   </PieChart>
                 </ResponsiveContainer>
+              </div>
+           </div>
+        </div>
+
+        {/* CƠ CẤU NHÓM DỊCH VỤ - STANDALONE SECTION */}
+        <div className="mt-8 mb-4">
+           <div className="card p-6 border-t-4 border-t-indigo-500 shadow-xl bg-white">
+              <h3 className="text-sm font-black uppercase tracking-widest mb-4 text-gray-800 flex items-center gap-2">
+                <BarChart3 className="text-indigo-500" size={18} /> Cơ cấu Nhóm Dịch vụ
+              </h3>
+              <div className="h-64">
+                {classDistData ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={classDistData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                        {classDistData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                      </Pie>
+                      <RechartsTooltip formatter={(v) => formatCurrency(v)} />
+                      <Legend iconType="circle" />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex justify-center items-center h-full text-gray-400 text-xs font-bold uppercase"><Loader2 className="w-5 h-5 animate-spin mr-2"/> Đang tải...</div>
+                )}
               </div>
            </div>
         </div>

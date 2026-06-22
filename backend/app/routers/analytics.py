@@ -489,6 +489,41 @@ def get_revenue_by_service(
         
     return result
 
+@router.get("/revenue-by-classification")
+# @cache_response(ttl_hours=12)
+def get_revenue_by_classification(
+    start_date: str = None,
+    end_date: str = None,
+    node_code: str = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # 1. Xác định phạm vi (Elite RBAC 3.0)
+    scope_ids = ScopingService.get_effective_scope_ids(db, current_user, node_code)
+    if scope_ids is not None and not scope_ids: return []
+
+    # 2. Xác định dải thời gian (GOVERNANCE: Pull from Transaction for Realtime Service Mix)
+    curr_start, curr_end, _, _, _ = get_governed_comparison_periods(db, start_date, end_date)
+
+    # Ưu tiên lấy từ bảng Transaction
+    query = db.query(
+        Transaction.loai_dich_vu, 
+        func.sum(Transaction.doanh_thu).label("total")
+    ).filter(Transaction.ngay_chap_nhan.between(curr_start, curr_end))
+    
+    if scope_ids is not None:
+        query = query.filter(Transaction.point_id.in_(scope_ids))
+        
+    stats = query.group_by(Transaction.loai_dich_vu).all()
+        
+    result = []
+    for r in stats:
+        name = str(r[0]).strip() if r[0] else "Chưa phân loại"
+        result.append({"name": name, "value": r[1] or 0})
+        
+    result.sort(key=lambda x: x["value"], reverse=True)
+    return result
+
 @router.get("/revenue-by-region")
 # @cache_response(ttl_hours=12)
 def get_revenue_by_region(
