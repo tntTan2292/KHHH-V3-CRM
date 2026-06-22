@@ -349,6 +349,13 @@ async def get_customer_details(ma_crm: str, db: Session = Depends(get_db), curre
     trong_nuoc = 0
     quoc_te = 0
     services_dist = {}
+    classifications_dist = {
+        "TMĐT": 0,
+        "HCC": 0,
+        "Truyền thống": 0,
+        "Quốc tế": 0,
+        "Khác": 0
+    }
     last_active = None
     
     for t in transactions:
@@ -369,8 +376,16 @@ async def get_customer_details(ma_crm: str, db: Session = Depends(get_db), curre
             svc_name = svc_map.get(ma_dv, f"{ma_dv} - Dịch vụ khác")
             
         services_dist[svc_name] = services_dist.get(svc_name, 0) + t_dt
+
+        ldv = str(getattr(t, "loai_dich_vu", "Khác")).strip()
+        if not ldv or ldv == "None":
+            ldv = "Khác"
+        if ldv not in classifications_dist:
+            ldv = "Khác"
+        classifications_dist[ldv] += t_dt
         
     services_arr = [{"name": k, "value": v} for k, v in services_dist.items() if v > 0]
+    classifications_arr = [{"name": k, "value": v} for k, v in classifications_dist.items()]
     scope_arr = [
         {"name": "Trong nước", "value": trong_nuoc},
         {"name": "Quốc tế", "value": quoc_te}
