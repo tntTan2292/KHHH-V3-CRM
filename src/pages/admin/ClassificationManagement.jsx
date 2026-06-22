@@ -74,7 +74,7 @@ const ClassificationManagement = () => {
         }
     };
 
-    if (!user || (user.role_name !== 'ADMIN' && user.role_name !== 'SUPERADMIN')) {
+    if (!user || !user.role || (user.role.toUpperCase() !== 'ADMIN' && user.role.toUpperCase() !== 'SUPERADMIN')) {
         return (
             <div className="p-6 text-center text-red-500 font-medium">
                 Bạn không có quyền truy cập trang quản trị này.
