@@ -4,7 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import engine, Base
-from .routers import analytics, import_data, customers, potential, export_data, actions, auth, nodes, admin_hierarchy, admin_personnel, admin_roles, reports, superadmin, bot, kpi, dashboard, executive, lead_performance
+from .routers import analytics, import_data, customers, potential, export_data, actions, auth, nodes, admin_hierarchy, admin_personnel, admin_roles, reports, superadmin, bot, kpi, dashboard, executive, lead_performance, admin_classification
 
 # Create DB tables
 Base.metadata.create_all(bind=engine)
@@ -66,6 +66,7 @@ app.include_router(kpi.router)
 app.include_router(dashboard.router)
 app.include_router(executive.router)
 app.include_router(lead_performance.router)
+app.include_router(admin_classification.router)
 
 @app.on_event("startup")
 async def startup_event():

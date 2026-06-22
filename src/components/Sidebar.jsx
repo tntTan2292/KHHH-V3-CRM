@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Mailbox, Target, PieChart, ClipboardCheck, ChevronLeft, ChevronRight, ShieldCheck, X, Info, TrendingUp, Zap } from 'lucide-react';
+import { LayoutDashboard, Users, Mailbox, Target, PieChart, ClipboardCheck, ChevronLeft, ChevronRight, ShieldCheck, X, Info, TrendingUp, Zap, Tags } from 'lucide-react';
 import vnpostLogo from '../assets/logo.png';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
@@ -45,6 +45,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
       title: 'Quản trị Danh mục',
       items: [
         { name: 'Quản lý mô hình', path: '/admin/tree', icon: <Mailbox size={20} />, permission: 'manage_tree' },
+        { name: 'Phân loại dịch vụ', path: '/admin/classification', icon: <Tags size={20} />, permission: 'superadmin_access' },
         { name: 'Quản lý nhân sự', path: '/admin/staff', icon: <ClipboardCheck size={20} />, permission: 'manage_staff' },
         { name: 'Quản lý phân quyền', path: '/admin/roles', icon: <ShieldCheck size={20} />, permission: 'manage_roles' },
       ]

@@ -12,6 +12,7 @@ const PotentialCustomers = lazy(() => import('./pages/PotentialCustomers_V3'));
 const ServiceMix = lazy(() => import('./pages/ServiceMix'));
 const ActionCenter = lazy(() => import('./pages/ActionCenter'));
 const TreeManagement = lazy(() => import('./pages/admin/TreeManagement'));
+const ClassificationManagement = lazy(() => import('./pages/admin/ClassificationManagement'));
 const StaffManagement = lazy(() => import('./pages/admin/StaffManagement'));
 const RoleManagement = lazy(() => import('./pages/admin/RoleManagement'));
 const SuperadminCenter = lazy(() => import('./pages/admin/SuperadminCenter'));
@@ -74,6 +75,7 @@ function MainLayout() {
               
               {/* Admin Routes */}
               <Route path="/admin/tree" element={<TreeManagement />} />
+              <Route path="/admin/classification" element={<ClassificationManagement />} />
               <Route path="/admin/staff" element={<StaffManagement />} />
               <Route path="/admin/roles" element={<RoleManagement />} />
               <Route path="/admin/super-center" element={<SuperadminCenter />} />
