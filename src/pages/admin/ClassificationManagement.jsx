@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 
 const ClassificationManagement = () => {
@@ -17,9 +17,7 @@ const ClassificationManagement = () => {
     const fetchUnknowns = async () => {
         try {
             setLoading(true);
-            const res = await axios.get('http://localhost:8000/api/admin/unknown-classifications', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await api.get('/api/admin/unknown-classifications');
             setUnknowns(res.data);
             setError(null);
         } catch (err) {
@@ -52,14 +50,11 @@ const ClassificationManagement = () => {
             setMessage(null);
             setError(null);
             
-            const res = await axios.post(
-                'http://localhost:8000/api/admin/assign-classification',
+            const res = await api.post(
+                '/api/admin/assign-classification',
                 {
                     dich_vu_chinh: code,
                     loai_dich_vu: targetCategory
-                },
-                {
-                    headers: { Authorization: `Bearer ${token}` }
                 }
             );
             
