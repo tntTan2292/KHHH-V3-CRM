@@ -15,6 +15,9 @@ const TreeExplorer = lazy(() => import('../components/TreeExplorer'));
 const CustomerProfileModal = lazy(() => import('../components/CustomerProfileModal'));
 import useSWR from 'swr';
 import Skeleton from '../components/Skeleton';
+import ServiceDistributionChart from '../components/ServiceDistributionChart';
+import ScopeDonutChart from '../components/ScopeDonutChart';
+import ClassificationDonutChart from '../components/ClassificationDonutChart';
 import AIAssistantInsights from '../components/dashboard/shared/AIAssistantInsights';
 import EliteMorningPulse from '../components/dashboard/shared/EliteMorningPulse';
 import PopulationKpiGroup from '../components/dashboard/cards/PopulationKpiGroup';
@@ -795,31 +798,30 @@ function Dashboard() {
 
         {/* Global Footer Stats */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-           <div className="card p-6 bg-vnpost-blue text-white shadow-vnpost-blue/20">
-              <h3 className="text-sm font-black uppercase tracking-widest mb-4 opacity-70">Phân Phối Theo Dịch Vụ</h3>
+           <div className="card p-6 border-t-4 border-t-vnpost-orange shadow-xl bg-white">
+              <h3 className="text-sm font-black uppercase tracking-widest mb-4 text-gray-800 flex items-center gap-2">
+                 <BarChart3 className="text-vnpost-orange" size={18} /> Phân Phối Theo Dịch Vụ
+              </h3>
               <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={revService} layout="vertical">
-                    <XAxis type="number" hide />
-                    <YAxis dataKey="name" type="category" width={120} tick={{ fontSize: 10, fill: '#fff', fontWeight: 'bold' }} axisLine={false} />
-                    <RechartsTooltip contentStyle={{color: '#0054A6'}} />
-                    <Bar dataKey="value" fill="#F9A51A" radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <ServiceDistributionChart 
+                  data={revService} 
+                  loading={isValidatingSummary} 
+                  totalRevenue={stats?.tong_doanh_thu} 
+                  formatCurrency={(val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val)} 
+                />
               </div>
            </div>
-           <div className="card p-6">
-              <h3 className="text-sm font-black uppercase tracking-widest mb-4 text-gray-400">Tỉ trọng Thị trường</h3>
+           <div className="card p-6 border-t-4 border-t-blue-500 shadow-xl bg-white">
+              <h3 className="text-sm font-black uppercase tracking-widest mb-4 text-gray-800 flex items-center gap-2">
+                 <BarChart3 className="text-blue-500" size={18} /> Tỉ trọng Thị trường
+              </h3>
               <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={revRegion} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                      {revRegion.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                    </Pie>
-                    <RechartsTooltip />
-                    <Legend iconType="circle" />
-                  </PieChart>
-                </ResponsiveContainer>
+                <ScopeDonutChart 
+                  data={revRegion} 
+                  loading={isValidatingSummary} 
+                  totalRevenue={stats?.tong_doanh_thu} 
+                  formatCurrency={(val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val)} 
+                />
               </div>
            </div>
         </div>
@@ -831,19 +833,12 @@ function Dashboard() {
                 <BarChart3 className="text-indigo-500" size={18} /> Cơ cấu Nhóm Dịch vụ
               </h3>
               <div className="h-64">
-                {classDistData ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={classDistData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                        {classDistData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                      </Pie>
-                      <RechartsTooltip formatter={(v) => formatCurrency(v)} />
-                      <Legend iconType="circle" />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex justify-center items-center h-full text-gray-400 text-xs font-bold uppercase"><Loader2 className="w-5 h-5 animate-spin mr-2"/> Đang tải...</div>
-                )}
+                <ClassificationDonutChart 
+                  data={classDistData} 
+                  loading={isValidatingClass} 
+                  totalRevenue={stats?.tong_doanh_thu} 
+                  formatCurrency={(val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val)} 
+                />
               </div>
            </div>
         </div>
