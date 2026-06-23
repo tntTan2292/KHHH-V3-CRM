@@ -231,7 +231,7 @@ function Dashboard() {
     { revalidateOnFocus: false, revalidateIfStale: false }
   );
 
-  const { data: classDistData } = useSWR(
+  const { data: classDistData, isValidating: loadingClassDist } = useSWR(
     (!waitingForDefaultDate && !!summaryData) ? ['/api/analytics/revenue-by-classification', queryParams] : null,
     fetcherWithParams,
     { revalidateOnFocus: false, revalidateIfStale: false }
@@ -805,7 +805,7 @@ function Dashboard() {
               <div className="h-64">
                 <ServiceDistributionChart 
                   data={revService} 
-                  loading={isValidatingSummary} 
+                  loading={loadingStats} 
                   totalRevenue={stats?.tong_doanh_thu} 
                   formatCurrency={(val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val)} 
                 />
@@ -818,7 +818,7 @@ function Dashboard() {
               <div className="h-64">
                 <ScopeDonutChart 
                   data={revRegion} 
-                  loading={isValidatingSummary} 
+                  loading={loadingStats} 
                   totalRevenue={stats?.tong_doanh_thu} 
                   formatCurrency={(val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val)} 
                 />
@@ -835,7 +835,7 @@ function Dashboard() {
               <div className="h-64">
                 <ClassificationDonutChart 
                   data={classDistData} 
-                  loading={isValidatingClass} 
+                  loading={loadingClassDist} 
                   totalRevenue={stats?.tong_doanh_thu} 
                   formatCurrency={(val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val)} 
                 />
