@@ -4,6 +4,7 @@ import { saveNavigationContext, getNavigationContext, syncUrlWithContext, getCon
 import api from '../utils/api';
 import { Search, Filter, Download, Download as DownloadX, TableProperties, AlertCircle, X, ChevronRight, ChevronLeft, Calendar, TrendingUp, ArrowUpDown, ChevronUp, ChevronDown, RefreshCw, CloudDownload, CheckCircle2, History, Star, Users, Briefcase, Zap, LogOut, UserPlus, UserMinus, Award, Activity, MapPin, ArrowUpRight, Save, AlertTriangle, Phone, FileText, Edit, Check, UploadCloud, Send, Settings, MessageCircle, Sparkles, Info, Network, Globe, Map, Building2, Boxes, Building, Store } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
+import ClassificationDonutChart from '../components/ClassificationDonutChart';
 import TreeExplorer from '../components/TreeExplorer';
 import CustomerHistoryModal from '../components/CustomerHistoryModal';
 import Skeleton from '../components/Skeleton';
@@ -2203,7 +2204,7 @@ export default function Customers() {
                    </div>
 
                    {/* Charts Grid */}
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       {/* Trong nước vs Quốc tế */}
                       <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                         <h4 className="font-semibold text-gray-800 mb-4 border-b pb-2">Tỉ Trọng Trong Nước / Quốc Tế</h4>
@@ -2253,6 +2254,19 @@ export default function Customers() {
                               <RechartsTooltip formatter={(value) => formatCurrency(value)} />
                             </PieChart>
                           </ResponsiveContainer>
+                        </div>
+                      </div>
+
+                      {/* Cơ cấu Nhóm Dịch Vụ */}
+                      <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                        <h4 className="font-semibold text-gray-800 mb-4 border-b pb-2">Cơ cấu Nhóm Dịch vụ</h4>
+                        <div className="h-64 w-full">
+                          <ClassificationDonutChart 
+                            data={customerDetails.classifications}
+                            loading={loadingDetails}
+                            totalRevenue={customerDetails.doanh_thu_luy_ke || customerDetails.tong_doanh_thu}
+                            formatCurrency={formatCurrency}
+                          />
                         </div>
                       </div>
                    </div>

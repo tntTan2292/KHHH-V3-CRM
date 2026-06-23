@@ -1,5 +1,6 @@
 import React from 'react';
 import { Users, X, MapPin, TrendingUp, BarChart3, Sparkles } from 'lucide-react';
+import ClassificationDonutChart from './ClassificationDonutChart';
 import { ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip, PieChart, Pie, Cell, Legend } from 'recharts';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
@@ -141,19 +142,12 @@ export default function CustomerProfileModal({
                     <BarChart3 size={14} className="text-indigo-500" /> Cơ cấu Nhóm Dịch vụ
                  </h5>
                  <div className="h-48">
-                    {loadingDetail ? (
-                      <div className="flex justify-center items-center h-full text-gray-300 italic text-xs animate-pulse">Đang nạp phân loại...</div>
-                    ) : fullCustomerDetail?.classifications?.filter(c => c.value > 0).length > 0 ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                         <PieChart>
-                            <Pie data={fullCustomerDetail.classifications.filter(c => c.value > 0)} innerRadius={40} outerRadius={60} paddingAngle={2} dataKey="value">
-                               {fullCustomerDetail.classifications.filter(c => c.value > 0).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                            </Pie>
-                            <RechartsTooltip content={renderTooltipContent} />
-                            <Legend iconType="circle" wrapperStyle={{fontSize: '10px'}} />
-                         </PieChart>
-                      </ResponsiveContainer>
-                    ) : <div className="flex justify-center items-center h-full text-gray-300 text-xs">Không có dữ liệu</div>}
+                    <ClassificationDonutChart 
+                      data={fullCustomerDetail?.classifications}
+                      loading={loadingDetail}
+                      totalRevenue={fullCustomerDetail?.customer?.doanh_thu_luy_ke}
+                      formatCurrency={formatCurrency}
+                    />
                  </div>
               </div>
 
