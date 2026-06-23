@@ -2020,7 +2020,7 @@ export default function Customers() {
       {/* Drill-down Modal */}
       {selectedCustomer && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[90vh] overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-7xl max-h-[90vh] overflow-y-auto animate-fade-in">
             <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex justify-between items-center z-10">
               <div className="flex items-center gap-3">
                 <h3 className="text-2xl font-black flex items-center gap-2">
@@ -2215,18 +2215,23 @@ export default function Customers() {
                                 data={customerDetails.scope}
                                 cx="50%"
                                 cy="50%"
-                                innerRadius={50}
-                                outerRadius={80}
-                                paddingAngle={5}
+                                innerRadius="55%"
+                                outerRadius="80%"
+                                paddingAngle={2}
                                 dataKey="value"
-                                label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                stroke="none"
                               >
                                 {customerDetails.scope.map((entry, index) => (
                                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                 ))}
                               </Pie>
                               <RechartsTooltip formatter={(value) => formatCurrency(value)} />
-                              <Legend verticalAlign="bottom" height={36}/>
+                              <Legend verticalAlign="bottom" formatter={(value, entry) => {
+                                const dataVal = entry.payload.value;
+                                const total = customerDetails.doanh_thu_luy_ke || customerDetails.tong_doanh_thu || 1;
+                                const pct = ((dataVal / total) * 100).toFixed(1);
+                                return <span className="text-[10px] text-gray-700 font-medium">{value} - {formatCurrency(dataVal)} ({pct}%)</span>;
+                              }}/>
                             </PieChart>
                           </ResponsiveContainer>
                         </div>
@@ -2242,16 +2247,23 @@ export default function Customers() {
                                 data={customerDetails.services}
                                 cx="50%"
                                 cy="50%"
-                                outerRadius={80}
+                                innerRadius="55%"
+                                outerRadius="80%"
                                 paddingAngle={2}
                                 dataKey="value"
-                                label={({name}) => name}
+                                stroke="none"
                               >
                                 {customerDetails.services.map((entry, index) => (
                                   <Cell key={`cell-${index}`} fill={COLORS[(index+2) % COLORS.length]} />
                                 ))}
                               </Pie>
                               <RechartsTooltip formatter={(value) => formatCurrency(value)} />
+                              <Legend verticalAlign="bottom" formatter={(value, entry) => {
+                                const dataVal = entry.payload.value;
+                                const total = customerDetails.doanh_thu_luy_ke || customerDetails.tong_doanh_thu || 1;
+                                const pct = ((dataVal / total) * 100).toFixed(1);
+                                return <span className="text-[10px] text-gray-700 font-medium">{value} - {formatCurrency(dataVal)} ({pct}%)</span>;
+                              }}/>
                             </PieChart>
                           </ResponsiveContainer>
                         </div>

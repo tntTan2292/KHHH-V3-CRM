@@ -29,9 +29,17 @@ export default function CustomerProfileModal({
     return null;
   };
 
+  const renderLegend = (value, entry) => {
+    const dataVal = entry.payload.value;
+    const total = (fullCustomerDetail?.customer?.doanh_thu_luy_ke) || 1;
+    const pct = ((dataVal / total) * 100).toFixed(1);
+    const formattedVal = formatCurrency ? formatCurrency(dataVal) : dataVal.toLocaleString();
+    return <span className="text-[10px] text-gray-700 font-medium" title={`${value} - ${formattedVal}`}>{value} - {formattedVal} ({pct}%)</span>;
+  };
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden border border-white/20 animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <div className="bg-white w-full max-w-6xl rounded-3xl shadow-2xl overflow-hidden border border-white/20 animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto custom-scrollbar">
         <div className="relative p-8 bg-vnpost-blue text-white overflow-hidden">
           <div className="absolute top-0 right-0 p-8 opacity-10"><Users size={120} /></div>
           <button onClick={() => setSelectedCustomer(null)} className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full transition-colors"><X size={24} /></button>
@@ -104,13 +112,13 @@ export default function CustomerProfileModal({
                       <div className="flex justify-center items-center h-full text-gray-300 italic text-xs animate-pulse">Đang nạp cơ cấu dịch vụ...</div>
                     ) : fullCustomerDetail?.services?.length > 0 ? (
                       <ResponsiveContainer width="100%" height="100%">
-                         <PieChart>
-                            <Pie data={fullCustomerDetail.services} innerRadius={40} outerRadius={60} paddingAngle={2} dataKey="value">
-                               {fullCustomerDetail.services.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                            </Pie>
-                            <RechartsTooltip content={renderTooltipContent} />
-                            <Legend iconType="circle" wrapperStyle={{fontSize: '10px'}} />
-                         </PieChart>
+                           <PieChart>
+                              <Pie data={fullCustomerDetail.services} innerRadius="55%" outerRadius="80%" paddingAngle={2} dataKey="value" stroke="none">
+                                 {fullCustomerDetail.services.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                              </Pie>
+                              <RechartsTooltip content={renderTooltipContent} />
+                              <Legend iconType="circle" formatter={renderLegend} verticalAlign="bottom" />
+                           </PieChart>
                       </ResponsiveContainer>
                     ) : <div className="flex justify-center items-center h-full text-gray-300 text-xs">Không có dữ liệu</div>}
                  </div>
@@ -125,13 +133,13 @@ export default function CustomerProfileModal({
                       <div className="flex justify-center items-center h-full text-gray-300 italic text-xs animate-pulse">Đang nạp dữ liệu...</div>
                     ) : fullCustomerDetail?.scope?.filter(s => s.value > 0).length > 0 ? (
                       <ResponsiveContainer width="100%" height="100%">
-                         <PieChart>
-                            <Pie data={fullCustomerDetail.scope.filter(s => s.value > 0)} innerRadius={40} outerRadius={60} paddingAngle={2} dataKey="value">
-                               {fullCustomerDetail.scope.filter(s => s.value > 0).map((_, i) => <Cell key={i} fill={['#0054A6', '#F9A51A'][i % 2]} />)}
-                            </Pie>
-                            <RechartsTooltip content={renderTooltipContent} />
-                            <Legend iconType="circle" wrapperStyle={{fontSize: '10px'}} />
-                         </PieChart>
+                           <PieChart>
+                              <Pie data={fullCustomerDetail.scope.filter(s => s.value > 0)} innerRadius="55%" outerRadius="80%" paddingAngle={2} dataKey="value" stroke="none">
+                                 {fullCustomerDetail.scope.filter(s => s.value > 0).map((_, i) => <Cell key={i} fill={['#0054A6', '#F9A51A'][i % 2]} />)}
+                              </Pie>
+                              <RechartsTooltip content={renderTooltipContent} />
+                              <Legend iconType="circle" formatter={renderLegend} verticalAlign="bottom" />
+                           </PieChart>
                       </ResponsiveContainer>
                     ) : <div className="flex justify-center items-center h-full text-gray-300 text-xs">Không có dữ liệu</div>}
                  </div>
