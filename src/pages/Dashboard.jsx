@@ -101,20 +101,6 @@ function Dashboard() {
   const [selectedMonth, setSelectedMonth] = useState("");
   const [showChurnModal, setShowChurnModal] = useState(false);
 
-  const selectedMonthLabel = useMemo(() => {
-    if (selectedMonth) return selectedMonth;
-    if (startDate) return startDate.substring(0, 7);
-    return "";
-  }, [selectedMonth, startDate]);
-
-  const prevMonthLabel = useMemo(() => {
-    if (!selectedMonthLabel) return "";
-    try {
-      const [y, m] = selectedMonthLabel.split('-').map(Number);
-      const d = new Date(y, m - 2, 1);
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    } catch(e) { return ""; }
-  }, [selectedMonthLabel]);
 
   // RF4D: Date Persistence
   useEffect(() => {
@@ -124,10 +110,6 @@ function Dashboard() {
   }, [startDate, endDate]);
 
   const [isExporting, setIsExporting] = useState(false);
-  const [zoomState, setZoomState] = useState({
-    refAreaLeft: '', refAreaRight: '', refAreaTop: '', refAreaBottom: '',
-    left: 'auto', right: 'auto', top: 'auto', bottom: 'auto'
-  });
   const [fullCustomerDetail, setFullCustomerDetail] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [botReport, setBotReport] = useState(null);
@@ -174,6 +156,7 @@ function Dashboard() {
       setWaitingForDefaultDate(false);
       console.log("[DIAGNOSTIC] Dashboard waitingForDefaultDate released via useEffect cache hook");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coverageData, coverageError]);
 
   // 2. Summary & Stats
@@ -206,7 +189,7 @@ function Dashboard() {
   );
 
   // 6. Monthly Trend Data (New) - DEFERRED: Only load after primary summaryData is ready
-  const { data: monthlyDataRes, isValidating: loadingMonthly } = useSWR(
+  const { data: monthlyDataRes } = useSWR(
     (!waitingForDefaultDate && !!summaryData) ? ['/api/analytics/revenue-monthly', queryParams] : null,
     fetcherWithParams,
     { revalidateOnFocus: false, revalidateIfStale: false }
@@ -308,6 +291,7 @@ function Dashboard() {
         setEndDate(dateCtx.endDate);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const handleNodeSelect = (node) => {
@@ -424,37 +408,6 @@ function Dashboard() {
     }
   }, [selectedCustomer]);
 
-  const handleZoom = () => {
-    let { refAreaLeft, refAreaRight, refAreaTop, refAreaBottom } = zoomState;
-
-    if (refAreaLeft === refAreaRight || refAreaRight === '') {
-      setZoomState(s => ({ ...s, refAreaLeft: '', refAreaRight: '', refAreaTop: '', refAreaBottom: '' }));
-      return;
-    }
-
-    // Đảm bảo Left luôn nhỏ hơn Right
-    if (refAreaLeft > refAreaRight) [refAreaLeft, refAreaRight] = [refAreaRight, refAreaLeft];
-    if (refAreaBottom > refAreaTop) [refAreaBottom, refAreaTop] = [refAreaTop, refAreaBottom];
-
-    setZoomState(s => ({
-      ...s,
-      refAreaLeft: '',
-      refAreaRight: '',
-      refAreaTop: '',
-      refAreaBottom: '',
-      left: refAreaLeft,
-      right: refAreaRight,
-      top: refAreaTop,
-      bottom: refAreaBottom
-    }));
-  };
-
-  const resetZoom = () => {
-    setZoomState({
-      refAreaLeft: '', refAreaRight: '', refAreaTop: '', refAreaBottom: '',
-      left: 'auto', right: 'auto', top: 'auto', bottom: 'auto'
-    });
-  };
 
   return (
     <div className="flex bg-gray-50/50 min-h-screen">
@@ -613,7 +566,7 @@ function Dashboard() {
                       minTickGap={40}
                       tickFormatter={(str) => {
                         try { return new Date(str).toLocaleDateString('vi-VN', {day: '2-digit', month: '2-digit'}); }
-                        catch(e) { return str; }
+                        catch { return str; }
                       }}
                     />
                     <YAxis 

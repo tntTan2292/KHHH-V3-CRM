@@ -9,7 +9,7 @@ const CLASSIFICATION_COLORS = {
   "Khác": "#6b7280"        // Gray
 };
 
-export default function ClassificationDonutChart({ data, loading, totalRevenue, formatCurrency }) {
+export default function ClassificationDonutChart({ data, totalRevenue, formatCurrency }) {
   const total = totalRevenue || 1;
 
   const renderTooltipContent = (o) => {
