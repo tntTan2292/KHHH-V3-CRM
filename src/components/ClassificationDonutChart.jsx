@@ -26,17 +26,6 @@ export default function ClassificationDonutChart({ data, loading, totalRevenue, 
     return null;
   };
 
-  const renderLegend = (value, entry) => {
-    const dataVal = entry.payload.value;
-    const pct = ((dataVal / total) * 100).toFixed(1);
-    const formattedVal = formatCurrency ? formatCurrency(dataVal) : dataVal.toLocaleString();
-    return <span className="text-[10px] text-gray-700 font-medium" title={`${value} - ${formattedVal}`}>{value} - {formattedVal} ({pct}%)</span>;
-  };
-
-  if (loading) {
-    return <div className="flex justify-center items-center h-full text-gray-300 italic text-xs animate-pulse">Đang nạp phân loại...</div>;
-  }
-
   const validData = data?.filter(c => c.value > 0) || [];
 
   if (validData.length === 0) {
@@ -44,14 +33,35 @@ export default function ClassificationDonutChart({ data, loading, totalRevenue, 
   }
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
-      <PieChart>
-        <Pie data={validData} innerRadius="55%" outerRadius="80%" paddingAngle={2} dataKey="value" stroke="none">
-          {validData.map((entry, i) => <Cell key={i} fill={CLASSIFICATION_COLORS[entry.name] || '#6b7280'} />)}
-        </Pie>
-        <RechartsTooltip content={renderTooltipContent} />
-        <Legend iconType="circle" formatter={renderLegend} verticalAlign="bottom" />
-      </PieChart>
-    </ResponsiveContainer>
+    <div className="flex w-full h-full items-center">
+      <div className="w-1/2 h-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={validData} cx="50%" cy="50%" innerRadius="60%" outerRadius="85%" paddingAngle={2} dataKey="value" stroke="none">
+              {validData.map((entry, i) => <Cell key={i} fill={CLASSIFICATION_COLORS[entry.name] || '#6b7280'} />)}
+            </Pie>
+            <RechartsTooltip content={renderTooltipContent} />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="w-1/2 h-full flex flex-col justify-center space-y-2 pr-2">
+        {validData.sort((a, b) => b.value - a.value).map((item, i) => {
+          const pct = ((item.value / total) * 100).toFixed(1);
+          const formattedVal = formatCurrency ? formatCurrency(item.value) : item.value.toLocaleString();
+          return (
+            <div key={i} className="flex justify-between items-center text-[10px]">
+              <div className="flex items-center gap-1.5 truncate pr-2">
+                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{backgroundColor: CLASSIFICATION_COLORS[item.name] || '#6b7280'}}></div>
+                <span className="font-semibold text-gray-600 truncate">{item.name}</span>
+              </div>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <span className="font-bold text-gray-800">{formattedVal}</span>
+                <span className="text-gray-500 w-8 text-right">({pct}%)</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
