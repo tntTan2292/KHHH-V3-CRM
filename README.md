@@ -59,6 +59,7 @@ Hệ thống được vận hành bởi 6 "Động cơ" cốt lõi:
 4.  **[Scoping Service](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/app/services/scoping_service.py)**: Đảm bảo phân quyền dữ liệu tuyệt đối theo phân cấp quản lý và các ngoại lệ (531120).
 5.  **[SLA Engine](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/app/services/sla_service.py)**: Quản trị thời gian xử lý nhiệm vụ, theo dõi tiến độ (deadline), cảnh báo nhiệm vụ treo (>7 ngày) và đánh dấu quá hạn (overdue).
 6.  **[Elite Bot Engine](https://github.com/tntTan2292/KHHH-V3-CRM/blob/main/backend/app/services/bot_service.py)**: Tự động quét vòng đời (lifecycle alerts) để tạo/cảnh báo các task khi khách hàng có nguy cơ rời bỏ hoặc rớt doanh thu.
+7.  **Classification Engine**: Động cơ quản lý từ điển chuẩn hóa dịch vụ SSOT, tự động gom nhóm, phát hiện các dịch vụ chưa định dạng (Unknown) và ánh xạ theo luồng Backfill thông minh để phân tích tỷ trọng theo (TMĐT, HCC, Truyền thống, Quốc tế).
 
 > [!NOTE]
 > **Phân tách Dữ liệu Đối tượng (Entity Segregation)**: Hệ thống tách biệt rõ ràng giữa **Khách hàng Hiện hữu (HienHuu)** và **Khách hàng Tiềm năng (TiemNang - Lead)** trong mọi luồng logic giao việc và báo cáo.
