@@ -1,7 +1,9 @@
 import React from 'react';
 import { Users, X, MapPin, TrendingUp, BarChart3, Sparkles } from 'lucide-react';
 import ClassificationDonutChart from './ClassificationDonutChart';
-import { ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip, PieChart, Pie, Cell, Legend } from 'recharts';
+import ScopeDonutChart from './ScopeDonutChart';
+import ServiceDistributionChart from './ServiceDistributionChart';
+import { ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip } from 'recharts';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -104,46 +106,32 @@ export default function CustomerProfileModal({
            {/* Right Column: Service Mix & AI Insights */}
            <div className="space-y-6">
               <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                 <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <BarChart3 size={14} className="text-vnpost-orange" /> Cơ cấu Dịch vụ
-                 </h5>
-                 <div className="h-48">
-                    {loadingDetail ? (
-                      <div className="flex justify-center items-center h-full text-gray-300 italic text-xs animate-pulse">Đang nạp cơ cấu dịch vụ...</div>
-                    ) : fullCustomerDetail?.services?.length > 0 ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                           <PieChart>
-                              <Pie data={fullCustomerDetail.services} innerRadius="55%" outerRadius="80%" paddingAngle={2} dataKey="value" stroke="none">
-                                 {fullCustomerDetail.services.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                              </Pie>
-                              <RechartsTooltip content={renderTooltipContent} />
-                              <Legend iconType="circle" formatter={renderLegend} verticalAlign="bottom" />
-                           </PieChart>
-                      </ResponsiveContainer>
-                    ) : <div className="flex justify-center items-center h-full text-gray-300 text-xs">Không có dữ liệu</div>}
-                 </div>
-              </div>
+                  <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                     <BarChart3 size={14} className="text-vnpost-orange" /> Cơ cấu Dịch vụ
+                  </h5>
+                  <div className="h-48">
+                     <ServiceDistributionChart 
+                        data={fullCustomerDetail?.services} 
+                        loading={loadingDetail} 
+                        totalRevenue={fullCustomerDetail?.customer?.doanh_thu_luy_ke} 
+                        formatCurrency={formatCurrency} 
+                     />
+                  </div>
+               </div>
 
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                 <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <BarChart3 size={14} className="text-blue-500" /> Tỉ trọng Trong nước / Quốc tế
-                 </h5>
-                 <div className="h-48">
-                    {loadingDetail ? (
-                      <div className="flex justify-center items-center h-full text-gray-300 italic text-xs animate-pulse">Đang nạp dữ liệu...</div>
-                    ) : fullCustomerDetail?.scope?.filter(s => s.value > 0).length > 0 ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                           <PieChart>
-                              <Pie data={fullCustomerDetail.scope.filter(s => s.value > 0)} innerRadius="55%" outerRadius="80%" paddingAngle={2} dataKey="value" stroke="none">
-                                 {fullCustomerDetail.scope.filter(s => s.value > 0).map((_, i) => <Cell key={i} fill={['#0054A6', '#F9A51A'][i % 2]} />)}
-                              </Pie>
-                              <RechartsTooltip content={renderTooltipContent} />
-                              <Legend iconType="circle" formatter={renderLegend} verticalAlign="bottom" />
-                           </PieChart>
-                      </ResponsiveContainer>
-                    ) : <div className="flex justify-center items-center h-full text-gray-300 text-xs">Không có dữ liệu</div>}
-                 </div>
-              </div>
+               <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                  <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                     <BarChart3 size={14} className="text-blue-500" /> Tỉ trọng Trong nước / Quốc tế
+                  </h5>
+                  <div className="h-48">
+                     <ScopeDonutChart 
+                        data={fullCustomerDetail?.scope} 
+                        loading={loadingDetail} 
+                        totalRevenue={fullCustomerDetail?.customer?.doanh_thu_luy_ke} 
+                        formatCurrency={formatCurrency} 
+                     />
+                  </div>
+               </div>
 
               <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                  <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">

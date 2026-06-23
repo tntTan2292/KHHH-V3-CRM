@@ -5,6 +5,8 @@ import api from '../utils/api';
 import { Search, Filter, Download, Download as DownloadX, TableProperties, AlertCircle, X, ChevronRight, ChevronLeft, Calendar, TrendingUp, ArrowUpDown, ChevronUp, ChevronDown, RefreshCw, CloudDownload, CheckCircle2, History, Star, Users, Briefcase, Zap, LogOut, UserPlus, UserMinus, Award, Activity, MapPin, ArrowUpRight, Save, AlertTriangle, Phone, FileText, Edit, Check, UploadCloud, Send, Settings, MessageCircle, Sparkles, Info, Network, Globe, Map, Building2, Boxes, Building, Store } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import ClassificationDonutChart from '../components/ClassificationDonutChart';
+import ScopeDonutChart from '../components/ScopeDonutChart';
+import ServiceDistributionChart from '../components/ServiceDistributionChart';
 import TreeExplorer from '../components/TreeExplorer';
 import CustomerHistoryModal from '../components/CustomerHistoryModal';
 import Skeleton from '../components/Skeleton';
@@ -2209,31 +2211,12 @@ export default function Customers() {
                       <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                         <h4 className="font-semibold text-gray-800 mb-4 border-b pb-2">Tỉ Trọng Trong Nước / Quốc Tế</h4>
                         <div className="h-64 w-full">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                              <Pie
-                                data={customerDetails.scope}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius="55%"
-                                outerRadius="80%"
-                                paddingAngle={2}
-                                dataKey="value"
-                                stroke="none"
-                              >
-                                {customerDetails.scope.map((entry, index) => (
-                                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
-                              </Pie>
-                              <RechartsTooltip formatter={(value) => formatCurrency(value)} />
-                              <Legend verticalAlign="bottom" formatter={(value, entry) => {
-                                const dataVal = entry.payload.value;
-                                const total = customerDetails.doanh_thu_luy_ke || customerDetails.tong_doanh_thu || 1;
-                                const pct = ((dataVal / total) * 100).toFixed(1);
-                                return <span className="text-[10px] text-gray-700 font-medium">{value} - {formatCurrency(dataVal)} ({pct}%)</span>;
-                              }}/>
-                            </PieChart>
-                          </ResponsiveContainer>
+                          <ScopeDonutChart 
+                            data={customerDetails.scope}
+                            loading={loadingDetails}
+                            totalRevenue={customerDetails.doanh_thu_luy_ke || customerDetails.tong_doanh_thu}
+                            formatCurrency={formatCurrency}
+                          />
                         </div>
                       </div>
 
@@ -2241,31 +2224,12 @@ export default function Customers() {
                       <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                         <h4 className="font-semibold text-gray-800 mb-4 border-b pb-2">Doanh Thu Theo Dịch Vụ</h4>
                         <div className="h-64 w-full">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                              <Pie
-                                data={customerDetails.services}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius="55%"
-                                outerRadius="80%"
-                                paddingAngle={2}
-                                dataKey="value"
-                                stroke="none"
-                              >
-                                {customerDetails.services.map((entry, index) => (
-                                  <Cell key={`cell-${index}`} fill={COLORS[(index+2) % COLORS.length]} />
-                                ))}
-                              </Pie>
-                              <RechartsTooltip formatter={(value) => formatCurrency(value)} />
-                              <Legend verticalAlign="bottom" formatter={(value, entry) => {
-                                const dataVal = entry.payload.value;
-                                const total = customerDetails.doanh_thu_luy_ke || customerDetails.tong_doanh_thu || 1;
-                                const pct = ((dataVal / total) * 100).toFixed(1);
-                                return <span className="text-[10px] text-gray-700 font-medium">{value} - {formatCurrency(dataVal)} ({pct}%)</span>;
-                              }}/>
-                            </PieChart>
-                          </ResponsiveContainer>
+                          <ServiceDistributionChart 
+                            data={customerDetails.services}
+                            loading={loadingDetails}
+                            totalRevenue={customerDetails.doanh_thu_luy_ke || customerDetails.tong_doanh_thu}
+                            formatCurrency={formatCurrency}
+                          />
                         </div>
                       </div>
 
