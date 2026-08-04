@@ -72,28 +72,24 @@ class CustomerService:
                 is_churn_related = True
             # -----------------------------------------
             
-            month_str = curr_start.strftime("%Y-%m")
+            # [GOVERNANCE] SSOT Anchoring: Population filters anchor to end_date month, Event filters anchor to [start_date, end_date]
+            end_month_str = curr_end.strftime("%Y-%m")
             
-            # RF5C-HOTFIX: Temporal Integrity check
-            # Full month check (simplified)
+            # Check if range is partial (not a single full closed calendar month)
             is_partial = not (curr_start.day == 1 and (curr_end + timedelta(seconds=1)).day == 1)
             
-            # [RF5C] Determine if we should use Realtime vs Snapshot
-            # Governance: Current Month or Partial Range MUST use Realtime to match Dashboard
+            # [RF5C/SSOT] Determine Realtime vs Snapshot
             max_ts = db.query(func.max(Transaction.ngay_chap_nhan)).scalar()
-            max_month_str = max_ts[:7] if isinstance(max_ts, str) else max_ts.strftime("%Y-%m")
-            is_latest_month = (month_str == max_month_str)
+            max_month_str = max_ts[:7] if isinstance(max_ts, str) else (max_ts.strftime("%Y-%m") if max_ts else datetime.now().strftime("%Y-%m"))
+            is_latest_month = (end_month_str == max_month_str)
             
-            snapshot_exists = db.query(exists().where(CustomerMonthlySnapshot.year_month == month_str)).scalar()
-            snapshot_sub = None
+            snapshot_exists = db.query(exists().where(CustomerMonthlySnapshot.year_month == end_month_str)).scalar()
             
-            # [RF5C] Determine if we should use Realtime vs Snapshot
-            # Use Realtime ONLY if snapshot is missing. 
-            # If snapshot exists, it is the Frozen Truth.
-            use_realtime = not snapshot_exists
+            # Use Realtime if snapshot for end_month is missing, or if range is latest month or partial range
+            use_realtime = (not snapshot_exists) or is_latest_month or is_partial
             
             if use_realtime:
-                # REALTIME FALLBACK (Current Month) - MUST MATCH LifecycleEngine SSOT EXACTLY
+                # REALTIME FALLBACK (Current/Partial Range) - MUST MATCH LifecycleEngine SSOT EXACTLY
                 target_date = curr_end.strftime("%Y-%m-%d")
                 
                 # Mapping UI filter codes to Engine Logic codes
@@ -130,8 +126,8 @@ class CustomerService:
                 else:
                     filters.append(func.lower(Customer.lifecycle_state) == status_val)
             else:
-                # SNAPSHOT LOGIC (Historical Month)
-                snapshot_sub = db.query(CustomerMonthlySnapshot).filter(CustomerMonthlySnapshot.year_month == month_str).subquery()
+                # SNAPSHOT LOGIC (Historical Closed Month)
+                snapshot_sub = db.query(CustomerMonthlySnapshot).filter(CustomerMonthlySnapshot.year_month == end_month_str).subquery()
                 
                 if status_val == 'total_pop':
                     filters.append(snapshot_sub.c.lifecycle_state.in_(['ACTIVE', 'NEW', 'RECOVERED', 'AT_RISK', 'CHURNED']))

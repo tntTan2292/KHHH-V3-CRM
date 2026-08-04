@@ -21,7 +21,9 @@ class LifecycleService:
         from datetime import datetime
         today_str = datetime.now().strftime("%Y-%m")
         
-        if not month_str and start_date:
+        if not month_str and end_date:
+            month_str = end_date[:7]
+        elif not month_str and start_date:
             month_str = start_date[:7]
         if not month_str:
             month_str = max_month_str or today_str
@@ -96,9 +98,8 @@ class LifecycleService:
         has_summary = len(summary_rows) > 0
         
         # 3. RF5C-HOTFIX: Dynamic Recalculation (Realtime)
-        # Use Realtime ONLY if snapshot is missing.
-        # If snapshot exists, we trust it as the Constitutional SSOT for that month.
-        if not has_summary and start_date and end_date:
+        # Use Realtime if summary is missing, or if range is latest month or partial range
+        if (not has_summary or is_latest_month or is_partial) and start_date and end_date:
             from sqlalchemy import text
             target_date = end_date
             

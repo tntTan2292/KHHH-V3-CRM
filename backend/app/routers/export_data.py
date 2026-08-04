@@ -98,6 +98,10 @@ def export_customers_excel(
             prev_rev = float(getattr(row, 'previous_revenue', 0) or 0)
             growth = round(((curr_rev - prev_rev) / prev_rev * 100), 1) if prev_rev > 0 else 0.0
 
+            ma_bc = getattr(c, 'ma_bc_phu_trach', None) or "N/A"
+            ten_bc = point_map.get(getattr(c, 'ma_bc_phu_trach', None), "")
+            buu_cuc_full = f"{ma_bc} - {ten_bc}" if (ma_bc != "N/A" and ten_bc) else (ten_bc or ma_bc)
+
             data.append({
                 "STT": idx + 1,
                 "Mã CRM/CMS": getattr(c, 'ma_crm_cms', "N/A"),
@@ -108,7 +112,7 @@ def export_customers_excel(
                 "Doanh thu (Kỳ báo cáo)": curr_rev,
                 "Tăng trưởng (%)": growth,
                 "Sản lượng (Kỳ báo cáo)": int(getattr(row, 'transaction_count', 0) or 0),
-                "Bưu cục Quản lý": point_map.get(getattr(c, 'ma_bc_phu_trach', None), "N/A"),
+                "Bưu cục Quản lý": buu_cuc_full,
                 "Nhân sự phụ trách": getattr(row, 'assigned_staff_name', "Chưa giao") or "Chưa giao"
             })
         df = pd.DataFrame(data) if data else pd.DataFrame([{"Thông báo": "Không có dữ liệu"}])
