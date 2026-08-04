@@ -75,7 +75,8 @@ async def get_movement_report(
     query_b = db.query(
         Transaction.ma_kh,
         func.sum(Transaction.doanh_thu).label("rev_b"),
-        func.count(Transaction.id).label("count_b")
+        func.count(Transaction.id).label("count_b"),
+        func.max(Transaction.point_id).label("point_id")
     ).filter(
         Transaction.ngay_chap_nhan.between(dt_start_b, dt_end_b),
         Transaction.ma_kh != None,
@@ -85,7 +86,7 @@ async def get_movement_report(
         query_b = query_b.filter(Transaction.point_id.in_(scope_ids))
     
     results_b = query_b.group_by(Transaction.ma_kh).all()
-    data_b = {r.ma_kh: {"rev": r.rev_b or 0, "count": r.count_b or 0} for r in results_b}
+    data_b = {r.ma_kh: {"rev": r.rev_b or 0, "count": r.count_b or 0, "point_id": r.point_id} for r in results_b}
 
     # 4. Merge and Identify Status
     all_ma_khs = set(data_a.keys()) | set(data_b.keys())
@@ -93,11 +94,15 @@ async def get_movement_report(
     # Pre-fetch Customer metadata for filtering and display
     customer_meta = {}
     if all_ma_khs:
-        customers = db.query(Customer.ma_crm_cms, Customer.ten_kh, Customer.rfm_segment, Customer.nhom_kh).filter(Customer.ma_crm_cms.in_(list(all_ma_khs))).all()
-        customer_meta = {c.ma_crm_cms: {"name": c.ten_kh, "rfm": c.rfm_segment, "nhom": c.nhom_kh} for c in customers}
+        customers = db.query(Customer.ma_crm_cms, Customer.ten_kh, Customer.rfm_segment, Customer.nhom_kh, Customer.point_id).filter(Customer.ma_crm_cms.in_(list(all_ma_khs))).all()
+        customer_meta = {c.ma_crm_cms: {"name": c.ten_kh, "rfm": c.rfm_segment, "nhom": c.nhom_kh, "point_id": c.point_id} for c in customers}
 
     # Fetch Point names and codes
-    point_ids = list(set(r.point_id for r in results_a if r.point_id))
+    point_ids = list(set(
+        [r.point_id for r in results_a if r.point_id] +
+        [r.point_id for r in results_b if r.point_id] +
+        [c["point_id"] for c in customer_meta.values() if c.get("point_id")]
+    ))
     point_map = {}
     if point_ids:
         points = db.query(HierarchyNode.id, HierarchyNode.name, HierarchyNode.code).filter(HierarchyNode.id.in_(point_ids)).all()
@@ -111,8 +116,8 @@ async def get_movement_report(
 
     for ma_kh in all_ma_khs:
         a = data_a.get(ma_kh, {"rev": 0, "count": 0, "point_id": None})
-        b = data_b.get(ma_kh, {"rev": 0, "count": 0})
-        meta = customer_meta.get(ma_kh, {"name": None, "rfm": "Thường", "nhom": "Khác"})
+        b = data_b.get(ma_kh, {"rev": 0, "count": 0, "point_id": None})
+        meta = customer_meta.get(ma_kh, {"name": None, "rfm": "Thường", "nhom": "Khác", "point_id": None})
 
         # Apply Filters
         if rfm_segment and meta["rfm"] != rfm_segment: continue
@@ -141,10 +146,12 @@ async def get_movement_report(
         summary["total_rev_a"] += rev_a
         summary["total_rev_b"] += rev_b
 
+        point_id = a["point_id"] or b["point_id"] or meta.get("point_id")
+
         merged_results.append({
             "ma_kh": ma_kh,
             "ten_kh": meta.get("name") or f"KH: {ma_kh}",
-            "point_name": point_map.get(a["point_id"], "N/A"),
+            "point_name": point_map.get(point_id, "N/A"),
             "rfm_segment": meta["rfm"],
             "nhom_kh": meta["nhom"],
             "rev_a": rev_a,
