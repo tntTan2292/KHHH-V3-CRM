@@ -129,7 +129,7 @@ def get_dashboard_stats(
     governed_end = curr_end.strftime("%Y-%m-%d")
     prev_start_str = prev_start.strftime("%Y-%m-%d")
     prev_end_str = prev_end.strftime("%Y-%m-%d")
-    month_str = governed_start[:7]
+    month_str = governed_end[:7]
     current_month_str = max_data_date.strftime("%Y-%m")
 
     # 3. FETCH REVENUE KPI (CONSTITUTIONAL SSOT: Always use Transaction)
