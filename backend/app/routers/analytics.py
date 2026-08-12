@@ -1115,7 +1115,8 @@ def get_heatmap_units(
     if not results: return []
     
     # Tính toán intensity (kích thước điểm)
-    max_rev = max([r["revenue"] for r in results]) if results else 1
+    raw_max = max([r["revenue"] for r in results]) if results else 0
+    max_rev = raw_max if raw_max > 0 else 1.0
     for r in results:
         r["intensity"] = round((r["revenue"] / max_rev) * 100, 1)
         
