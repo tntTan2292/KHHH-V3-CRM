@@ -236,17 +236,24 @@ def read_file2(filepath: str = None) -> pd.DataFrame:
         if c in df_out.columns:
             df_out[c] = df_out[c].apply(safe_float)
             
-    # Xử lý ngày tháng linh hoạt (Excel date serial hoặc String)
+    # Xử lý ngày tháng linh hoạt (Excel date serial hoặc String chuẩn Việt Nam DD/MM/YYYY)
     if "ngay_chap_nhan" in df_out.columns:
         def parse_excel_date(val):
-            if pd.isna(val) or val == "": return pd.NaT
+            if pd.isna(val) or val == "" or str(val).strip() == "": return pd.NaT
             try:
                 # Nếu là số (Excel date serial)
                 num = float(val)
                 return pd.to_datetime(num, unit='D', origin='1899-12-30')
             except (ValueError, TypeError):
-                # Nếu là chuỗi (String)
-                return pd.to_datetime(str(val), errors='coerce', dayfirst=True)
+                s = str(val).strip()
+                # Ưu tiên parse theo định dạng Việt Nam DD/MM/YYYY
+                try:
+                    return pd.to_datetime(s, format="%d/%m/%Y %H:%M:%S")
+                except Exception:
+                    try:
+                        return pd.to_datetime(s, format="%d/%m/%Y")
+                    except Exception:
+                        return pd.to_datetime(s, errors='coerce', dayfirst=True)
         
         df_out["ngay_chap_nhan"] = df_out["ngay_chap_nhan"].apply(parse_excel_date)
             

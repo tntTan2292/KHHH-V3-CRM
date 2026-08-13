@@ -47,8 +47,11 @@ def get_governed_comparison_periods(db, start_date, end_date, comparison_type="m
     [ELITE 3.0] Scope-Aware Max Data Detection.
     Enforces max_data_date capping for ALL widgets to ensure SSOT MoM/YoY alignment.
     """
-    # [ELITE] Scope-specific max data date detection
-    q_max = db.query(func.max(Transaction.ngay_chap_nhan))
+    # [ELITE] Scope-specific max data date detection (Valid customers only)
+    q_max = db.query(func.max(Transaction.ngay_chap_nhan)).filter(
+        Transaction.ma_kh.isnot(None),
+        Transaction.ma_kh != ''
+    )
     if scope_ids is not None:
         q_max = q_max.filter(Transaction.point_id.in_(scope_ids))
     

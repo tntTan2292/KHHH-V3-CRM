@@ -13,8 +13,11 @@ class LifecycleService:
         [GOVERNANCE] Centralized Lifecycle Count Resolver (SSOT).
         Unifies counting logic for Dashboard Cards, Customer Module Buttons, and Reports.
         """
-        # 1. Determine Boundary
-        max_ts = db.query(func.max(Transaction.ngay_chap_nhan)).scalar()
+        # 1. Determine Boundary (Valid customers only)
+        max_ts = db.query(func.max(Transaction.ngay_chap_nhan)).filter(
+            Transaction.ma_kh.isnot(None),
+            Transaction.ma_kh != ''
+        ).scalar()
         max_month_str = max_ts[:7] if isinstance(max_ts, str) else (max_ts.strftime("%Y-%m") if max_ts else None)
         
         # System Today context
