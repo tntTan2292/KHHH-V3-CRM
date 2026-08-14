@@ -11,7 +11,7 @@ from datetime import datetime
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.database import SQLALCHEMY_DATABASE_URL, Base, SessionLocal
-from app.models import Transaction, Customer, BackfillStatus, CustomerFirstOrder, CustomerLastActive, HierarchyNode
+from app.models import Transaction, Customer, BackfillStatus, CustomerFirstOrder, CustomerLastActive, HierarchyNode, ServiceClassification
 from app.utils.normalization import normalize_name
 from app.services.excel_reader import read_file2
 
@@ -67,6 +67,10 @@ def backfill_2025():
         # 0. Khởi tạo cây Point Map để gán Point ID
         points = db.query(HierarchyNode).filter(HierarchyNode.type == 'POINT').all()
         point_map = {p.code: p.id for p in points}
+
+        # 0.5. Khởi tạo Service Classification Map
+        services = db.query(ServiceClassification).filter(ServiceClassification.is_active == True).all()
+        service_map = {s.ma_dv.strip().upper(): s.loai_dich_vu for s in services}
 
         # 1. Kiểm tra thư mục backfill
         if not os.path.exists(BACKFILL_DIR):
@@ -135,6 +139,7 @@ def backfill_2025():
                     "doanh_thu": float(row.get("doanh_thu", 0) or 0),
                     "ma_dv_chap_nhan": madv_clean,
                     "dich_vu_chinh": str(row.get("dich_vu_chinh", "")).strip().upper(),
+                    "loai_dich_vu": service_map.get(str(row.get("dich_vu_chinh", "")).strip().upper(), "Khác"),
                     "ten_nguoi_gui": raw_name,
                     "dia_chi_nguoi_gui": raw_addr,
                     # Canonicalization (Enterprise Hardening)

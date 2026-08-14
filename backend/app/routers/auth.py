@@ -23,14 +23,14 @@ def get_db():
         db.close()
 
 @router.get("/name/{username}")
-async def get_name(username: str, db: Session = Depends(get_db)):
+def get_name(username: str, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == username).first()
     if not user:
         return {"name": None}
     return {"name": user.full_name}
 
 @router.post("/login")
-async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == form_data.username).first()
     
     if not user:
@@ -156,7 +156,7 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
 from ..auth.permissions import get_user_permissions
 
 @router.get("/me")
-async def get_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def get_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     # Refresh user data with relationships
     user = db.query(User).options(
         joinedload(User.role),
@@ -184,7 +184,7 @@ class ChangePasswordPayload(BaseModel):
     new_password: str
 
 @router.post("/change-password")
-async def change_password(
+def change_password(
     request: Request,
     payload: ChangePasswordPayload,
     db: Session = Depends(get_db),
@@ -218,7 +218,7 @@ async def change_password(
     return {"message": "Đã đổi mật khẩu thành công"}
 
 @router.get("/health")
-async def auth_health(db: Session = Depends(get_db)):
+def auth_health(db: Session = Depends(get_db)):
     try:
         # Kiểm tra kết nối DB
         user_count = db.query(User).count()

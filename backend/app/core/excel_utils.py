@@ -34,7 +34,7 @@ def style_excel_sheet(worksheet, df, title="BÁO CÁO HỆ THỐNG CRM", fast_mo
     worksheet.row_dimensions[2].height = 25
 
     # Column name mapping for optimization
-    center_cols = {"STT", "Mã CRM/CMS", "Mã KH", "Mã BC", "Mã Đơn vị", "Loại", "Trạng thái Vòng đời", "Phân khúc RFM", "Hạng RFM", "Nhóm KH", "Trạng thái", "Điểm Sức khỏe (0-100)", "Số điện thoại", "Ngày kết thúc HĐ", "Tần suất gửi (Ngày)", "Ngày giao dịch gần nhất"}
+    center_cols = {"STT", "Mã CRM/CMS", "Mã KH", "Mã BC", "Bưu cục", "Bưu cục Quản lý", "Mã Đơn vị", "Loại", "Trạng thái Vòng đời", "Phân khúc RFM", "Hạng RFM", "Nhóm KH", "Trạng thái", "Điểm Sức khỏe (0-100)", "Số điện thoại", "Ngày kết thúc HĐ", "Tần suất gửi (Ngày)", "Ngày giao dịch gần nhất"}
     col_names = list(df.columns)
     
     # Pre-calculate widths

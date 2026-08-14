@@ -175,7 +175,7 @@ def read_file2(filepath: str = None) -> pd.DataFrame:
     # Chuẩn hóa tên cột
     df.columns = [str(c).strip().lower() for c in df.columns]
 
-    # Mapping linh hoạt
+    # Mapping linh hoạt (Hỗ trợ đa mẫu: Báo cáo Chấp nhận sản lượng + Báo cáo Đối soát)
     mapping = {
         "dv": "ma_dv",
         "mã dv": "ma_dv",
@@ -185,10 +185,15 @@ def read_file2(filepath: str = None) -> pd.DataFrame:
         "makh": "ma_kh",
         "mã khách hàng": "ma_kh",
         "ma_kh": "ma_kh",
+        "mã kh cms": "ma_kh",
+        "mã kh crm": "ma_kh",
         "tennguoigui": "ten_nguoi_gui",
         "tên người gửi": "ten_nguoi_gui",
+        "tên kh cms": "ten_nguoi_gui",
+        "tên kh crm": "ten_nguoi_gui",
         "diachinguoinhan": "dia_chi_goc",
         "địa chỉ người nhận": "dia_chi_goc",
+        "địa chỉ nhận": "dia_chi_goc",
         "lientinhnoitinh": "lien_tinh_noi_tinh",
         "liên tỉnh nội tỉnh": "lien_tinh_noi_tinh",
         "trongnuocquocte": "trong_nuoc_quoc_te",
@@ -198,21 +203,30 @@ def read_file2(filepath: str = None) -> pd.DataFrame:
         "ngay_chap_nhan": "ngay_chap_nhan",
         "kltinhcuoc": "kl_tinh_cuoc",
         "khối lượng tính cước": "kl_tinh_cuoc",
+        "khối lượng tính cước (gr)": "kl_tinh_cuoc",
         "cuocchinhcovatthucthu": "cuoc_chinh_co_vat",
+        "cước chính chưa vat": "cuoc_chinh_co_vat",
         "phuphixangdaucovatthucthu": "phu_phi_xang_dau_co_vat",
+        "phụ phí xăng dầu chưa vat": "phu_phi_xang_dau_co_vat",
         "phuphivungxacovatthucthu": "phu_phi_vung_xa_co_vat",
+        "phụ phí vùng sâu, vùng xa chưa vat": "phu_phi_vung_xa_co_vat",
         "phuphikhaccovatthucthu": "phu_phi_khac_co_vat",
+        "phụ phí mùa dịch, hàng không chưa vat": "phu_phi_khac_co_vat",
         "cuocthuhothucthu": "cuoc_thu_ho",
         "cuocgtgtthucthu": "cuoc_gtgt",
+        "vat": "cuoc_gtgt",
         "madvchapnhan": "ma_dv_chap_nhan",
         "mã dv chấp nhận": "ma_dv_chap_nhan",
+        "mã bc chấp nhận": "ma_dv_chap_nhan",
         "diachinguoigui": "dia_chi_nguoi_gui",
         "địa chỉ người gửi": "dia_chi_nguoi_gui",
         "dichvuchinh": "dich_vu_chinh",
         "dịch vụ chính": "dich_vu_chinh",
+        "nhóm dịch vụ": "dich_vu_chinh",
         "tenkhachhang": "ten_khach_hang",
         "tên khách hàng": "ten_khach_hang",
-        "ten_khach_hang": "ten_khach_hang"
+        "ten_khach_hang": "ten_khach_hang",
+        "tổng cước bao gồm vat": "doanh_thu"
     }
 
     # Danh sách các cột "Sạch" chúng ta thực sự cần lưu vào SQLite
@@ -221,44 +235,67 @@ def read_file2(filepath: str = None) -> pd.DataFrame:
         "lien_tinh_noi_tinh", "trong_nuoc_quoc_te", "ngay_chap_nhan", "kl_tinh_cuoc",
         "cuoc_chinh_co_vat", "phu_phi_xang_dau_co_vat", "phu_phi_vung_xa_co_vat",
         "phu_phi_khac_co_vat", "cuoc_thu_ho", "cuoc_gtgt", "ma_dv_chap_nhan", "dich_vu_chinh",
-        "ten_khach_hang"
+        "ten_khach_hang", "doanh_thu"
     ]
 
     rename_final = {c: mapping[c] for c in df.columns if c in mapping}
     df_out = df[list(rename_final.keys())].rename(columns=rename_final).copy()
+
+    # Xử lý các cột bị trùng tên sau khi mapping (VD: mã kh cms và mã kh crm đều map về ma_kh)
+    if df_out.columns.has_duplicates:
+        new_df = pd.DataFrame(index=df_out.index)
+        for col in df_out.columns.unique():
+            sub = df_out[col]
+            if isinstance(sub, pd.DataFrame):
+                new_df[col] = sub.bfill(axis=1).iloc[:, 0]
+            else:
+                new_df[col] = sub
+        df_out = new_df
 
     # Chỉ giữ lại những cột nằm trong danh sách CLEAN_COLUMNS
     df_out = df_out[[c for c in df_out.columns if c in CLEAN_COLUMNS]]
 
     # Numeric conversions
     for c in ["kl_tinh_cuoc", "cuoc_chinh_co_vat", "phu_phi_xang_dau_co_vat", 
-              "phu_phi_vung_xa_co_vat", "phu_phi_khac_co_vat", "cuoc_thu_ho", "cuoc_gtgt"]:
+              "phu_phi_vung_xa_co_vat", "phu_phi_khac_co_vat", "cuoc_thu_ho", "cuoc_gtgt", "doanh_thu"]:
         if c in df_out.columns:
             df_out[c] = df_out[c].apply(safe_float)
             
-    # Xử lý ngày tháng linh hoạt (Excel date serial hoặc String)
+    # Xử lý ngày tháng linh hoạt (Excel date serial, ISO YYYY-MM-DD hoặc String chuẩn Việt Nam DD/MM/YYYY)
     if "ngay_chap_nhan" in df_out.columns:
         def parse_excel_date(val):
-            if pd.isna(val) or val == "": return pd.NaT
+            if pd.isna(val) or val == "" or str(val).strip() == "": return pd.NaT
             try:
                 # Nếu là số (Excel date serial)
                 num = float(val)
                 return pd.to_datetime(num, unit='D', origin='1899-12-30')
             except (ValueError, TypeError):
-                # Nếu là chuỗi (String)
-                return pd.to_datetime(str(val), errors='coerce', dayfirst=True)
+                s = str(val).strip()
+                # 1. Nếu là chuẩn ISO YYYY-MM-DD (VD: 2026-08-10 15:49:19.0)
+                if len(s) >= 10 and s[4] == '-' and s[7] == '-':
+                    return pd.to_datetime(s, errors='coerce')
+                # 2. Nếu có dấu gạch chéo '/' -> parse theo định dạng Việt Nam DD/MM/YYYY
+                if '/' in s:
+                    try:
+                        return pd.to_datetime(s, format="%d/%m/%Y %H:%M:%S")
+                    except Exception:
+                        try:
+                            return pd.to_datetime(s, format="%d/%m/%Y")
+                        except Exception:
+                            return pd.to_datetime(s, errors='coerce', dayfirst=True)
+                return pd.to_datetime(s, errors='coerce')
         
         df_out["ngay_chap_nhan"] = df_out["ngay_chap_nhan"].apply(parse_excel_date)
             
-    # Tính tổng doanh thu
-    revenue_cols = [
-        "cuoc_chinh_co_vat", "phu_phi_xang_dau_co_vat", "phu_phi_vung_xa_co_vat", 
-        "phu_phi_khac_co_vat", "cuoc_thu_ho", "cuoc_gtgt"
-    ]
-    
-    # Chỉ cộng các cột có tồn tại
-    existing_revenue_cols = [c for c in revenue_cols if c in df_out.columns]
-    df_out["doanh_thu"] = df_out[existing_revenue_cols].sum(axis=1)
+    # Tính tổng doanh thu nếu chưa có cột doanh_thu trực tiếp
+    if "doanh_thu" not in df_out.columns or df_out["doanh_thu"].sum() == 0:
+        revenue_cols = [
+            "cuoc_chinh_co_vat", "phu_phi_xang_dau_co_vat", "phu_phi_vung_xa_co_vat", 
+            "phu_phi_khac_co_vat", "cuoc_thu_ho", "cuoc_gtgt"
+        ]
+        existing_revenue_cols = [c for c in revenue_cols if c in df_out.columns]
+        if existing_revenue_cols:
+            df_out["doanh_thu"] = df_out[existing_revenue_cols].sum(axis=1)
 
     # Standardize address using mapping logic
     if "dia_chi_goc" in df_out.columns:

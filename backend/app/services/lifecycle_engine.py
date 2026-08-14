@@ -96,9 +96,20 @@ class LifecycleEngine:
                 h.last_order_before,
                 h.last_churn_marker,
                 COALESCE(
-                    (SELECT point_id FROM customer_monthly_snapshots s WHERE s.ma_kh = COALESCE(c.ma_kh, h.ma_kh) AND s.year_month = '{month_str}'),
-                    c.point_id,
-                    (SELECT ma_dv_chap_nhan FROM transactions t2 WHERE t2.ma_kh = COALESCE(c.ma_kh, h.ma_kh) AND t2.ngay_chap_nhan <= '{m_end}' ORDER BY ngay_chap_nhan DESC LIMIT 1)
+                    (
+                        SELECT point_id
+                        FROM transactions t2
+                        WHERE t2.ma_kh = COALESCE(c.ma_kh, h.ma_kh)
+                          AND t2.ngay_chap_nhan <= '{m_end}'
+                          AND t2.point_id IS NOT NULL
+                        ORDER BY t2.ngay_chap_nhan DESC
+                        LIMIT 1
+                    ),
+                    (
+                        SELECT point_id
+                        FROM customers cust
+                        WHERE cust.ma_crm_cms = COALESCE(c.ma_kh, h.ma_kh)
+                    )
                 ) as point_id
             FROM historical_evidence h
             LEFT JOIN current_activity c ON h.ma_kh = c.ma_kh

@@ -20,13 +20,20 @@ class KPIRollupService:
         # 1. Resolve full scope
         descendant_ids = HierarchyService.get_descendant_ids_by_id(db, node_id, include_children=True)
         
-        # 2. Fetch Revenue & Volume (Sum across all services)
+        import calendar
+        year, month = map(int, year_month.split("-"))
+        last_day = calendar.monthrange(year, month)[1]
+        start_date = f"{year_month}-01 00:00:00"
+        end_date = f"{year_month}-{last_day:02d} 23:59:59"
+        
+        # 2. Fetch Revenue & Volume (Sum across all services) - [GOVERNANCE] SSOT TRANSACTION
         rev_vol_query = db.query(
-            func.sum(MonthlyAnalyticsSummary.total_revenue).label("revenue"),
-            func.sum(MonthlyAnalyticsSummary.total_orders).label("volume")
+            func.sum(Transaction.doanh_thu).label("revenue"),
+            func.count(Transaction.id).label("volume")
         ).filter(
-            MonthlyAnalyticsSummary.point_id.in_(descendant_ids),
-            MonthlyAnalyticsSummary.year_month == year_month
+            Transaction.point_id.in_(descendant_ids),
+            Transaction.ngay_chap_nhan >= start_date,
+            Transaction.ngay_chap_nhan <= end_date
         ).first()
 
         # 3. Fetch Customers (Use 'ALL' marker to avoid over-counting)

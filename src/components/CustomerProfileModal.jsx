@@ -1,6 +1,11 @@
 import React from 'react';
 import { Users, X, MapPin, TrendingUp, BarChart3, Sparkles } from 'lucide-react';
+import ClassificationDonutChart from './ClassificationDonutChart';
+import ScopeDonutChart from './ScopeDonutChart';
+import ServiceDistributionChart from './ServiceDistributionChart';
 import { ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip } from 'recharts';
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 export default function CustomerProfileModal({
   selectedCustomer,
@@ -11,9 +16,32 @@ export default function CustomerProfileModal({
 }) {
   if (!selectedCustomer) return null;
 
+  const renderTooltipContent = (o) => {
+    if(o.active && o.payload && o.payload.length){
+        const data = o.payload[0].payload;
+        const total = (fullCustomerDetail?.customer?.doanh_thu_luy_ke) || 1;
+        const pct = ((data.value / total) * 100).toFixed(1);
+        return (
+            <div className="bg-white p-2 border border-gray-200 rounded shadow-sm text-xs">
+                <p className="font-bold">{data.name}</p>
+                <p>{formatCurrency(data.value)} ({pct}%)</p>
+            </div>
+        );
+    }
+    return null;
+  };
+
+  const renderLegend = (value, entry) => {
+    const dataVal = entry.payload.value;
+    const total = (fullCustomerDetail?.customer?.doanh_thu_luy_ke) || 1;
+    const pct = ((dataVal / total) * 100).toFixed(1);
+    const formattedVal = formatCurrency ? formatCurrency(dataVal) : dataVal.toLocaleString();
+    return <span className="text-[10px] text-gray-700 font-medium" title={`${value} - ${formattedVal}`}>{value} - {formattedVal} ({pct}%)</span>;
+  };
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden border border-white/20 animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <div className="bg-white w-full max-w-6xl rounded-3xl shadow-2xl overflow-hidden border border-white/20 animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto custom-scrollbar">
         <div className="relative p-8 bg-vnpost-blue text-white overflow-hidden">
           <div className="absolute top-0 right-0 p-8 opacity-10"><Users size={120} /></div>
           <button onClick={() => setSelectedCustomer(null)} className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full transition-colors"><X size={24} /></button>
@@ -75,28 +103,49 @@ export default function CustomerProfileModal({
              </div>
           </div>
 
-          {/* Right Column: Service Mix & AI Insights */}
-          <div className="space-y-6">
-             <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                   <BarChart3 size={14} className="text-vnpost-orange" /> Cơ cấu Dịch vụ
-                </h5>
-                <div className="space-y-3">
-                   {loadingDetail ? (
-                     <div className="text-gray-300 italic text-xs animate-pulse">Đang nạp cơ cấu dịch vụ...</div>
-                   ) : fullCustomerDetail?.services?.slice(0, 4).map((s, i) => (
-                     <div key={i}>
-                        <div className="flex justify-between text-[11px] font-bold mb-1">
-                           <span className="truncate">{s.name}</span>
-                           <span>{((s.value / (fullCustomerDetail.customer.doanh_thu_luy_ke || 1)) * 100).toFixed(0)}%</span>
-                        </div>
-                        <div className="w-full bg-gray-100 h-1 rounded-full overflow-hidden">
-                           <div className="bg-vnpost-orange h-full" style={{ width: `${(s.value / (fullCustomerDetail.customer.doanh_thu_luy_ke || 1)) * 100}%` }}></div>
-                        </div>
-                     </div>
-                   ))}
-                </div>
-             </div>
+           {/* Right Column: Service Mix & AI Insights */}
+           <div className="space-y-6">
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                  <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                     <BarChart3 size={14} className="text-vnpost-orange" /> Cơ cấu Dịch vụ
+                  </h5>
+                  <div className="h-48">
+                     <ServiceDistributionChart 
+                        data={fullCustomerDetail?.services} 
+                        loading={loadingDetail} 
+                        totalRevenue={fullCustomerDetail?.customer?.doanh_thu_luy_ke} 
+                        formatCurrency={formatCurrency} 
+                     />
+                  </div>
+               </div>
+
+               <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                  <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                     <BarChart3 size={14} className="text-blue-500" /> Tỉ trọng Trong nước / Quốc tế
+                  </h5>
+                  <div className="h-48">
+                     <ScopeDonutChart 
+                        data={fullCustomerDetail?.scope} 
+                        loading={loadingDetail} 
+                        totalRevenue={fullCustomerDetail?.customer?.doanh_thu_luy_ke} 
+                        formatCurrency={formatCurrency} 
+                     />
+                  </div>
+               </div>
+
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                 <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <BarChart3 size={14} className="text-indigo-500" /> Cơ cấu Nhóm Dịch vụ
+                 </h5>
+                 <div className="h-48">
+                    <ClassificationDonutChart 
+                      data={fullCustomerDetail?.classifications}
+                      loading={loadingDetail}
+                      totalRevenue={fullCustomerDetail?.customer?.doanh_thu_luy_ke}
+                      formatCurrency={formatCurrency}
+                    />
+                 </div>
+              </div>
 
              <div className="bg-amber-50 p-6 rounded-2xl border border-amber-100">
                 <h5 className="text-[11px] font-black text-amber-700 uppercase tracking-widest mb-3 flex items-center gap-2">

@@ -4,6 +4,9 @@ import { saveNavigationContext, getNavigationContext, syncUrlWithContext, getCon
 import api from '../utils/api';
 import { Search, Filter, Download, Download as DownloadX, TableProperties, AlertCircle, X, ChevronRight, ChevronLeft, Calendar, TrendingUp, ArrowUpDown, ChevronUp, ChevronDown, RefreshCw, CloudDownload, CheckCircle2, History, Star, Users, Briefcase, Zap, LogOut, UserPlus, UserMinus, Award, Activity, MapPin, ArrowUpRight, Save, AlertTriangle, Phone, FileText, Edit, Check, UploadCloud, Send, Settings, MessageCircle, Sparkles, Info, Network, Globe, Map, Building2, Boxes, Building, Store } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
+import ClassificationDonutChart from '../components/ClassificationDonutChart';
+import ScopeDonutChart from '../components/ScopeDonutChart';
+import ServiceDistributionChart from '../components/ServiceDistributionChart';
 import TreeExplorer from '../components/TreeExplorer';
 import CustomerHistoryModal from '../components/CustomerHistoryModal';
 import Skeleton from '../components/Skeleton';
@@ -2019,7 +2022,7 @@ export default function Customers() {
       {/* Drill-down Modal */}
       {selectedCustomer && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[90vh] overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-7xl max-h-[90vh] overflow-y-auto animate-fade-in">
             <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex justify-between items-center z-10">
               <div className="flex items-center gap-3">
                 <h3 className="text-2xl font-black flex items-center gap-2">
@@ -2203,31 +2206,17 @@ export default function Customers() {
                    </div>
 
                    {/* Charts Grid */}
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       {/* Trong nước vs Quốc tế */}
                       <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                         <h4 className="font-semibold text-gray-800 mb-4 border-b pb-2">Tỉ Trọng Trong Nước / Quốc Tế</h4>
                         <div className="h-64 w-full">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                              <Pie
-                                data={customerDetails.scope}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={50}
-                                outerRadius={80}
-                                paddingAngle={5}
-                                dataKey="value"
-                                label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}
-                              >
-                                {customerDetails.scope.map((entry, index) => (
-                                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
-                              </Pie>
-                              <RechartsTooltip formatter={(value) => formatCurrency(value)} />
-                              <Legend verticalAlign="bottom" height={36}/>
-                            </PieChart>
-                          </ResponsiveContainer>
+                          <ScopeDonutChart 
+                            data={customerDetails.scope}
+                            loading={loadingDetails}
+                            totalRevenue={customerDetails.doanh_thu_luy_ke || customerDetails.tong_doanh_thu}
+                            formatCurrency={formatCurrency}
+                          />
                         </div>
                       </div>
 
@@ -2235,24 +2224,25 @@ export default function Customers() {
                       <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                         <h4 className="font-semibold text-gray-800 mb-4 border-b pb-2">Doanh Thu Theo Dịch Vụ</h4>
                         <div className="h-64 w-full">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                              <Pie
-                                data={customerDetails.services}
-                                cx="50%"
-                                cy="50%"
-                                outerRadius={80}
-                                paddingAngle={2}
-                                dataKey="value"
-                                label={({name}) => name}
-                              >
-                                {customerDetails.services.map((entry, index) => (
-                                  <Cell key={`cell-${index}`} fill={COLORS[(index+2) % COLORS.length]} />
-                                ))}
-                              </Pie>
-                              <RechartsTooltip formatter={(value) => formatCurrency(value)} />
-                            </PieChart>
-                          </ResponsiveContainer>
+                          <ServiceDistributionChart 
+                            data={customerDetails.services}
+                            loading={loadingDetails}
+                            totalRevenue={customerDetails.doanh_thu_luy_ke || customerDetails.tong_doanh_thu}
+                            formatCurrency={formatCurrency}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Cơ cấu Nhóm Dịch Vụ */}
+                      <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                        <h4 className="font-semibold text-gray-800 mb-4 border-b pb-2">Cơ cấu Nhóm Dịch vụ</h4>
+                        <div className="h-64 w-full">
+                          <ClassificationDonutChart 
+                            data={customerDetails.classifications}
+                            loading={loadingDetails}
+                            totalRevenue={customerDetails.doanh_thu_luy_ke || customerDetails.tong_doanh_thu}
+                            formatCurrency={formatCurrency}
+                          />
                         </div>
                       </div>
                    </div>

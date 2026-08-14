@@ -349,6 +349,13 @@ async def get_customer_details(ma_crm: str, db: Session = Depends(get_db), curre
     trong_nuoc = 0
     quoc_te = 0
     services_dist = {}
+    classifications_dist = {
+        "TMĐT": 0,
+        "HCC": 0,
+        "Truyền thống": 0,
+        "Quốc tế": 0,
+        "Khác": 0
+    }
     last_active = None
     
     for t in transactions:
@@ -369,8 +376,16 @@ async def get_customer_details(ma_crm: str, db: Session = Depends(get_db), curre
             svc_name = svc_map.get(ma_dv, f"{ma_dv} - Dịch vụ khác")
             
         services_dist[svc_name] = services_dist.get(svc_name, 0) + t_dt
+
+        ldv = str(getattr(t, "loai_dich_vu", "Khác")).strip()
+        if not ldv or ldv == "None":
+            ldv = "Khác"
+        if ldv not in classifications_dist:
+            ldv = "Khác"
+        classifications_dist[ldv] += t_dt
         
     services_arr = [{"name": k, "value": v} for k, v in services_dist.items() if v > 0]
+    classifications_arr = [{"name": k, "value": v} for k, v in classifications_dist.items()]
     scope_arr = [
         {"name": "Trong nước", "value": trong_nuoc},
         {"name": "Quốc tế", "value": quoc_te}
@@ -413,6 +428,7 @@ async def get_customer_details(ma_crm: str, db: Session = Depends(get_db), curre
     return {
         "customer": customer_payload,
         "services": sorted(services_arr, key=lambda x: x['value'], reverse=True),
+        "classifications": sorted(classifications_arr, key=lambda x: x['value'], reverse=True),
         "scope": scope_arr,
         "trend": trend_arr,
         "total_transactions": total_transactions,
@@ -474,7 +490,8 @@ async def get_customer_transactions(
             "shbg": t.shbg,
             "ngay_chap_nhan": t.ngay_chap_nhan.strftime("%Y-%m-%d %H:%M:%S") if t.ngay_chap_nhan else None,
             "doanh_thu": t.doanh_thu or 0.0,
-            "dich_vu_chinh": t.dich_vu_chinh
+            "dich_vu_chinh": t.dich_vu_chinh,
+            "loai_dich_vu": getattr(t, "loai_dich_vu", None)
         })
         
     total_pages = (total + page_size - 1) // page_size if page_size > 0 else 1
@@ -614,7 +631,7 @@ async def get_customer_timeline_360(
             SELECT 
                 'lifecycle' as event_type, id as source_id, timestamp,
                 previous_state as raw_1, new_state as raw_2, trigger_reason as raw_3,
-                NULL as raw_4, NULL as raw_5, NULL as raw_6
+                NULL as raw_4, NULL as raw_5, NULL as raw_6, NULL as raw_7
             FROM lifecycle_logs WHERE ma_kh = :ma_crm
             
             UNION ALL
@@ -622,7 +639,7 @@ async def get_customer_timeline_360(
             SELECT 
                 'vip' as event_type, id as source_id, timestamp,
                 previous_tier as raw_1, new_tier as raw_2, trigger_reason as raw_3,
-                NULL as raw_4, NULL as raw_5, NULL as raw_6
+                NULL as raw_4, NULL as raw_5, NULL as raw_6, NULL as raw_7
             FROM vip_logs WHERE ma_kh = :ma_crm
             
             UNION ALL
@@ -631,7 +648,7 @@ async def get_customer_timeline_360(
                 'priority' as event_type, id as source_id, timestamp,
                 CAST(previous_score as TEXT) as raw_1, CAST(new_score as TEXT) as raw_2,
                 previous_level as raw_3, new_level as raw_4, trigger_reason as raw_5,
-                NULL as raw_6
+                NULL as raw_6, NULL as raw_7
             FROM priority_logs WHERE ma_kh = :ma_crm
             
             UNION ALL
@@ -639,7 +656,7 @@ async def get_customer_timeline_360(
             SELECT 
                 'action' as event_type, t.id as source_id, t.created_at as timestamp,
                 t.phan_loai_giao_viec as raw_1, tp.tieu_de as raw_2, t.noi_dung as raw_3,
-                t.trang_thai as raw_4, t.bao_cao_ket_qua as raw_5, n.full_name as raw_6
+                t.trang_thai as raw_4, t.bao_cao_ket_qua as raw_5, n.full_name as raw_6, NULL as raw_7
             FROM action_tasks t
             LEFT JOIN action_task_templates tp ON t.template_id = tp.id
             LEFT JOIN nhan_su n ON t.staff_id = n.id
@@ -650,7 +667,7 @@ async def get_customer_timeline_360(
             SELECT 
                 'transaction' as event_type, id as source_id, ngay_chap_nhan as timestamp,
                 shbg as raw_1, dich_vu_chinh as raw_2, CAST(doanh_thu as TEXT) as raw_3,
-                NULL as raw_4, NULL as raw_5, NULL as raw_6
+                NULL as raw_4, NULL as raw_5, NULL as raw_6, loai_dich_vu as raw_7
             FROM transactions WHERE ma_kh = :ma_crm
         )
         ORDER BY timestamp DESC
@@ -772,10 +789,12 @@ async def get_customer_timeline_360(
             shbg = r[3]
             dv = r[4]
             doanh_thu = r[5]
+            ldv = r[9] if len(r) > 9 else None
             
             event_obj["raw_data"] = {
                 "shbg": shbg,
                 "dich_vu_chinh": dv,
+                "loai_dich_vu": ldv,
                 "doanh_thu": doanh_thu
             }
             

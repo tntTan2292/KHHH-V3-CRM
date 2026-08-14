@@ -221,6 +221,7 @@ const PotentialTransactionModal = ({ isOpen, onClose, customerName, startDate, e
                     <th className="p-4 font-black uppercase text-[10px]">Ngày gửi</th>
                     <th className="p-4 font-black uppercase text-[10px]">Mã bưu gửi</th>
                     <th className="p-4 font-black uppercase text-[10px]">Dịch vụ</th>
+                    <th className="p-4 font-black uppercase text-[10px]">Loại dịch vụ</th>
                     <th className="p-4 font-black uppercase text-[10px]">Bưu cục nhận</th>
                     <th className="p-4 font-black uppercase text-[10px] text-right">Doanh thu</th>
                   </tr>
@@ -235,6 +236,15 @@ const PotentialTransactionModal = ({ isOpen, onClose, customerName, startDate, e
                         <td className="p-4 font-bold text-gray-600">{tx.ngay_chap_nhan}</td>
                         <td className="p-4 font-black text-indigo-600">{tx.shbg}</td>
                         <td className="p-4 text-xs font-bold">{tx.dich_vu_chinh}</td>
+                        <td className="p-4 text-xs font-bold">
+                          {tx.loai_dich_vu ? (
+                            <span className="bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-lg border border-emerald-200/50 text-[10px] font-bold">
+                              {tx.loai_dich_vu}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
                         <td className="p-4 text-xs font-bold text-gray-500">{tx.point_name} ({tx.ma_dv_chap_nhan})</td>
                         <td className="p-4 font-black text-vnpost-blue text-right">{formatCurrency(tx.doanh_thu)}</td>
                       </tr>
